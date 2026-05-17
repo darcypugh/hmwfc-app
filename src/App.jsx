@@ -47,7 +47,6 @@ const NAV_ITEMS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
 const ADMIN_PASSWORD = "wells2026";
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
-const TAG_OPTIONS = ["", "NEW", "SALE", "LIMITED"];
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 async function loadData() {
