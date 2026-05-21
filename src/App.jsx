@@ -313,6 +313,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const dbRef = ref(db, "hmwfc");
@@ -349,9 +350,14 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0d0c22; } ::-webkit-scrollbar-thumb { background: #347ebf55; border-radius: 3px; }
-        .nav-btn { background: none; border: none; color: #8899bb; font-family: Barlow Condensed, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; padding: 10px 14px; transition: all 0.2s; border-bottom: 2px solid transparent; }
-        .nav-btn:hover { color: #fff; }
-        .nav-btn.active { color: #347ebf; border-bottom: 2px solid #347ebf; }
+        .nav-btn { background: none; border: none; color: #aabbcc; font-family: Barlow Condensed, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; padding: 14px 20px; transition: all 0.2s; border-left: 3px solid transparent; text-align: left; width: 100%; }
+        .nav-btn:hover { color: #fff; background: #347ebf18; }
+        .nav-btn.active { color: #347ebf; border-left: 3px solid #347ebf; background: #347ebf11; }
+        .menu-overlay { position: fixed; inset: 0; background: #000000aa; z-index: 200; }
+        .menu-sidebar { position: fixed; top: 0; left: 0; height: 100%; width: 240px; background: #191740; z-index: 201; display: flex; flex-direction: column; box-shadow: 4px 0 30px #00000088; transform: translateX(0); }
+        .hamburger { background: none; border: none; cursor: pointer; padding: 6px; display: flex; flex-direction: column; gap: 5px; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: #aabbcc; border-radius: 2px; transition: all 0.2s; }
+        .hamburger:hover span { background: #fff; }
         .card { background: #191740; border: 1px solid #ffffff0f; border-radius: 12px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px #347ebf22; }
         .tab-btn { background: none; border: 1px solid #ffffff22; color: #8899bb; font-family: Barlow Condensed, sans-serif; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 12px; cursor: pointer; padding: 7px 18px; border-radius: 20px; transition: all 0.2s; }
@@ -369,23 +375,38 @@ export default function App() {
       {showLogin && <AdminLogin onSuccess={() => { setShowLogin(false); setAdminOpen(true); }} onClose={() => setShowLogin(false)} />}
       {adminOpen && <AdminPanel data={data} onUpdate={updateSection} onClose={() => setAdminOpen(false)} />}
 
-      <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 100%)", borderBottom: "1px solid #ffffff0f" }}>
-        <div style={{ maxWidth: 980, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 16, paddingBottom: 10 }}>
-            <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" style={{ height: 52, filter: "drop-shadow(0 0 12px #347ebf66)" }} />
-            <div>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
-              <div style={{ fontSize: 11, color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase" }}>The Wells · Est. Hemsworth</div>
+      {menuOpen && (
+        <>
+          <div className="menu-overlay" onClick={() => setMenuOpen(false)} />
+          <div className="menu-sidebar">
+            <div style={{ padding: "20px 20px 10px", borderBottom: "1px solid #ffffff0f", display: "flex", alignItems: "center", gap: 12 }}>
+              <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" style={{ height: 36, filter: "drop-shadow(0 0 8px #347ebf66)" }} />
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#347ebf", letterSpacing: 1 }}>THE WELLS</div>
             </div>
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ background: "#347ebf22", border: "1px solid #347ebf44", borderRadius: 8, padding: "4px 12px" }}>
-                <span style={{ fontSize: 11, color: "#347ebf", fontWeight: 700, letterSpacing: 1 }}>🏆 LEAGUE LEADERS</span>
-              </div>
-              <button onClick={() => setShowLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "5px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif" }}>⚙ ADMIN</button>
+            <div style={{ flex: 1, paddingTop: 8 }}>
+              {NAV_ITEMS.map(n => (
+                <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => { setActive(n); setMenuOpen(false); }}>{n}</button>
+              ))}
+            </div>
+            <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
+              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ ADMIN PANEL</button>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 0, overflowX: "auto" }}>
-            {NAV_ITEMS.map(n => <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => setActive(n)}>{n}</button>)}
+        </>
+      )}
+
+      <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 100%)", borderBottom: "1px solid #ffffff0f" }}>
+        <div style={{ maxWidth: 980, margin: "0 auto", padding: "0 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, paddingTop: 12, paddingBottom: 12 }}>
+            <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menu">
+              <span /><span /><span />
+            </button>
+            <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" style={{ height: 64, filter: "drop-shadow(0 0 12px #347ebf66)" }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(14px, 4vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>HEMSWORTH MINERS WELFARE FC</div>
+              <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
+            </div>
+            <button onClick={() => setShowLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap", flexShrink: 0 }}>⚙</button>
           </div>
         </div>
       </div>
