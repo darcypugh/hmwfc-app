@@ -24,7 +24,7 @@ const DEFAULT_DATA = {
     { id: 3, date: "8 May 2026", tag: "Community", title: "Junior Academy Open Day — June 14th", body: "Opening our doors to young players aged 6–16. Come along and bring your boots!", emoji: "🏆" },
   ],
   table: [
-    { pos: 1, team: "Hemsworth Miners Welfare FC", p: 32, w: 22, d: 6, l: 4, gd: "+38", pts: 72, highlight: true },
+    { pos: 1, team: "Hemsworth Miners Welfare FC", p: 32, w: 22, d: 6, l: 4, gd: "+38", pts: 72, highlight: true, badge: "" },
     { pos: 2, team: "Riverside Athletic", p: 32, w: 21, d: 5, l: 6, gd: "+31", pts: 68, highlight: false },
     { pos: 3, team: "Northgate United", p: 32, w: 18, d: 8, l: 6, gd: "+22", pts: 62, highlight: false },
     { pos: 4, team: "Brackley Town", p: 32, w: 16, d: 7, l: 9, gd: "+14", pts: 55, highlight: false },
@@ -36,10 +36,10 @@ const DEFAULT_DATA = {
     { pos: 10, team: "Penwick Town", p: 32, w: 5, d: 4, l: 23, gd: "-38", pts: 19, highlight: false },
   ],
   fixtures: [
-    { id: 1, date: "18 May", home: "Hemsworth Miners Welfare FC", away: "Brackley Town", time: "15:00", venue: "Welfare Ground", result: "", type: "upcoming" },
-    { id: 2, date: "25 May", home: "Moorfield City", away: "Hemsworth Miners Welfare FC", time: "14:00", venue: "City Ground", result: "", type: "upcoming" },
-    { id: 3, date: "11 May", home: "Riverside Athletic", away: "Hemsworth Miners Welfare FC", time: "", venue: "Riverside", result: "1 – 3", type: "result" },
-    { id: 4, date: "4 May", home: "Hemsworth Miners Welfare FC", away: "Thornton FC", time: "", venue: "Welfare Ground", result: "2 – 0", type: "result" },
+    { id: 1, date: "18 May", home: "Hemsworth Miners Welfare FC", away: "Brackley Town", time: "15:00", venue: "Welfare Ground", result: "", halftime: "", scorers: "", type: "upcoming" },
+    { id: 2, date: "25 May", home: "Moorfield City", away: "Hemsworth Miners Welfare FC", time: "14:00", venue: "City Ground", result: "", halftime: "", scorers: "", type: "upcoming" },
+    { id: 3, date: "11 May", home: "Riverside Athletic", away: "Hemsworth Miners Welfare FC", time: "", venue: "Riverside", result: "1 – 3", halftime: "0 – 1", scorers: "Williams 34, Okafor 58, Hadley 82", type: "result" },
+    { id: 4, date: "4 May", home: "Hemsworth Miners Welfare FC", away: "Thornton FC", time: "", venue: "Welfare Ground", result: "2 – 0", halftime: "1 – 0", scorers: "Williams 12, Okafor 71", type: "result" },
   ],
   squad: [
     { id: 1, name: "Marcus Trent", pos: "GK", no: 1, apps: 30, goals: 0 },
@@ -57,7 +57,7 @@ const DEFAULT_DATA = {
   ],
 };
 
-const NAV_ITEMS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
+const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
 const ADMIN_PASSWORD = "wells2026";
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
@@ -111,31 +111,50 @@ function AdminNews({ items, onSave }) {
 
 function AdminTable({ items, onSave }) {
   const [list, setList] = useState(items);
+  const [expandedBadge, setExpandedBadge] = useState(null);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addRow = () => setList([...list, { pos: list.length + 1, team: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false }]);
+  const addRow = () => setList([...list, { pos: list.length + 1, team: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
   const save = () => onSave(list);
+  const uploadBadge = (idx, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const b64 = e.target.result.split(",")[1];
+      update(idx, "badge", b64);
+    };
+    reader.readAsDataURL(file);
+  };
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>League Table</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={addRow}>+ Row</button>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here — it will appear on the homepage result card and anywhere else badges are shown.</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead><tr>{["Pos","Team","P","W","D","L","GD","Pts","Our Club",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+          <thead><tr>{["Badge","Pos","Team","P","W","D","L","GD","Pts","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
           <tbody>
             {list.map((r, idx) => (
               <tr key={idx} style={{ background: r.highlight ? "#347ebf11" : "transparent" }}>
+                <td style={{ padding: "4px 6px" }}>
+                  <label style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "#0d0c22", border: "1px dashed #347ebf44", borderRadius: 6, overflow: "hidden" }}>
+                    {r.badge
+                      ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                      : <span style={{ fontSize: 18 }}>🛡</span>}
+                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, e.target.files[0])} />
+                  </label>
+                </td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 40 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 180 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
                 {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update(idx, "pts", +e.target.value)} /></td>
-                <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={r.highlight} onChange={e => update(idx, "highlight", e.target.checked)} /></td>
+                <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update(idx, "highlight", e.target.checked)} /></td>
                 <td style={{ padding: "4px 6px" }}><button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "4px 10px" }} onClick={() => del(idx)}>✕</button></td>
               </tr>
             ))}
@@ -181,7 +200,11 @@ function AdminFixtures({ items, onSave }) {
               </div>
               <div style={S.row}>
                 <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update(idx, "venue", e.target.value)} /></div>
-                <div style={{ flex: 1 }}><label style={S.label}>Score (results only, e.g. 2 – 1)</label><input style={S.input} value={f.result} onChange={e => update(idx, "result", e.target.value)} placeholder="e.g. 2 – 1" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Full time score (e.g. 2 – 1)</label><input style={S.input} value={f.result} onChange={e => update(idx, "result", e.target.value)} placeholder="e.g. 2 – 1" /></div>
+              </div>
+              <div style={S.row}>
+                <div style={{ flex: 1 }}><label style={S.label}>Half time score (e.g. 1 – 0)</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="e.g. 1 – 0" /></div>
+                <div style={{ flex: 2 }}><label style={S.label}>Goalscorers (e.g. Smith 23, Jones 67)</label><input style={S.input} value={f.scorers || ""} onChange={e => update(idx, "scorers", e.target.value)} placeholder="Smith 23, Jones 67" /></div>
               </div>
               <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-end" }} onClick={save}>Save</button>
             </div>
@@ -307,13 +330,14 @@ function AdminLogin({ onSuccess, onClose }) {
 }
 
 export default function App() {
-  const [active, setActive] = useState("News");
+  const [active, setActive] = useState("Home");
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [expandedArticle, setExpandedArticle] = useState(null);
 
   useEffect(() => {
     const dbRef = ref(db, "hmwfc");
@@ -412,6 +436,166 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "28px 20px 60px" }}>
+
+        {active === "Home" && (() => {
+          const latest = data.news && data.news.length > 0 ? data.news[0] : null;
+          const sorted = [...data.table].sort((a, b) => a.pos - b.pos);
+          const total = sorted.length;
+          const getZone = (pos) => {
+            if (pos === 1) return "champions";
+            if (pos <= 5) return "playoff";
+            if (pos >= total - 2) return "relegation";
+            return "mid";
+          };
+          const zoneColor = { champions: "#f59e0b", playoff: "#10b981", relegation: "#ef4444", mid: "#8899bb" };
+          const isExpanded = expandedArticle === (latest && latest.id);
+          const latestResult = data.fixtures && [...data.fixtures].filter(f => f.type === "result").sort((a,b) => (b.id||0) - (a.id||0))[0];
+          const getBadge = (teamName) => { const t = data.table && data.table.find(r => r.team === teamName); return t && t.badge ? `data:image/png;base64,${t.badge}` : null; };
+          const oursBadge = latestResult && getBadge(latestResult.home && latestResult.home.includes("Hemsworth") ? latestResult.home : latestResult.away);
+          const oppName = latestResult ? (latestResult.home.includes("Hemsworth") ? latestResult.away : latestResult.home) : null;
+          const oppBadge = latestResult && getBadge(oppName);
+          const weWereHome = latestResult && latestResult.home.includes("Hemsworth");
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 280px", gap: 24, alignItems: "start" }} className="home-grid">
+              <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 280px; } @media(max-width:680px){ .home-grid { grid-template-columns: 1fr !important; } }`}</style>
+              {/* Latest news */}
+              <div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest News</div>
+                {latest ? (
+                  <div className="card" style={{ overflow: "hidden" }}>
+                    {/* Hero image placeholder */}
+                    <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 60%, #1a3a5c 100%)", height: 200, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 72, position: "relative" }}>
+                      {latest.emoji}
+                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(transparent, #191740)" }} />
+                    </div>
+                    <div style={{ padding: "20px 22px 24px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ background: "#347ebf22", color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 8px", borderRadius: 4 }}>{latest.tag}</span>
+                        <span style={{ color: "#8899bb", fontSize: 11 }}>{latest.date}</span>
+                      </div>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, lineHeight: 1.15, marginBottom: 14 }}>{latest.title}</div>
+                      <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 16 }}>
+                        {isExpanded ? latest.body : latest.body.slice(0, 160) + (latest.body.length > 160 ? "..." : "")}
+                      </div>
+                      {latest.body.length > 160 && (
+                        <button onClick={() => setExpandedArticle(isExpanded ? null : latest.id)} style={{ background: "none", border: "1px solid #347ebf55", borderRadius: 7, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", transition: "all 0.2s" }}>
+                          {isExpanded ? "Show less ↑" : "Read full story →"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ color: "#8899bb", fontSize: 14 }}>No news yet — add some in the admin panel.</div>
+                )}
+                {/* Other recent articles */}
+                {data.news.length > 1 && (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {data.news.slice(1).map(n => (
+                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => setActive("News")}>
+                          <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center" }}>
+                              <span style={{ background: "#347ebf22", color: "#347ebf", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3 }}>{n.tag}</span>
+                              <span style={{ color: "#8899bb", fontSize: 11 }}>{n.date}</span>
+                            </div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{n.title}</div>
+                          </div>
+                          <div style={{ marginLeft: "auto", color: "#347ebf", fontSize: 16, flexShrink: 0 }}>→</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mini league table */}
+              <div>
+                {/* Latest result card */}
+                {latestResult && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest Result</div>
+                    <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
+                      <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
+                        {/* Badges + Score */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+                          {/* Home badge */}
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                            {(weWereHome ? oursBadge : oppBadge)
+                              ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} />
+                              : <div style={{ width: 56, height: 56, background: "#347ebf22", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: weWereHome ? "#fff" : "#aabbcc", lineHeight: 1.2 }}>{weWereHome ? "The Wells" : oppName}</div>
+                          </div>
+                          {/* Score */}
+                          <div style={{ textAlign: "center", flexShrink: 0 }}>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
+                            {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
+                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{latestResult.date}</div>
+                          </div>
+                          {/* Away badge */}
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                            {(!weWereHome ? oursBadge : oppBadge)
+                              ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} />
+                              : <div style={{ width: 56, height: 56, background: "#347ebf22", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: !weWereHome ? "#fff" : "#aabbcc", lineHeight: 1.2 }}>{!weWereHome ? "The Wells" : oppName}</div>
+                          </div>
+                        </div>
+                        {/* Venue */}
+                        <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
+                      </div>
+                      {/* Scorers */}
+                      {latestResult.scorers && (
+                        <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
+                          <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>⚽ Goalscorers</div>
+                          <div style={{ fontSize: 12, color: "#aabbcc", lineHeight: 1.8 }}>
+                            {latestResult.scorers.split(",").map((s, i) => (
+                              <span key={i} style={{ display: "inline-block", marginRight: 10 }}>⚽ {s.trim()}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>League Table</div>
+                <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "1px solid #ffffff0f" }}>
+                        <th style={{ padding: "8px 10px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "left", width: 4 }}></th>
+                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "left" }}>#</th>
+                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "left" }}>Club</th>
+                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "right" }}>Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sorted.map((r, idx) => {
+                        const zone = getZone(r.pos);
+                        const isOurs = r.highlight;
+                        const prevZone = idx > 0 ? getZone(sorted[idx-1].pos) : null;
+                        const showDivider = prevZone && prevZone !== zone;
+                        return (
+                          <tr key={r.pos} style={{ background: isOurs ? "#347ebf14" : "transparent", borderTop: showDivider ? "1px solid #ffffff14" : "none" }}>
+                            <td style={{ padding: 0, width: 3 }}><div style={{ width: 3, height: 36, background: isOurs ? "#347ebf" : zoneColor[zone], opacity: 0.8 }} /></td>
+                            <td style={{ padding: "8px 6px", fontSize: 12, color: isOurs ? "#347ebf" : zoneColor[zone], fontWeight: 700 }}>{r.pos}</td>
+                            <td style={{ padding: "8px 6px", fontSize: 12, fontWeight: isOurs ? 700 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 130 }}>
+                              {isOurs ? "The Wells" : r.team.split(" ").slice(0,2).join(" ")}
+                            </td>
+                            <td style={{ padding: "8px 6px", fontSize: 12, fontWeight: 700, textAlign: "right" }}>{r.pts}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div style={{ padding: "10px 12px", borderTop: "1px solid #ffffff0f" }}>
+                    <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW FULL TABLE →</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {active === "News" && (
           <div>
