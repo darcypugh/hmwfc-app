@@ -111,7 +111,6 @@ function AdminNews({ items, onSave }) {
 
 function AdminTable({ items, onSave }) {
   const [list, setList] = useState(items);
-  const [expandedBadge, setExpandedBadge] = useState(null);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addRow = () => setList([...list, { pos: list.length + 1, team: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
