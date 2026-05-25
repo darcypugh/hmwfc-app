@@ -74,8 +74,14 @@ function AdminNews({ items, onSave }) {
   const [editing, setEditing] = useState(null);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addNew = () => { const l = [...list, { id: Date.now(), date: "", tag: "Club News", title: "", body: "", emoji: "⚽" }]; setList(l); setEditing(l.length - 1); };
+  const addNew = () => { const l = [...list, { id: Date.now(), date: "", tag: "Club News", title: "", body: "", emoji: "⚽", image: "" }]; setList(l); setEditing(l.length - 1); };
   const save = () => { onSave(list); setEditing(null); };
+  const uploadImage = (idx, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => update(idx, "image", e.target.result);
+    reader.readAsDataURL(file);
+  };
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -85,7 +91,12 @@ function AdminNews({ items, onSave }) {
       {list.map((n, idx) => (
         <div key={n.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: editing === idx ? 12 : 0 }}>
-            <div><span style={{ fontSize: 11, color: "#347ebf", fontWeight: 700 }}>{n.tag}</span><span style={{ marginLeft: 10, fontSize: 14, fontWeight: 600 }}>{n.title || "(untitled)"}</span><span style={{ marginLeft: 8, color: "#8899bb", fontSize: 12 }}>{n.date}</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {n.image && <div style={{ width: 32, height: 32, borderRadius: 4, overflow: "hidden", flexShrink: 0 }}><img src={n.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
+              <span style={{ fontSize: 11, color: "#347ebf", fontWeight: 700 }}>{n.tag}</span>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{n.title || "(untitled)"}</span>
+              <span style={{ color: "#8899bb", fontSize: 12 }}>{n.date}</span>
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setEditing(editing === idx ? null : idx)}>{editing === idx ? "Close" : "Edit"}</button>
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 12px" }} onClick={() => del(idx)}>Delete</button>
@@ -99,7 +110,21 @@ function AdminNews({ items, onSave }) {
                 <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
               </div>
               <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update(idx, "title", e.target.value)} /></div>
-              <div><label style={S.label}>Body</label><textarea style={{ ...S.input, height: 70, resize: "vertical" }} value={n.body} onChange={e => update(idx, "body", e.target.value)} /></div>
+              <div><label style={S.label}>Body</label><textarea style={{ ...S.input, height: 100, resize: "vertical" }} value={n.body} onChange={e => update(idx, "body", e.target.value)} /></div>
+              <div>
+                <label style={S.label}>Article Image</label>
+                <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#0d0c22", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12 }}>
+                  {n.image
+                    ? <img src={n.image} alt="" style={{ height: 80, borderRadius: 6, objectFit: "cover", maxWidth: 140 }} />
+                    : <div style={{ fontSize: 28 }}>📷</div>}
+                  <div>
+                    <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 2 }}>{n.image ? "Tap to change image" : "Tap to upload image"}</div>
+                    <div style={{ fontSize: 11, color: "#8899bb" }}>JPG or PNG recommended</div>
+                  </div>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadImage(idx, e.target.files[0])} />
+                </label>
+                {n.image && <button onClick={() => update(idx, "image", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove image</button>}
+              </div>
               <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-end" }} onClick={save}>Save</button>
             </div>
           )}
@@ -336,7 +361,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [expandedArticle, setExpandedArticle] = useState(null);
+  const [selectedArticle, setSelectedArticle] = useState(null);
 
   useEffect(() => {
     const dbRef = ref(db, "hmwfc");
@@ -362,7 +387,7 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
         <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" style={{ height: 64, marginBottom: 20, filter: "drop-shadow(0 0 12px #347ebf66)" }} />
-        <div style={{ color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, letterSpacing: 2 }}>LOADING THE WELLS...</div>
+        <div style={{ color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, letterSpacing: 2 }}>Loading...</div>
       </div>
     </div>
   );
@@ -447,7 +472,6 @@ export default function App() {
             return "mid";
           };
           const zoneColor = { champions: "#f59e0b", playoff: "#10b981", relegation: "#ef4444", mid: "#8899bb" };
-          const isExpanded = expandedArticle === (latest && latest.id);
           const latestResult = data.fixtures && [...data.fixtures].filter(f => f.type === "result").sort((a,b) => (b.id||0) - (a.id||0))[0];
           const getBadge = (teamName) => { const t = data.table && data.table.find(r => r.team === teamName); return t && t.badge ? `data:image/png;base64,${t.badge}` : null; };
           const oursBadge = latestResult && getBadge(latestResult.home && latestResult.home.includes("Hemsworth") ? latestResult.home : latestResult.away);
@@ -459,14 +483,39 @@ export default function App() {
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 280px; } @media(max-width:680px){ .home-grid { grid-template-columns: 1fr !important; } }`}</style>
               {/* Latest news */}
               <div>
+                {/* Merch strip */}
+                {data.merch && data.merch.length > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
+                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                      {data.merch.slice(0, 4).map(m => (
+                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, padding: "14px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0, width: 110, transition: "transform 0.2s" }}>
+                          {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3 }}>{m.tag}</span>}
+                          <div style={{ fontSize: 30 }}>{m.emoji}</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", lineHeight: 1.2 }}>{m.name}</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest News</div>
                 {latest ? (
                   <div className="card" style={{ overflow: "hidden" }}>
-                    {/* Hero image placeholder */}
-                    <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 60%, #1a3a5c 100%)", height: 200, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 72, position: "relative" }}>
-                      {latest.emoji}
-                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(transparent, #191740)" }} />
-                    </div>
+                    {/* Hero image */}
+                    {latest.image
+                      ? <div style={{ position: "relative", height: 220, overflow: "hidden" }}>
+                          <img src={latest.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(transparent, #191740)" }} />
+                        </div>
+                      : <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 60%, #1a3a5c 100%)", height: 200, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 72, position: "relative" }}>
+                          {latest.emoji}
+                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50%", background: "linear-gradient(transparent, #191740)" }} />
+                        </div>
+                    }
                     <div style={{ padding: "20px 22px 24px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                         <span style={{ background: "#347ebf22", color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 8px", borderRadius: 4 }}>{latest.tag}</span>
@@ -474,13 +523,11 @@ export default function App() {
                       </div>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, lineHeight: 1.15, marginBottom: 14 }}>{latest.title}</div>
                       <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 16 }}>
-                        {isExpanded ? latest.body : latest.body.slice(0, 160) + (latest.body.length > 160 ? "..." : "")}
+                        {latest.body.slice(0, 180)}{latest.body.length > 180 ? "..." : ""}
                       </div>
-                      {latest.body.length > 160 && (
-                        <button onClick={() => setExpandedArticle(isExpanded ? null : latest.id)} style={{ background: "none", border: "1px solid #347ebf55", borderRadius: 7, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", transition: "all 0.2s" }}>
-                          {isExpanded ? "Show less ↑" : "Read full story →"}
-                        </button>
-                      )}
+                      <button onClick={() => { setSelectedArticle(latest); setActive("News"); }} style={{ background: "none", border: "1px solid #347ebf55", borderRadius: 7, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", transition: "all 0.2s" }}>
+                        Read full story →
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -492,7 +539,7 @@ export default function App() {
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {data.news.slice(1).map(n => (
-                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => setActive("News")}>
+                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); }}>
                           <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center" }}>
@@ -512,6 +559,39 @@ export default function App() {
               {/* Mini league table */}
               <div>
                 {/* Latest result card */}
+                {/* Upcoming fixtures */}
+                {(() => {
+                  const upcoming = data.fixtures && [...data.fixtures].filter(f => f.type === "upcoming").slice(0, 3);
+                  if (!upcoming || upcoming.length === 0) return null;
+                  return (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Upcoming Fixtures</div>
+                      <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
+                        {upcoming.map((f, i) => {
+                          const homeBadge = getBadge(f.home);
+                          const awayBadge = getBadge(f.away);
+                          const weHome = f.home.includes("Hemsworth");
+                          return (
+                            <div key={f.id} style={{ padding: "12px 14px", borderBottom: i < upcoming.length - 1 ? "1px solid #ffffff07" : "none" }}>
+                              <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 6, letterSpacing: 0.5 }}>{f.date} · {f.time} · {f.venue}</div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                {homeBadge ? <img src={homeBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
+                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: weHome ? 700 : 400, color: weHome ? "#fff" : "#aabbcc", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{weHome ? "The Wells" : f.home}</span>
+                                <span style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, flexShrink: 0 }}>vs</span>
+                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: !weHome ? 700 : 400, color: !weHome ? "#fff" : "#aabbcc", flex: 1, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!weHome ? "The Wells" : f.away}</span>
+                                {awayBadge ? <img src={awayBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div style={{ padding: "10px 14px", borderTop: "1px solid #ffffff0f" }}>
+                          <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL FIXTURES →</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {latestResult && (
                   <div style={{ marginBottom: 20 }}>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest Result</div>
@@ -598,22 +678,46 @@ export default function App() {
 
         {active === "News" && (
           <div>
-            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Latest News</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-              {data.news.map(n => (
-                <div key={n.id} className="card">
-                  <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "28px 20px 18px", fontSize: 44, textAlign: "center" }}>{n.emoji}</div>
-                  <div style={{ padding: "16px 18px 20px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <span style={{ background: "#347ebf22", color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 8px", borderRadius: 4 }}>{n.tag}</span>
-                      <span style={{ color: "#8899bb", fontSize: 11 }}>{n.date}</span>
-                    </div>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 8, lineHeight: 1.2 }}>{n.title}</div>
-                    <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.6 }}>{n.body}</div>
+            {selectedArticle ? (
+              <div>
+                <button onClick={() => setSelectedArticle(null)} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back to News</button>
+                <div style={{ maxWidth: 680 }}>
+                  {selectedArticle.image
+                    ? <img src={selectedArticle.image} alt="" style={{ width: "100%", maxHeight: 340, objectFit: "cover", borderRadius: 12, marginBottom: 24 }} />
+                    : <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", borderRadius: 12, height: 200, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 72, marginBottom: 24 }}>{selectedArticle.emoji}</div>
+                  }
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <span style={{ background: "#347ebf22", color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 8px", borderRadius: 4 }}>{selectedArticle.tag}</span>
+                    <span style={{ color: "#8899bb", fontSize: 12 }}>{selectedArticle.date}</span>
                   </div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, lineHeight: 1.15, marginBottom: 18 }}>{selectedArticle.title}</div>
+                  <div style={{ fontSize: 15, color: "#aabbcc", lineHeight: 1.8 }}>{selectedArticle.body}</div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Latest News</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
+                  {data.news.map(n => (
+                    <div key={n.id} className="card" onClick={() => setSelectedArticle(n)} style={{ cursor: "pointer" }}>
+                      {n.image
+                        ? <img src={n.image} alt="" style={{ width: "100%", height: 180, objectFit: "cover" }} />
+                        : <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "28px 20px 18px", fontSize: 44, textAlign: "center" }}>{n.emoji}</div>
+                      }
+                      <div style={{ padding: "16px 18px 20px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{ background: "#347ebf22", color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 8px", borderRadius: 4 }}>{n.tag}</span>
+                          <span style={{ color: "#8899bb", fontSize: 11 }}>{n.date}</span>
+                        </div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 8, lineHeight: 1.2 }}>{n.title}</div>
+                        <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.6 }}>{n.body.slice(0, 100)}{n.body.length > 100 ? "..." : ""}</div>
+                        <div style={{ marginTop: 12, color: "#347ebf", fontSize: 12, fontWeight: 700, fontFamily: "Barlow Condensed, sans-serif", letterSpacing: 1 }}>READ MORE →</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
