@@ -50,10 +50,10 @@ const DEFAULT_DATA = {
     { id: 6, name: "Dion Taylor", pos: "FW", no: 11, apps: 26, goals: 9, cleanSheets: 0, yellowCards: 1, redCards: 0, motm: 1, playing: false },
   ],
   merch: [
-    { id: 1, name: "Home Kit 26/27", price: "£55", emoji: "👕", tag: "NEW" },
-    { id: 2, name: "Club Scarf", price: "£15", emoji: "🧣", tag: "" },
-    { id: 3, name: "Matchday Programme", price: "£4", emoji: "📰", tag: "" },
-    { id: 4, name: "Training Top", price: "£35", emoji: "🧥", tag: "" },
+    { id: 1, name: "Home Kit 26/27", price: "£55", emoji: "👕", tag: "NEW", image: "", isClothing: true, stripeLink: "", sizes: { XS: "available", S: "available", M: "available", L: "available", XL: "available", XXL: "low", "3XL": "sold_out" } },
+    { id: 2, name: "Club Scarf", price: "£15", emoji: "🧣", tag: "", image: "", isClothing: false, stripeLink: "", sizes: {} },
+    { id: 3, name: "Matchday Programme", price: "£4", emoji: "📰", tag: "", image: "", isClothing: false, stripeLink: "", sizes: {} },
+    { id: 4, name: "Training Top", price: "£35", emoji: "🧥", tag: "", image: "", isClothing: true, stripeLink: "", sizes: { XS: "available", S: "available", M: "available", L: "low", XL: "sold_out", XXL: "sold_out", "3XL": "sold_out" } },
   ],
 };
 
@@ -206,7 +206,7 @@ function AdminFixtures({ items, tableData, onSave }) {
   const getStadium = (teamName) => { const t = (tableData||[]).find(r => r.team === teamName); return t && t.stadium ? t.stadium : ""; };
   const addNew = () => {
     const defaultVenue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
-    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "upcoming" }];
+    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, homeBadge: "", awayBadge: "", type: "upcoming" }];
     setList(l); setEditing(l.length - 1);
   };
   const save = () => { onSave(list); setEditing(null); };
@@ -222,13 +222,14 @@ function AdminFixtures({ items, tableData, onSave }) {
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Fixtures & Results</div>
         <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addNew}>+ Add Fixture</button>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>For friendlies, tick the Friendly box and upload opponent badges directly on the fixture — they don't need to be in the league table.</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Tick Friendly or Cup to tag the match type. Upload opponent badges directly on the fixture for games against teams not in the league table.</div>
       {list.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No fixtures yet — tap "+ Add Fixture" to get started.</div>}
       {list.map((f, idx) => (
         <div key={f.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: editing === idx ? 12 : 0 }}>
             <div style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, background: "#f59e0b18", padding: "2px 6px", borderRadius: 3 }}>FRIENDLY</span>}
+              {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, background: "#8b5cf622", padding: "2px 6px", borderRadius: 3 }}>CUP</span>}
               <span style={{ color: "#8899bb" }}>{f.date}</span>
               <span style={{ fontWeight: 600 }}>{f.home} vs {f.away}</span>
               {f.result && <span style={{ color: "#347ebf", fontWeight: 700 }}>{f.result}</span>}
@@ -245,15 +246,21 @@ function AdminFixtures({ items, tableData, onSave }) {
                 <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update(idx, "time", e.target.value)} placeholder="15:00" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Type</label><select style={S.input} value={f.type} onChange={e => update(idx, "type", e.target.value)}><option value="upcoming">Upcoming</option><option value="result">Result</option></select></div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
-                <input type="checkbox" id={`friendly-${idx}`} checked={!!f.friendly} onChange={e => update(idx, "friendly", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#f59e0b" }} />
-                <label htmlFor={`friendly-${idx}`} style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700, cursor: "pointer" }}>⭐ This is a friendly match</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 20, background: "#191740", borderRadius: 8, padding: "10px 14px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" id={`friendly-${idx}`} checked={!!f.friendly} onChange={e => update(idx, "friendly", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#f59e0b" }} />
+                  <label htmlFor={`friendly-${idx}`} style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700, cursor: "pointer" }}>⭐ Friendly</label>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" id={`cup-${idx}`} checked={!!f.cup} onChange={e => update(idx, "cup", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#8b5cf6" }} />
+                  <label htmlFor={`cup-${idx}`} style={{ fontSize: 13, color: "#8b5cf6", fontWeight: 700, cursor: "pointer" }}>🏆 Cup Game</label>
+                </div>
               </div>
               <div style={S.row}>
                 <div style={{ flex: 1 }}>
                   <label style={S.label}>Home Team</label>
                   <input style={S.input} value={f.home} onChange={e => update(idx, "home", e.target.value)} />
-                  {f.friendly && (
+                  {(f.friendly || f.cup) && (
                     <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer", background: "#0d0c22", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
                       {f.homeBadge ? <img src={f.homeBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>🛡</span>}
                       <span style={{ fontSize: 11, color: "#8899bb" }}>Home badge</span>
@@ -264,7 +271,7 @@ function AdminFixtures({ items, tableData, onSave }) {
                 <div style={{ flex: 1 }}>
                   <label style={S.label}>Away Team</label>
                   <input style={S.input} value={f.away} onChange={e => update(idx, "away", e.target.value)} />
-                  {f.friendly && (
+                  {(f.friendly || f.cup) && (
                     <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer", background: "#0d0c22", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
                       {f.awayBadge ? <img src={f.awayBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>🛡</span>}
                       <span style={{ fontSize: 11, color: "#8899bb" }}>Away badge</span>
@@ -336,12 +343,28 @@ function AdminSquad({ items, onSave }) {
   );
 }
 
+const SIZES = ["XS","S","M","L","XL","XXL","3XL"];
+const SIZE_STATUS = ["available","low","sold_out"];
+const SIZE_LABELS = { available: "In Stock", low: "Low Stock", sold_out: "Sold Out" };
+const SIZE_COLORS = { available: "#10b981", low: "#f59e0b", sold_out: "#ef4444" };
+
 function AdminMerch({ items, onSave }) {
   const [list, setList] = useState(items);
+  const [expanded, setExpanded] = useState(null);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
+  const updateSize = (idx, size, status) => {
+    const sizes = { ...(list[idx].sizes || {}), [size]: status };
+    update(idx, "sizes", sizes);
+  };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addItem = () => setList([...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "" }]);
+  const addItem = () => { const l = [...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "", image: "", isClothing: false, stripeLink: "", sizes: {} }]; setList(l); setExpanded(l.length - 1); };
   const save = () => onSave(list);
+  const uploadImage = (idx, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => update(idx, "image", e.target.result);
+    reader.readAsDataURL(file);
+  };
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -352,14 +375,65 @@ function AdminMerch({ items, onSave }) {
         </div>
       </div>
       {list.map((m, idx) => (
-        <div key={m.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
-          <div style={S.row}>
-            <div style={{ flex: 0.4, minWidth: 55 }}><label style={S.label}>Icon</label><input style={S.input} value={m.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
-            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Item Name</label><input style={S.input} value={m.name} onChange={e => update(idx, "name", e.target.value)} /></div>
-            <div style={{ flex: 0.8, minWidth: 80 }}><label style={S.label}>Price</label><input style={S.input} value={m.price} onChange={e => update(idx, "price", e.target.value)} /></div>
-            <div style={{ flex: 0.8, minWidth: 90 }}><label style={S.label}>Badge</label><select style={S.input} value={m.tag} onChange={e => update(idx, "tag", e.target.value)}>{["", "NEW", "SALE", "LIMITED"].map(o => <option key={o} value={o}>{o || "None"}</option>)}</select></div>
-            <div style={{ display: "flex", alignItems: "flex-end" }}><button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button></div>
+        <div key={m.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, marginBottom: 8, overflow: "hidden" }}>
+          {/* Summary row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12 }}>
+            {m.image ? <img src={m.image} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} /> : <div style={{ width: 44, height: 44, background: "#191740", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{m.emoji}</div>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name || "(unnamed)"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{m.price}{m.isClothing ? " · Clothing" : ""}{m.stripeLink ? " · ✓ Payment link" : " · No payment link"}</div>
+            </div>
+            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setExpanded(expanded === idx ? null : idx)}>{expanded === idx ? "Close" : "Edit"}</button>
+            <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 10px" }} onClick={() => del(idx)}>✕</button>
           </div>
+          {/* Expanded edit */}
+          {expanded === idx && (
+            <div style={{ borderTop: "1px solid #ffffff0f", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={S.row}>
+                <div style={{ flex: 0.3, minWidth: 55 }}><label style={S.label}>Icon</label><input style={S.input} value={m.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
+                <div style={{ flex: 2, minWidth: 130 }}><label style={S.label}>Item Name</label><input style={S.input} value={m.name} onChange={e => update(idx, "name", e.target.value)} /></div>
+                <div style={{ flex: 0.7, minWidth: 70 }}><label style={S.label}>Price</label><input style={S.input} value={m.price} onChange={e => update(idx, "price", e.target.value)} /></div>
+                <div style={{ flex: 0.7, minWidth: 80 }}><label style={S.label}>Badge</label><select style={S.input} value={m.tag} onChange={e => update(idx, "tag", e.target.value)}>{["","NEW","SALE","LIMITED"].map(o => <option key={o} value={o}>{o||"None"}</option>)}</select></div>
+              </div>
+              {/* Image upload */}
+              <div>
+                <label style={S.label}>Product Image</label>
+                <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12 }}>
+                  {m.image ? <img src={m.image} alt="" style={{ height: 70, borderRadius: 6, objectFit: "cover", maxWidth: 120 }} /> : <div style={{ fontSize: 28 }}>📷</div>}
+                  <div><div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 2 }}>{m.image ? "Tap to change" : "Tap to upload image"}</div><div style={{ fontSize: 11, color: "#8899bb" }}>JPG or PNG</div></div>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadImage(idx, e.target.files[0])} />
+                </label>
+                {m.image && <button onClick={() => update(idx, "image", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove image</button>}
+              </div>
+              {/* Stripe link */}
+              <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update(idx, "stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>
+              {/* Clothing toggle */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
+                <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update(idx, "isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
+                <label htmlFor={`clothing-${idx}`} style={{ fontSize: 13, color: "#347ebf", fontWeight: 700, cursor: "pointer" }}>👕 This item has sizes (XS–3XL)</label>
+              </div>
+              {/* Size stock manager */}
+              {m.isClothing && (
+                <div>
+                  <label style={S.label}>Size Stock</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {SIZES.map(sz => {
+                      const status = (m.sizes || {})[sz] || "available";
+                      return (
+                        <div key={sz} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: SIZE_COLORS[status] }}>{sz}</div>
+                          <select value={status} onChange={e => updateSize(idx, sz, e.target.value)} style={{ ...S.input, width: 90, fontSize: 11, padding: "4px 6px", color: SIZE_COLORS[status], borderColor: SIZE_COLORS[status] + "44" }}>
+                            {SIZE_STATUS.map(s => <option key={s} value={s}>{SIZE_LABELS[s]}</option>)}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-end" }} onClick={save}>Save All</button>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -430,6 +504,9 @@ export default function App() {
   const [squadView, setSquadView] = useState("current");
   const [sortBy, setSortBy] = useState("name");
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [selectedMerch, setSelectedMerch] = useState(null);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [qty, setQty] = useState(1);
 
   useEffect(() => {
     const dbRef = ref(db, "hmwfc");
@@ -887,7 +964,12 @@ export default function App() {
                   const awayBadge = getBadgeForFixture(f, f.away);
                   return (
                     <div key={f.id} className="card" style={{ padding: "16px 20px" }}>
-                      {f.friendly && <div style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>⭐ Friendly</div>}
+                      {(f.friendly || f.cup) && (
+                        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                          {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 1, background: "#f59e0b18", padding: "2px 8px", borderRadius: 4 }}>⭐ Friendly</span>}
+                          {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, letterSpacing: 1, background: "#8b5cf622", padding: "2px 8px", borderRadius: 4 }}>🏆 Cup</span>}
+                        </div>
+                      )}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <div style={{ minWidth: 60, fontSize: 12, color: "#8899bb", fontWeight: 600 }}>{f.date}</div>
                         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
@@ -898,6 +980,7 @@ export default function App() {
                           {f.result
                             ? <div style={{ textAlign: "center", flexShrink: 0 }}>
                                 <span style={{ display: "block", background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 80 }}>{f.result}</span>
+                                {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, letterSpacing: 0.5, marginTop: 4 }}>HT {f.halftime}</div>}
                               </div>
                             : <span style={{ background: "#ffffff0f", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 80, textAlign: "center", flexShrink: 0 }}>{f.time}</span>}
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-start" }}>
@@ -916,10 +999,8 @@ export default function App() {
                                 <div key={i}>⚽ {s.trim()}</div>
                               ))}
                             </div>
-                            {/* Centre — HT score */}
-                            <div style={{ minWidth: 80, textAlign: "center", flexShrink: 0 }}>
-                              {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>HT {f.halftime}</div>}
-                            </div>
+                            {/* Centre spacer */}
+                            <div style={{ minWidth: 80, flexShrink: 0 }} />
                             {/* Away scorers */}
                             <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
                               {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
@@ -1008,16 +1089,78 @@ export default function App() {
 
         {active === "Merch" && (
           <div>
+            {/* Product detail modal */}
+            {selectedMerch && (
+              <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }}>
+                <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 460, overflow: "hidden", boxShadow: "0 20px 60px #00000088" }} onClick={e => e.stopPropagation()}>
+                  {/* Image */}
+                  {selectedMerch.image
+                    ? <img src={selectedMerch.image} alt="" style={{ width: "100%", height: 220, objectFit: "cover" }} />
+                    : <div style={{ height: 160, background: "linear-gradient(135deg,#191740,#0d0c22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 72 }}>{selectedMerch.emoji}</div>}
+                  <div style={{ padding: "20px 24px 28px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div>
+                        {selectedMerch.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, marginRight: 8 }}>{selectedMerch.tag}</span>}
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, marginTop: 6 }}>{selectedMerch.name}</div>
+                      </div>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: "#347ebf", flexShrink: 0 }}>{selectedMerch.price}</div>
+                    </div>
+                    {/* Sizes */}
+                    {selectedMerch.isClothing && (
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SELECT SIZE</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {["XS","S","M","L","XL","XXL","3XL"].map(sz => {
+                            const status = (selectedMerch.sizes || {})[sz] || "available";
+                            const soldOut = status === "sold_out";
+                            const low = status === "low";
+                            const chosen = selectedSize === sz;
+                            return (
+                              <button key={sz} disabled={soldOut} onClick={() => setSelectedSize(sz)} style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, padding: "7px 14px", borderRadius: 8, border: chosen ? "2px solid #347ebf" : "2px solid #ffffff22", background: soldOut ? "#ffffff08" : chosen ? "#347ebf22" : "#ffffff0f", color: soldOut ? "#8899bb55" : low ? "#f59e0b" : "#fff", cursor: soldOut ? "not-allowed" : "pointer", textDecoration: soldOut ? "line-through" : "none", position: "relative" }}>
+                                {sz}
+                                {low && !soldOut && <span style={{ position: "absolute", top: -4, right: -4, width: 8, height: 8, background: "#f59e0b", borderRadius: "50%", display: "block" }} />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#8899bb", marginTop: 8 }}>
+                          <span style={{ color: "#f59e0b" }}>●</span> Low stock &nbsp; <span style={{ color: "#8899bb55" }}>—</span> Sold out
+                        </div>
+                      </div>
+                    )}
+                    {/* Quantity */}
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>QUANTITY</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #ffffff22", background: "#ffffff0f", color: "#fff", fontSize: 18, cursor: "pointer" }}>−</button>
+                        <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 700, minWidth: 30, textAlign: "center" }}>{qty}</span>
+                        <button onClick={() => setQty(q => q + 1)} style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #ffffff22", background: "#ffffff0f", color: "#fff", fontSize: 18, cursor: "pointer" }}>+</button>
+                      </div>
+                    </div>
+                    {/* Buy button */}
+                    {selectedMerch.stripeLink
+                      ? <a href={`${selectedMerch.stripeLink}?quantity=${qty}${selectedSize ? `&metadata[size]=${selectedSize}` : ""}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none", opacity: selectedMerch.isClothing && !selectedSize ? 0.4 : 1, pointerEvents: selectedMerch.isClothing && !selectedSize ? "none" : "auto" }}>
+                          {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now — ${selectedMerch.price}`}
+                        </a>
+                      : <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>}
+                    <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 8 }}>Club Shop</div>
             <div style={{ color: "#8899bb", fontSize: 13, marginBottom: 22 }}>Support The Wells — wear the colours with pride.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
-              {data.merch.map(m => (
-                <div key={m.id} className="merch-card">
-                  {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 4, alignSelf: "flex-start" }}>{m.tag}</span>}
-                  <div style={{ fontSize: 44 }}>{m.emoji}</div>
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, textAlign: "center" }}>{m.name}</div>
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
-                  <button className="buy-btn">Buy Now</button>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 16 }}>
+              {(data.merch || []).map(m => (
+                <div key={m.id} className="merch-card" onClick={() => { setSelectedMerch(m); setSelectedSize(""); setQty(1); }}>
+                  {m.image
+                    ? <img src={m.image} alt="" style={{ width: "100%", height: 130, objectFit: "cover", borderRadius: 8, marginBottom: 4 }} />
+                    : <div style={{ fontSize: 44 }}>{m.emoji}</div>}
+                  {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 4 }}>{m.tag}</span>}
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "center" }}>{m.name}</div>
+                  {m.isClothing && <div style={{ fontSize: 10, color: "#8899bb", letterSpacing: 0.5 }}>Sizes available</div>}
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                  <button className="buy-btn" onClick={e => { e.stopPropagation(); setSelectedMerch(m); setSelectedSize(""); setQty(1); }}>View & Buy</button>
                 </div>
               ))}
             </div>
