@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set } from "firebase/database";
 
@@ -69,9 +69,93 @@ const S = {
   row: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" },
 };
 
+function ImageCropper({ src, onDone, onCancel }) {
+  const canvasRef = useRef(null);
+  const [drag, setDrag] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
+  const [imgEl, setImgEl] = useState(null);
+  const TARGET_W = 1200, TARGET_H = 500;
+
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setImgEl(img);
+      const s = Math.max(TARGET_W / img.width, TARGET_H / img.height);
+      setScale(s);
+      setOffset({ x: (TARGET_W - img.width * s) / 2, y: (TARGET_H - img.height * s) / 2 });
+    };
+    img.src = src;
+  }, [src]);
+
+  useEffect(() => {
+    if (!imgEl || !canvasRef.current) return;
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+    ctx.drawImage(imgEl, offset.x, offset.y, imgEl.width * scale, imgEl.height * scale);
+  }, [imgEl, offset, scale]);
+
+  const clampOffset = (ox, oy, s) => {
+    if (!imgEl) return { x: ox, y: oy };
+    const iw = imgEl.width * s, ih = imgEl.height * s;
+    return {
+      x: Math.min(0, Math.max(TARGET_W - iw, ox)),
+      y: Math.min(0, Math.max(TARGET_H - ih, oy)),
+    };
+  };
+
+  const onMouseDown = (e) => { setDrag(true); setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
+  const onMouseMove = (e) => { if (!drag) return; const raw = { x: e.clientX - start.x, y: e.clientY - start.y }; setOffset(clampOffset(raw.x, raw.y, scale)); };
+  const onMouseUp = () => setDrag(false);
+  const onTouchStart = (e) => { const t = e.touches[0]; setDrag(true); setStart({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
+  const onTouchMove = (e) => { if (!drag) return; const t = e.touches[0]; const raw = { x: t.clientX - start.x, y: t.clientY - start.y }; setOffset(clampOffset(raw.x, raw.y, scale)); };
+
+  const zoom = (delta) => {
+    const ns = Math.max(Math.max(TARGET_W / (imgEl?.width||1), TARGET_H / (imgEl?.height||1)), Math.min(4, scale + delta));
+    setScale(ns);
+    setOffset(o => clampOffset(o.x, o.y, ns));
+  };
+
+  const crop = () => {
+    const out = document.createElement("canvas");
+    out.width = TARGET_W; out.height = TARGET_H;
+    const ctx = out.getContext("2d");
+    if (imgEl) ctx.drawImage(imgEl, offset.x, offset.y, imgEl.width * scale, imgEl.height * scale);
+    onDone(out.toDataURL("image/jpeg", 0.88));
+  };
+
+  const displayW = Math.min(TARGET_W, window.innerWidth - 48);
+  const displayH = Math.round(displayW * TARGET_H / TARGET_W);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#191740", borderRadius: 14, padding: 20, width: "100%", maxWidth: 640 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Crop Image</div>
+        <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 14 }}>Drag to reposition · Use + / − to zoom</div>
+        <div style={{ borderRadius: 8, overflow: "hidden", cursor: drag ? "grabbing" : "grab", touchAction: "none", marginBottom: 14, width: displayW, height: displayH }}
+          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}>
+          <canvas ref={canvasRef} width={TARGET_W} height={TARGET_H} style={{ width: displayW, height: displayH, display: "block" }} />
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, justifyContent: "center" }}>
+          <button onClick={() => zoom(-0.1)} style={{ ...S.btn, background: "#ffffff11", color: "#fff", fontSize: 18, padding: "4px 16px" }}>−</button>
+          <button onClick={() => zoom(0.1)} style={{ ...S.btn, background: "#ffffff11", color: "#fff", fontSize: 18, padding: "4px 16px" }}>+</button>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} style={{ ...S.btn, flex: 1, background: "#ffffff11", color: "#aabbcc" }}>Cancel</button>
+          <button onClick={crop} style={{ ...S.btn, flex: 2, background: "#10b981", color: "#fff" }}>✓ Use this crop</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminNews({ items, onSave }) {
   const [list, setList] = useState(items);
   const [editing, setEditing] = useState(null);
+  const [cropSrc, setCropSrc] = useState(null);
+  const [cropIdx, setCropIdx] = useState(null);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addNew = () => { const l = [...list, { id: Date.now(), date: "", tag: "Club News", title: "", body: "", emoji: "⚽", image: "" }]; setList(l); setEditing(l.length - 1); };
@@ -79,11 +163,12 @@ function AdminNews({ items, onSave }) {
   const uploadImage = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => update(idx, "image", e.target.result);
+    reader.onload = (e) => { setCropSrc(e.target.result); setCropIdx(idx); };
     reader.readAsDataURL(file);
   };
   return (
     <div>
+      {cropSrc && <ImageCropper src={cropSrc} onDone={(dataUrl) => { update(cropIdx, "image", dataUrl); setCropSrc(null); setCropIdx(null); }} onCancel={() => { setCropSrc(null); setCropIdx(null); }} />}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>News Articles</div>
         <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addNew}>+ Add Article</button>
@@ -138,7 +223,7 @@ function AdminTable({ items, onSave }) {
   const [list, setList] = useState(items);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addRow = () => setList([...list, { pos: list.length + 1, team: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
+  const addRow = () => setList([...list, { pos: list.length + 1, team: "", stadium: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
   const save = () => onSave(list);
   const uploadBadge = (idx, file) => {
     if (!file) return;
@@ -161,7 +246,7 @@ function AdminTable({ items, onSave }) {
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here — it will appear on the homepage result card and anywhere else badges are shown.</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead><tr>{["Badge","Pos","Team","P","W","D","L","GD","Pts","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+          <thead><tr>{["Badge","Pos","Team","Stadium","P","W","D","L","GD","Pts","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
           <tbody>
             {list.map((r, idx) => (
               <tr key={idx} style={{ background: r.highlight ? "#347ebf11" : "transparent" }}>
@@ -175,6 +260,7 @@ function AdminTable({ items, onSave }) {
                 </td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 40 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update(idx, "stadium", e.target.value)} /></td>
                 {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update(idx, "pts", +e.target.value)} /></td>
@@ -189,12 +275,27 @@ function AdminTable({ items, onSave }) {
   );
 }
 
-function AdminFixtures({ items, onSave }) {
+function AdminFixtures({ items, tableData, onSave }) {
   const [list, setList] = useState(items);
   const [editing, setEditing] = useState(null);
-  const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
+  const update = (idx, field, val) => {
+    const updated = list.map((x, i) => i === idx ? { ...x, [field]: val } : x);
+    // Auto-fill venue from home team's stadium when home team changes
+    if (field === "home") {
+      const match = (tableData || []).find(t => t.team === val);
+      if (match && match.stadium) {
+        updated[idx] = { ...updated[idx], venue: match.stadium };
+      }
+    }
+    setList(updated);
+  };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addNew = () => { const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: "Welfare Ground", result: "", type: "upcoming" }]; setList(l); setEditing(l.length - 1); };
+  const getStadium = (teamName) => { const t = (tableData||[]).find(r => r.team === teamName); return t && t.stadium ? t.stadium : ""; };
+  const addNew = () => {
+    const defaultVenue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
+    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", scorers: "", type: "upcoming" }];
+    setList(l); setEditing(l.length - 1);
+  };
   const save = () => { onSave(list); setEditing(null); };
   return (
     <div>
@@ -324,7 +425,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
       <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
         {section === "News" && <AdminNews items={data.news} onSave={v => onUpdate("news", v)} />}
         {section === "Table" && <AdminTable items={data.table} onSave={v => onUpdate("table", v)} />}
-        {section === "Fixtures" && <AdminFixtures items={data.fixtures} onSave={v => onUpdate("fixtures", v)} />}
+        {section === "Fixtures" && <AdminFixtures items={data.fixtures} tableData={data.table} onSave={v => onUpdate("fixtures", v)} />}
         {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
       </div>
