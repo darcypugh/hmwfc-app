@@ -1005,8 +1005,6 @@ export default function App() {
           </div>
           );
         })()}
-          </div>
-        )}
 
         {active === "Merch" && (
           <div>
