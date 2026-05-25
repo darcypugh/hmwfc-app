@@ -427,6 +427,8 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [squadView, setSquadView] = useState("current");
+  const [sortBy, setSortBy] = useState("name");
   const [selectedArticle, setSelectedArticle] = useState(null);
 
   useEffect(() => {
@@ -946,8 +948,6 @@ export default function App() {
             { key: "redCards", label: "Red Cards" },
             { key: "motm", label: "MotM" },
           ];
-          const [squadView, setSquadView] = useState("current");
-          const [sortBy, setSortBy] = useState("name");
           const squad = data.squad || [];
           const filtered = squadView === "current" ? squad.filter(p => p.playing) : squad;
           const sorted = [...filtered].sort((a, b) => {
