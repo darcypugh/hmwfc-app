@@ -38,16 +38,16 @@ const DEFAULT_DATA = {
   fixtures: [
     { id: 1, date: "18 May", home: "Hemsworth Miners Welfare FC", away: "Brackley Town", time: "15:00", venue: "Welfare Ground", result: "", halftime: "", scorers: "", type: "upcoming" },
     { id: 2, date: "25 May", home: "Moorfield City", away: "Hemsworth Miners Welfare FC", time: "14:00", venue: "City Ground", result: "", halftime: "", scorers: "", type: "upcoming" },
-    { id: 3, date: "11 May", home: "Riverside Athletic", away: "Hemsworth Miners Welfare FC", time: "", venue: "Riverside", result: "1 – 3", halftime: "0 – 1", scorers: "Williams 34, Okafor 58, Hadley 82", type: "result" },
-    { id: 4, date: "4 May", home: "Hemsworth Miners Welfare FC", away: "Thornton FC", time: "", venue: "Welfare Ground", result: "2 – 0", halftime: "1 – 0", scorers: "Williams 12, Okafor 71", type: "result" },
+    { id: 3, date: "11 May", home: "Riverside Athletic", away: "Hemsworth Miners Welfare FC", time: "", venue: "Riverside", result: "1 – 3", halftime: "0 – 1", homeScorers: "Rowe 61", awayScorers: "Williams 34, Okafor 58, Hadley 82", scorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "result" },
+    { id: 4, date: "4 May", home: "Hemsworth Miners Welfare FC", away: "Thornton FC", time: "", venue: "Welfare Ground", result: "2 – 0", halftime: "1 – 0", homeScorers: "Williams 12, Okafor 71", awayScorers: "", scorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "result" },
   ],
   squad: [
-    { id: 1, name: "Marcus Trent", pos: "GK", no: 1, apps: 30, goals: 0 },
-    { id: 2, name: "Carlos Mendes", pos: "CB", no: 5, apps: 31, goals: 2 },
-    { id: 3, name: "Rafi Hadley", pos: "CM", no: 8, apps: 32, goals: 11 },
-    { id: 4, name: "Sam Okafor", pos: "AM", no: 10, apps: 31, goals: 14 },
-    { id: 5, name: "Luca Williams", pos: "FW", no: 9, apps: 32, goals: 18 },
-    { id: 6, name: "Dion Taylor", pos: "FW", no: 11, apps: 26, goals: 9 },
+    { id: 1, name: "Marcus Trent", pos: "GK", no: 1, apps: 30, goals: 0, cleanSheets: 12, yellowCards: 0, redCards: 0, motm: 3, playing: true },
+    { id: 2, name: "Carlos Mendes", pos: "CB", no: 5, apps: 31, goals: 2, cleanSheets: 10, yellowCards: 4, redCards: 0, motm: 2, playing: true },
+    { id: 3, name: "Rafi Hadley", pos: "CM", no: 8, apps: 32, goals: 11, cleanSheets: 0, yellowCards: 5, redCards: 1, motm: 4, playing: true },
+    { id: 4, name: "Sam Okafor", pos: "AM", no: 10, apps: 31, goals: 14, cleanSheets: 0, yellowCards: 2, redCards: 0, motm: 6, playing: true },
+    { id: 5, name: "Luca Williams", pos: "FW", no: 9, apps: 32, goals: 18, cleanSheets: 0, yellowCards: 3, redCards: 0, motm: 8, playing: true },
+    { id: 6, name: "Dion Taylor", pos: "FW", no: 11, apps: 26, goals: 9, cleanSheets: 0, yellowCards: 1, redCards: 0, motm: 1, playing: false },
   ],
   merch: [
     { id: 1, name: "Home Kit 26/27", price: "£55", emoji: "👕", tag: "NEW" },
@@ -206,7 +206,7 @@ function AdminFixtures({ items, tableData, onSave }) {
   const getStadium = (teamName) => { const t = (tableData||[]).find(r => r.team === teamName); return t && t.stadium ? t.stadium : ""; };
   const addNew = () => {
     const defaultVenue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
-    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", scorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "upcoming" }];
+    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "upcoming" }];
     setList(l); setEditing(l.length - 1);
   };
   const save = () => { onSave(list); setEditing(null); };
@@ -279,7 +279,10 @@ function AdminFixtures({ items, tableData, onSave }) {
               </div>
               <div style={S.row}>
                 <div style={{ flex: 1 }}><label style={S.label}>Half time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="e.g. 1 – 0" /></div>
-                <div style={{ flex: 2 }}><label style={S.label}>Goalscorers</label><input style={S.input} value={f.scorers || ""} onChange={e => update(idx, "scorers", e.target.value)} placeholder="Smith 23, Jones 67" /></div>
+              </div>
+              <div style={S.row}>
+                <div style={{ flex: 1 }}><label style={S.label}>Home goalscorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update(idx, "homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Away goalscorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update(idx, "awayScorers", e.target.value)} placeholder="Brown 67" /></div>
               </div>
               <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-end" }} onClick={save}>Save</button>
             </div>
@@ -294,26 +297,38 @@ function AdminSquad({ items, onSave }) {
   const [list, setList] = useState(items);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0 }]);
+  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, playing: true }]);
   const save = () => onSave(list);
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Squad</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={addPlayer}>+ Player</button>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Tick "Playing?" to show a player in the Current Season tab. Untick to move them to the Overall tab only.</div>
       {list.map((p, idx) => (
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           <div style={S.row}>
-            <div style={{ flex: 0.4, minWidth: 50 }}><label style={S.label}>#</label><input style={S.input} type="number" value={p.no} onChange={e => update(idx, "no", +e.target.value)} /></div>
             <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update(idx, "name", e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update(idx, "pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
-            <div style={{ flex: 0.7, minWidth: 60 }}><label style={S.label}>Apps</label><input style={S.input} type="number" value={p.apps} onChange={e => update(idx, "apps", +e.target.value)} /></div>
-            <div style={{ flex: 0.7, minWidth: 60 }}><label style={S.label}>Goals</label><input style={S.input} type="number" value={p.goals} onChange={e => update(idx, "goals", +e.target.value)} /></div>
-            <div style={{ display: "flex", alignItems: "flex-end" }}><button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button></div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                <span style={{ fontSize: 10, color: p.playing ? "#10b981" : "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>PLAYING?</span>
+                <input type="checkbox" checked={!!p.playing} onChange={e => update(idx, "playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
+              </label>
+              <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
+            </div>
+          </div>
+          <div style={{ ...S.row, marginTop: 8 }}>
+            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>Apps</label><input style={S.input} type="number" value={p.apps} onChange={e => update(idx, "apps", +e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>Goals</label><input style={S.input} type="number" value={p.goals} onChange={e => update(idx, "goals", +e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>CS</label><input style={S.input} type="number" value={p.cleanSheets || 0} onChange={e => update(idx, "cleanSheets", +e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>🟨 Cards</label><input style={S.input} type="number" value={p.yellowCards || 0} onChange={e => update(idx, "yellowCards", +e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>🟥 Cards</label><input style={S.input} type="number" value={p.redCards || 0} onChange={e => update(idx, "redCards", +e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>MotM</label><input style={S.input} type="number" value={p.motm || 0} onChange={e => update(idx, "motm", +e.target.value)} /></div>
           </div>
         </div>
       ))}
@@ -674,14 +689,36 @@ export default function App() {
                         {/* Venue */}
                         <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
                       </div>
-                      {/* Scorers */}
-                      {latestResult.scorers && (
+                      {/* Scorers — split home/away with badge */}
+                      {(latestResult.homeScorers || latestResult.awayScorers || latestResult.scorers) && (
                         <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
-                          <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>⚽ Goalscorers</div>
-                          <div style={{ fontSize: 12, color: "#aabbcc", lineHeight: 1.8 }}>
-                            {latestResult.scorers.split(",").map((s, i) => (
-                              <span key={i} style={{ display: "inline-block", marginRight: 10 }}>⚽ {s.trim()}</span>
-                            ))}
+                          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                            {/* Home scorers */}
+                            <div style={{ flex: 1, textAlign: "right" }}>
+                              {((latestResult.homeScorers || latestResult.scorers || "")).split(",").filter(s => s.trim() && (weWereHome ? true : !latestResult.homeScorers)).map((s,i) => {
+                                const badge = weWereHome ? oursBadge : oppBadge;
+                                return (
+                                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}>
+                                    <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
+                                    {badge ? <img src={badge} alt="" style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 12 }}>⚽</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* Divider */}
+                            <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch", flexShrink: 0 }} />
+                            {/* Away scorers */}
+                            <div style={{ flex: 1, textAlign: "left" }}>
+                              {((latestResult.awayScorers || "")).split(",").filter(s => s.trim()).map((s,i) => {
+                                const badge = !weWereHome ? oursBadge : oppBadge;
+                                return (
+                                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
+                                    {badge ? <img src={badge} alt="" style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 12 }}>⚽</span>}
+                                    <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -787,7 +824,7 @@ export default function App() {
             <div>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>League Table</div>
               <div style={{ display: "flex", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>
-                {[{ color: "#f59e0b", label: "Champions" }, { color: "#10b981", label: "Play-off places" }, { color: "#347ebf", label: "Hemsworth MWF" }, { color: "#ef4444", label: "Relegation zone" }].map(({ color, label }) => (
+                {[{ color: "#f59e0b", label: "Automatic promotion" }, { color: "#10b981", label: "Play-off places" }, { color: "#ef4444", label: "Relegation zone" }].map(({ color, label }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <div style={{ width: 12, height: 12, borderRadius: 3, background: color, flexShrink: 0 }} />
                     <span style={{ fontSize: 12, color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 0.5 }}>{label}</span>
@@ -809,7 +846,7 @@ export default function App() {
                         <tr key={r.pos} style={{ background: rowBg, borderTop: showDivider ? "2px solid #ffffff18" : "none" }}>
                           <td style={{ padding: 0, width: 4 }}><div style={{ width: 4, height: 44, background: accentColor === "transparent" ? "transparent" : accentColor, opacity: 0.85 }} /></td>
                           <td style={{ color: isOurs ? "#347ebf" : zone === "champions" ? "#f59e0b" : zone === "playoff" ? "#10b981" : zone === "relegation" ? "#ef4444" : "#8899bb", fontWeight: 700 }}>{r.pos}</td>
-                          <td style={{ fontWeight: isOurs ? 700 : 400 }}>{r.team}{isOurs && <span style={{ marginLeft: 8, fontSize: 10, color: "#347ebf", fontWeight: 700, letterSpacing: 1, background: "#347ebf22", padding: "2px 6px", borderRadius: 4 }}>THE WELLS</span>}{zone === "champions" && !isOurs && <span style={{ marginLeft: 8, fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 0.5, background: "#f59e0b18", padding: "2px 6px", borderRadius: 4 }}>🏆</span>}</td>
+                          <td style={{ fontWeight: isOurs ? 700 : 400 }}>{r.team}</td>
                           <td style={{ color: "#aabbcc" }}>{r.p}</td>
                           <td style={{ color: "#10b981" }}>{r.w}</td>
                           <td style={{ color: "#aabbcc" }}>{r.d}</td>
@@ -857,7 +894,9 @@ export default function App() {
                             {homeBadge ? <img src={homeBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
                           </div>
                           {f.result
-                            ? <span style={{ background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 80, textAlign: "center", flexShrink: 0 }}>{f.result}</span>
+                            ? <div style={{ textAlign: "center", flexShrink: 0 }}>
+                                <span style={{ display: "block", background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 80 }}>{f.result}</span>
+                              </div>
                             : <span style={{ background: "#ffffff0f", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 80, textAlign: "center", flexShrink: 0 }}>{f.time}</span>}
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-start" }}>
                             {awayBadge ? <img src={awayBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
@@ -866,10 +905,26 @@ export default function App() {
                         </div>
                         <div style={{ minWidth: 110, fontSize: 11, color: "#8899bb", textAlign: "right" }}>📍 {f.venue}</div>
                       </div>
-                      {f.scorers && f.type === "result" && (
-                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07", fontSize: 12, color: "#8899bb" }}>
-                          {f.scorers.split(",").map((s,i) => <span key={i} style={{ marginRight: 12 }}>⚽ {s.trim()}</span>)}
-                          {f.halftime && <span style={{ marginLeft: 4, color: "#8899bb66" }}>· HT: {f.halftime}</span>}
+                      {f.type === "result" && (f.homeScorers || f.awayScorers || f.halftime) && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07" }}>
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                            {/* Home scorers */}
+                            <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "right" }}>
+                              {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
+                                <div key={i}>⚽ {s.trim()}</div>
+                              ))}
+                            </div>
+                            {/* Centre — HT score */}
+                            <div style={{ minWidth: 80, textAlign: "center", flexShrink: 0 }}>
+                              {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>HT {f.halftime}</div>}
+                            </div>
+                            {/* Away scorers */}
+                            <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
+                              {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
+                                <div key={i}>⚽ {s.trim()}</div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -881,25 +936,75 @@ export default function App() {
           );
         })()}
 
-        {active === "Squad" && (
+        {active === "Squad" && (() => {
+          const SORT_OPTIONS = [
+            { key: "name", label: "Name" },
+            { key: "apps", label: "Apps" },
+            { key: "goals", label: "Goals" },
+            { key: "cleanSheets", label: "Clean Sheets" },
+            { key: "yellowCards", label: "Yellow Cards" },
+            { key: "redCards", label: "Red Cards" },
+            { key: "motm", label: "MotM" },
+          ];
+          const [squadView, setSquadView] = useState("current");
+          const [sortBy, setSortBy] = useState("name");
+          const squad = data.squad || [];
+          const filtered = squadView === "current" ? squad.filter(p => p.playing) : squad;
+          const sorted = [...filtered].sort((a, b) => {
+            if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
+            return (b[sortBy] || 0) - (a[sortBy] || 0);
+          });
+          return (
           <div>
-            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>First Team Squad</div>
-            <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
-              <table>
-                <thead><tr><th>#</th><th>Player</th><th>Position</th><th>Apps</th><th>Goals</th></tr></thead>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>First Team Squad</div>
+            {/* Tabs + Sort */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button className={`tab-btn ${squadView === "current" ? "active" : ""}`} onClick={() => setSquadView("current")}>Current Season</button>
+                <button className={`tab-btn ${squadView === "all" ? "active" : ""}`} onClick={() => setSquadView("all")}>Overall</button>
+              </div>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>SORT BY</span>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 7, color: "#fff", padding: "6px 10px", fontSize: 12, fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, cursor: "pointer", outline: "none" }}>
+                  {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f", overflowX: "auto" }}>
+              <table style={{ minWidth: 560 }}>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Pos</th>
+                    <th style={{ cursor: "pointer", color: sortBy === "apps" ? "#347ebf" : "#8899bb" }} onClick={() => setSortBy("apps")}>Apps</th>
+                    <th style={{ cursor: "pointer", color: sortBy === "goals" ? "#10b981" : "#8899bb" }} onClick={() => setSortBy("goals")}>Goals</th>
+                    <th style={{ cursor: "pointer", color: sortBy === "cleanSheets" ? "#347ebf" : "#8899bb" }} onClick={() => setSortBy("cleanSheets")}>CS</th>
+                    <th style={{ cursor: "pointer", color: sortBy === "yellowCards" ? "#f59e0b" : "#8899bb" }} onClick={() => setSortBy("yellowCards")}>🟨</th>
+                    <th style={{ cursor: "pointer", color: sortBy === "redCards" ? "#ef4444" : "#8899bb" }} onClick={() => setSortBy("redCards")}>🟥</th>
+                    <th style={{ cursor: "pointer", color: sortBy === "motm" ? "#f59e0b" : "#8899bb" }} onClick={() => setSortBy("motm")}>MotM</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {data.squad.sort((a,b) => a.no - b.no).map(p => (
+                  {sorted.map(p => (
                     <tr key={p.id} className="squad-row" style={{ transition: "background 0.15s" }}>
-                      <td style={{ color: "#8899bb", fontWeight: 700 }}>{p.no}</td>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
                       <td><span style={{ background: `${POS_COLOR[p.pos] || "#8b5cf6"}22`, color: POS_COLOR[p.pos] || "#8b5cf6", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>{p.pos}</span></td>
-                      <td style={{ color: "#aabbcc" }}>{p.apps}</td>
-                      <td style={{ fontWeight: 700, color: p.goals > 10 ? "#f59e0b" : p.goals > 0 ? "#10b981" : "#8899bb" }}>{p.goals}</td>
+                      <td style={{ color: "#aabbcc" }}>{p.apps || 0}</td>
+                      <td style={{ fontWeight: 700, color: (p.goals||0) > 10 ? "#f59e0b" : (p.goals||0) > 0 ? "#10b981" : "#8899bb" }}>{p.goals || 0}</td>
+                      <td style={{ color: (p.cleanSheets||0) > 0 ? "#347ebf" : "#8899bb" }}>{p.cleanSheets || 0}</td>
+                      <td style={{ color: (p.yellowCards||0) > 0 ? "#f59e0b" : "#8899bb" }}>{p.yellowCards || 0}</td>
+                      <td style={{ color: (p.redCards||0) > 0 ? "#ef4444" : "#8899bb" }}>{p.redCards || 0}</td>
+                      <td style={{ fontWeight: 700, color: (p.motm||0) > 0 ? "#f59e0b" : "#8899bb" }}>{p.motm || 0}</td>
                     </tr>
                   ))}
+                  {sorted.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "#8899bb", padding: 20 }}>No players in this view.</td></tr>}
                 </tbody>
               </table>
             </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: "#8899bb" }}>CS = Clean Sheets · MotM = Man of the Match · Tap column headers to sort</div>
+          </div>
+          );
+        })()}
           </div>
         )}
 
