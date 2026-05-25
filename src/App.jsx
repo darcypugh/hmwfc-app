@@ -990,24 +990,29 @@ export default function App() {
                         </div>
                         <div style={{ minWidth: 110, fontSize: 11, color: "#8899bb", textAlign: "right" }}>📍 {f.venue}</div>
                       </div>
-                      {f.type === "result" && (f.homeScorers || f.awayScorers || f.halftime) && (
-                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07" }}>
-                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                            {/* Home scorers */}
-                            <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "right" }}>
+                      {f.type === "result" && (f.homeScorers || f.awayScorers) && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07", display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          {/* Match date column width — keeps scorers aligned with team names */}
+                          <div style={{ minWidth: 60, flexShrink: 0 }} />
+                          {/* Scorers inner — mirrors the team name flex layout */}
+                          <div style={{ flex: 1, display: "flex", gap: 10 }}>
+                            {/* Home scorers — left aligned, matching home team position */}
+                            <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
                               {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
                                 <div key={i}>⚽ {s.trim()}</div>
                               ))}
                             </div>
-                            {/* Centre spacer */}
-                            <div style={{ minWidth: 80, flexShrink: 0 }} />
-                            {/* Away scorers */}
+                            {/* Score column spacer */}
+                            <div style={{ flexShrink: 0, minWidth: 100 }} />
+                            {/* Away scorers — left aligned from away team name start */}
                             <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
                               {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
                                 <div key={i}>⚽ {s.trim()}</div>
                               ))}
                             </div>
                           </div>
+                          {/* Venue column width */}
+                          <div style={{ minWidth: 110, flexShrink: 0 }} />
                         </div>
                       )}
                     </div>
@@ -1095,7 +1100,7 @@ export default function App() {
                 <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 460, overflow: "hidden", boxShadow: "0 20px 60px #00000088" }} onClick={e => e.stopPropagation()}>
                   {/* Image */}
                   {selectedMerch.image
-                    ? <img src={selectedMerch.image} alt="" style={{ width: "100%", height: 220, objectFit: "cover" }} />
+                    ? <img src={selectedMerch.image} alt="" style={{ width: "100%", maxHeight: 280, objectFit: "contain", background: "#0d0c22" }} />
                     : <div style={{ height: 160, background: "linear-gradient(135deg,#191740,#0d0c22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 72 }}>{selectedMerch.emoji}</div>}
                   <div style={{ padding: "20px 24px 28px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
@@ -1154,7 +1159,7 @@ export default function App() {
               {(data.merch || []).map(m => (
                 <div key={m.id} className="merch-card" onClick={() => { setSelectedMerch(m); setSelectedSize(""); setQty(1); }}>
                   {m.image
-                    ? <img src={m.image} alt="" style={{ width: "100%", height: 130, objectFit: "cover", borderRadius: 8, marginBottom: 4 }} />
+                    ? <img src={m.image} alt="" style={{ width: "100%", height: 160, objectFit: "contain", borderRadius: 8, marginBottom: 4, background: "#0d0c22" }} />
                     : <div style={{ fontSize: 44 }}>{m.emoji}</div>}
                   {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 4 }}>{m.tag}</span>}
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "center" }}>{m.name}</div>
