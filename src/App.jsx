@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set } from "firebase/database";
 
@@ -69,93 +69,10 @@ const S = {
   row: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" },
 };
 
-function ImageCropper({ src, onDone, onCancel }) {
-  const canvasRef = useRef(null);
-  const [drag, setDrag] = useState(false);
-  const [start, setStart] = useState({ x: 0, y: 0 });
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [scale, setScale] = useState(1);
-  const [imgEl, setImgEl] = useState(null);
-  const TARGET_W = 1200, TARGET_H = 500;
-
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      setImgEl(img);
-      const s = Math.max(TARGET_W / img.width, TARGET_H / img.height);
-      setScale(s);
-      setOffset({ x: (TARGET_W - img.width * s) / 2, y: (TARGET_H - img.height * s) / 2 });
-    };
-    img.src = src;
-  }, [src]);
-
-  useEffect(() => {
-    if (!imgEl || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext("2d");
-    ctx.clearRect(0, 0, TARGET_W, TARGET_H);
-    ctx.drawImage(imgEl, offset.x, offset.y, imgEl.width * scale, imgEl.height * scale);
-  }, [imgEl, offset, scale]);
-
-  const clampOffset = (ox, oy, s) => {
-    if (!imgEl) return { x: ox, y: oy };
-    const iw = imgEl.width * s, ih = imgEl.height * s;
-    return {
-      x: Math.min(0, Math.max(TARGET_W - iw, ox)),
-      y: Math.min(0, Math.max(TARGET_H - ih, oy)),
-    };
-  };
-
-  const onMouseDown = (e) => { setDrag(true); setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y }); };
-  const onMouseMove = (e) => { if (!drag) return; const raw = { x: e.clientX - start.x, y: e.clientY - start.y }; setOffset(clampOffset(raw.x, raw.y, scale)); };
-  const onMouseUp = () => setDrag(false);
-  const onTouchStart = (e) => { const t = e.touches[0]; setDrag(true); setStart({ x: t.clientX - offset.x, y: t.clientY - offset.y }); };
-  const onTouchMove = (e) => { if (!drag) return; const t = e.touches[0]; const raw = { x: t.clientX - start.x, y: t.clientY - start.y }; setOffset(clampOffset(raw.x, raw.y, scale)); };
-
-  const zoom = (delta) => {
-    const ns = Math.max(Math.max(TARGET_W / (imgEl?.width||1), TARGET_H / (imgEl?.height||1)), Math.min(4, scale + delta));
-    setScale(ns);
-    setOffset(o => clampOffset(o.x, o.y, ns));
-  };
-
-  const crop = () => {
-    const out = document.createElement("canvas");
-    out.width = TARGET_W; out.height = TARGET_H;
-    const ctx = out.getContext("2d");
-    if (imgEl) ctx.drawImage(imgEl, offset.x, offset.y, imgEl.width * scale, imgEl.height * scale);
-    onDone(out.toDataURL("image/jpeg", 0.88));
-  };
-
-  const displayW = Math.min(TARGET_W, window.innerWidth - 48);
-  const displayH = Math.round(displayW * TARGET_H / TARGET_W);
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "#191740", borderRadius: 14, padding: 20, width: "100%", maxWidth: 640 }}>
-        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Crop Image</div>
-        <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 14 }}>Drag to reposition · Use + / − to zoom</div>
-        <div style={{ borderRadius: 8, overflow: "hidden", cursor: drag ? "grabbing" : "grab", touchAction: "none", marginBottom: 14, width: displayW, height: displayH }}
-          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onMouseUp}>
-          <canvas ref={canvasRef} width={TARGET_W} height={TARGET_H} style={{ width: displayW, height: displayH, display: "block" }} />
-        </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 14, justifyContent: "center" }}>
-          <button onClick={() => zoom(-0.1)} style={{ ...S.btn, background: "#ffffff11", color: "#fff", fontSize: 18, padding: "4px 16px" }}>−</button>
-          <button onClick={() => zoom(0.1)} style={{ ...S.btn, background: "#ffffff11", color: "#fff", fontSize: 18, padding: "4px 16px" }}>+</button>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onCancel} style={{ ...S.btn, flex: 1, background: "#ffffff11", color: "#aabbcc" }}>Cancel</button>
-          <button onClick={crop} style={{ ...S.btn, flex: 2, background: "#10b981", color: "#fff" }}>✓ Use this crop</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function AdminNews({ items, onSave }) {
   const [list, setList] = useState(items);
   const [editing, setEditing] = useState(null);
-  const [cropSrc, setCropSrc] = useState(null);
-  const [cropIdx, setCropIdx] = useState(null);
+
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addNew = () => { const l = [...list, { id: Date.now(), date: "", tag: "Club News", title: "", body: "", emoji: "⚽", image: "" }]; setList(l); setEditing(l.length - 1); };
@@ -163,12 +80,11 @@ function AdminNews({ items, onSave }) {
   const uploadImage = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => { setCropSrc(e.target.result); setCropIdx(idx); };
+    reader.onload = (e) => update(idx, "image", e.target.result);
     reader.readAsDataURL(file);
   };
   return (
     <div>
-      {cropSrc && <ImageCropper src={cropSrc} onDone={(dataUrl) => { update(cropIdx, "image", dataUrl); setCropSrc(null); setCropIdx(null); }} onCancel={() => { setCropSrc(null); setCropIdx(null); }} />}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>News Articles</div>
         <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addNew}>+ Add Article</button>
@@ -276,16 +192,13 @@ function AdminTable({ items, onSave }) {
 }
 
 function AdminFixtures({ items, tableData, onSave }) {
-  const [list, setList] = useState(items);
+  const [list, setList] = useState(items || []);
   const [editing, setEditing] = useState(null);
   const update = (idx, field, val) => {
     const updated = list.map((x, i) => i === idx ? { ...x, [field]: val } : x);
-    // Auto-fill venue from home team's stadium when home team changes
     if (field === "home") {
       const match = (tableData || []).find(t => t.team === val);
-      if (match && match.stadium) {
-        updated[idx] = { ...updated[idx], venue: match.stadium };
-      }
+      if (match && match.stadium) updated[idx] = { ...updated[idx], venue: match.stadium };
     }
     setList(updated);
   };
@@ -293,21 +206,34 @@ function AdminFixtures({ items, tableData, onSave }) {
   const getStadium = (teamName) => { const t = (tableData||[]).find(r => r.team === teamName); return t && t.stadium ? t.stadium : ""; };
   const addNew = () => {
     const defaultVenue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
-    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", scorers: "", type: "upcoming" }];
+    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", scorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "upcoming" }];
     setList(l); setEditing(l.length - 1);
   };
   const save = () => { onSave(list); setEditing(null); };
+  const uploadFixtureBadge = (idx, side, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => update(idx, side === "home" ? "homeBadge" : "awayBadge", e.target.result);
+    reader.readAsDataURL(file);
+  };
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Fixtures & Results</div>
         <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addNew}>+ Add Fixture</button>
       </div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>For friendlies, tick the Friendly box and upload opponent badges directly on the fixture — they don't need to be in the league table.</div>
+      {list.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No fixtures yet — tap "+ Add Fixture" to get started.</div>}
       {list.map((f, idx) => (
         <div key={f.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: editing === idx ? 12 : 0 }}>
-            <div style={{ fontSize: 13 }}><span style={{ color: "#8899bb", marginRight: 8 }}>{f.date}</span><span style={{ fontWeight: 600 }}>{f.home} vs {f.away}</span>{f.result && <span style={{ marginLeft: 8, color: "#347ebf", fontWeight: 700 }}>{f.result}</span>}</div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, background: "#f59e0b18", padding: "2px 6px", borderRadius: 3 }}>FRIENDLY</span>}
+              <span style={{ color: "#8899bb" }}>{f.date}</span>
+              <span style={{ fontWeight: 600 }}>{f.home} vs {f.away}</span>
+              {f.result && <span style={{ color: "#347ebf", fontWeight: 700 }}>{f.result}</span>}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
               <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setEditing(editing === idx ? null : idx)}>{editing === idx ? "Close" : "Edit"}</button>
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 12px" }} onClick={() => del(idx)}>Delete</button>
             </div>
@@ -319,17 +245,41 @@ function AdminFixtures({ items, tableData, onSave }) {
                 <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update(idx, "time", e.target.value)} placeholder="15:00" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Type</label><select style={S.input} value={f.type} onChange={e => update(idx, "type", e.target.value)}><option value="upcoming">Upcoming</option><option value="result">Result</option></select></div>
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
+                <input type="checkbox" id={`friendly-${idx}`} checked={!!f.friendly} onChange={e => update(idx, "friendly", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#f59e0b" }} />
+                <label htmlFor={`friendly-${idx}`} style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700, cursor: "pointer" }}>⭐ This is a friendly match</label>
+              </div>
               <div style={S.row}>
-                <div style={{ flex: 1 }}><label style={S.label}>Home Team</label><input style={S.input} value={f.home} onChange={e => update(idx, "home", e.target.value)} /></div>
-                <div style={{ flex: 1 }}><label style={S.label}>Away Team</label><input style={S.input} value={f.away} onChange={e => update(idx, "away", e.target.value)} /></div>
+                <div style={{ flex: 1 }}>
+                  <label style={S.label}>Home Team</label>
+                  <input style={S.input} value={f.home} onChange={e => update(idx, "home", e.target.value)} />
+                  {f.friendly && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer", background: "#0d0c22", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
+                      {f.homeBadge ? <img src={f.homeBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>🛡</span>}
+                      <span style={{ fontSize: 11, color: "#8899bb" }}>Home badge</span>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadFixtureBadge(idx, "home", e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={S.label}>Away Team</label>
+                  <input style={S.input} value={f.away} onChange={e => update(idx, "away", e.target.value)} />
+                  {f.friendly && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer", background: "#0d0c22", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
+                      {f.awayBadge ? <img src={f.awayBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>🛡</span>}
+                      <span style={{ fontSize: 11, color: "#8899bb" }}>Away badge</span>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadFixtureBadge(idx, "away", e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
               </div>
               <div style={S.row}>
                 <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update(idx, "venue", e.target.value)} /></div>
-                <div style={{ flex: 1 }}><label style={S.label}>Full time score (e.g. 2 – 1)</label><input style={S.input} value={f.result} onChange={e => update(idx, "result", e.target.value)} placeholder="e.g. 2 – 1" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Full time score (e.g. 2 – 1)</label><input style={S.input} value={f.result || ""} onChange={e => update(idx, "result", e.target.value)} placeholder="e.g. 2 – 1" /></div>
               </div>
               <div style={S.row}>
-                <div style={{ flex: 1 }}><label style={S.label}>Half time score (e.g. 1 – 0)</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="e.g. 1 – 0" /></div>
-                <div style={{ flex: 2 }}><label style={S.label}>Goalscorers (e.g. Smith 23, Jones 67)</label><input style={S.input} value={f.scorers || ""} onChange={e => update(idx, "scorers", e.target.value)} placeholder="Smith 23, Jones 67" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Half time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="e.g. 1 – 0" /></div>
+                <div style={{ flex: 2 }}><label style={S.label}>Goalscorers</label><input style={S.input} value={f.scorers || ""} onChange={e => update(idx, "scorers", e.target.value)} placeholder="Smith 23, Jones 67" /></div>
               </div>
               <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-end" }} onClick={save}>Save</button>
             </div>
@@ -876,32 +826,60 @@ export default function App() {
           );
         })()}
 
-        {active === "Fixtures" && (
-          <div>
-            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>Fixtures & Results</div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
-              <button className={`tab-btn ${fixtureTab === "upcoming" ? "active" : ""}`} onClick={() => setFixtureTab("upcoming")}>Upcoming</button>
-              <button className={`tab-btn ${fixtureTab === "result" ? "active" : ""}`} onClick={() => setFixtureTab("result")}>Results</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {data.fixtures.filter(f => f.type === fixtureTab).map(f => (
-                <div key={f.id} className="card" style={{ padding: "16px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ minWidth: 60, fontSize: 12, color: "#8899bb", fontWeight: 600 }}>{f.date}</div>
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, textAlign: "right", flex: 1 }}>{f.home}</span>
-                      {f.result ? <span style={{ background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 80, textAlign: "center" }}>{f.result}</span>
-                        : <span style={{ background: "#ffffff0f", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 80, textAlign: "center" }}>{f.time}</span>}
-                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, flex: 1 }}>{f.away}</span>
+        {active === "Fixtures" && (() => {
+          const fixtures = data.fixtures || [];
+          const filtered = fixtures.filter(f => f.type === fixtureTab);
+          const getBadgeForFixture = (f, teamName) => {
+            if (f.homeBadge && teamName === f.home) return f.homeBadge;
+            if (f.awayBadge && teamName === f.away) return f.awayBadge;
+            const t = (data.table || []).find(r => r.team === teamName);
+            return t && t.badge ? `data:image/png;base64,${t.badge}` : null;
+          };
+          return (
+            <div>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>Fixtures & Results</div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
+                <button className={`tab-btn ${fixtureTab === "upcoming" ? "active" : ""}`} onClick={() => setFixtureTab("upcoming")}>Upcoming</button>
+                <button className={`tab-btn ${fixtureTab === "result" ? "active" : ""}`} onClick={() => setFixtureTab("result")}>Results</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {filtered.map(f => {
+                  const homeBadge = getBadgeForFixture(f, f.home);
+                  const awayBadge = getBadgeForFixture(f, f.away);
+                  return (
+                    <div key={f.id} className="card" style={{ padding: "16px 20px" }}>
+                      {f.friendly && <div style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>⭐ Friendly</div>}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <div style={{ minWidth: 60, fontSize: 12, color: "#8899bb", fontWeight: 600 }}>{f.date}</div>
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }}>
+                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "right" }}>{f.home}</span>
+                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
+                          </div>
+                          {f.result
+                            ? <span style={{ background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 80, textAlign: "center", flexShrink: 0 }}>{f.result}</span>
+                            : <span style={{ background: "#ffffff0f", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 80, textAlign: "center", flexShrink: 0 }}>{f.time}</span>}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-start" }}>
+                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
+                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700 }}>{f.away}</span>
+                          </div>
+                        </div>
+                        <div style={{ minWidth: 110, fontSize: 11, color: "#8899bb", textAlign: "right" }}>📍 {f.venue}</div>
+                      </div>
+                      {f.scorers && f.type === "result" && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07", fontSize: 12, color: "#8899bb" }}>
+                          {f.scorers.split(",").map((s,i) => <span key={i} style={{ marginRight: 12 }}>⚽ {s.trim()}</span>)}
+                          {f.halftime && <span style={{ marginLeft: 4, color: "#8899bb66" }}>· HT: {f.halftime}</span>}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ minWidth: 110, fontSize: 11, color: "#8899bb", textAlign: "right" }}>📍 {f.venue}</div>
-                  </div>
-                </div>
-              ))}
-              {data.fixtures.filter(f => f.type === fixtureTab).length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No {fixtureTab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
+                  );
+                })}
+                {filtered.length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No {fixtureTab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {active === "Squad" && (
           <div>
