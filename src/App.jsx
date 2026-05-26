@@ -304,7 +304,13 @@ function AdminSquad({ items, onSave }) {
   const [list, setList] = useState(items);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, playing: true }]);
+  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, playing: true, photo: "" }]);
+  const uploadPhoto = (idx, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => update(idx, "photo", e.target.result);
+    reader.readAsDataURL(file);
+  };
   const save = () => onSave(list);
   return (
     <div>
@@ -329,7 +335,14 @@ function AdminSquad({ items, onSave }) {
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
             </div>
           </div>
-          <div style={{ ...S.row, marginTop: 8 }}>
+          <div style={{ ...S.row, marginTop: 8, alignItems: "flex-start" }}>
+            <div style={{ flexShrink: 0 }}>
+              <label style={S.label}>Photo</label>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: "pointer", overflow: "hidden" }}>
+                {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📷</span>}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPhoto(idx, e.target.files[0])} />
+              </label>
+            </div>
             <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>Apps</label><input style={S.input} type="number" value={p.apps} onChange={e => update(idx, "apps", +e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>Goals</label><input style={S.input} type="number" value={p.goals} onChange={e => update(idx, "goals", +e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>CS</label><input style={S.input} type="number" value={p.cleanSheets || 0} onChange={e => update(idx, "cleanSheets", +e.target.value)} /></div>
@@ -503,6 +516,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [squadView, setSquadView] = useState("current");
   const [sortBy, setSortBy] = useState("name");
+  const [squadDisplayMode, setSquadDisplayMode] = useState("tiles");
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
@@ -594,7 +608,7 @@ export default function App() {
             <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menu">
               <span /><span /><span />
             </button>
-            <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" style={{ height: 64, filter: "drop-shadow(0 0 12px #347ebf66)" }} />
+            <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" onClick={() => setActive("Home")} style={{ height: 64, filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(14px, 4vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
@@ -618,10 +632,17 @@ export default function App() {
           };
           const zoneColor = { champions: "#f59e0b", playoff: "#10b981", relegation: "#ef4444", mid: "#8899bb" };
           const latestResult = data.fixtures && [...data.fixtures].filter(f => f.type === "result").sort((a,b) => (b.id||0) - (a.id||0))[0];
-          const getBadge = (teamName) => { const t = data.table && data.table.find(r => r.team === teamName); return t && t.badge ? `data:image/png;base64,${t.badge}` : null; };
-          const oursBadge = latestResult && getBadge(latestResult.home && latestResult.home.includes("Hemsworth") ? latestResult.home : latestResult.away);
+          const getBadge = (teamName, fixture) => {
+            if (fixture) {
+              if (teamName === fixture.home && fixture.homeBadge) return fixture.homeBadge;
+              if (teamName === fixture.away && fixture.awayBadge) return fixture.awayBadge;
+            }
+            const t = data.table && data.table.find(r => r.team === teamName);
+            return t && t.badge ? `data:image/png;base64,${t.badge}` : null;
+          };
+          const oursBadge = latestResult && getBadge(latestResult.home && latestResult.home.includes("Hemsworth") ? latestResult.home : latestResult.away, latestResult);
           const oppName = latestResult ? (latestResult.home.includes("Hemsworth") ? latestResult.away : latestResult.home) : null;
-          const oppBadge = latestResult && getBadge(oppName);
+          const oppBadge = latestResult && getBadge(oppName, latestResult);
           const weWereHome = latestResult && latestResult.home.includes("Hemsworth");
           return (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 280px", gap: 24, alignItems: "start" }} className="home-grid">
@@ -713,8 +734,8 @@ export default function App() {
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Upcoming Fixtures</div>
                       <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
                         {upcoming.map((f, i) => {
-                          const homeBadge = getBadge(f.home);
-                          const awayBadge = getBadge(f.away);
+                          const homeBadge = getBadge(f.home, f);
+                          const awayBadge = getBadge(f.away, f);
                           const weHome = f.home.includes("Hemsworth");
                           return (
                             <div key={f.id} style={{ padding: "12px 14px", borderBottom: i < upcoming.length - 1 ? "1px solid #ffffff07" : "none" }}>
@@ -925,7 +946,14 @@ export default function App() {
                         <tr key={r.pos} style={{ background: rowBg, borderTop: showDivider ? "2px solid #ffffff18" : "none" }}>
                           <td style={{ padding: 0, width: 4 }}><div style={{ width: 4, height: 44, background: accentColor === "transparent" ? "transparent" : accentColor, opacity: 0.85 }} /></td>
                           <td style={{ color: isOurs ? "#347ebf" : zone === "champions" ? "#f59e0b" : zone === "playoff" ? "#10b981" : zone === "relegation" ? "#ef4444" : "#8899bb", fontWeight: 700 }}>{r.pos}</td>
-                          <td style={{ fontWeight: isOurs ? 700 : 400 }}>{r.team}</td>
+                          <td style={{ fontWeight: isOurs ? 700 : 400 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              {r.badge
+                                ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
+                                : <div style={{ width: 22, height: 22, flexShrink: 0 }} />}
+                              {r.team}
+                            </div>
+                          </td>
                           <td style={{ color: "#aabbcc" }}>{r.p}</td>
                           <td style={{ color: "#10b981" }}>{r.w}</td>
                           <td style={{ color: "#aabbcc" }}>{r.d}</td>
@@ -1043,20 +1071,67 @@ export default function App() {
           return (
           <div>
             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>First Team Squad</div>
-            {/* Tabs + Sort */}
+            {/* Tabs + Sort + View Toggle */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 6 }}>
                 <button className={`tab-btn ${squadView === "current" ? "active" : ""}`} onClick={() => setSquadView("current")}>Current Season</button>
                 <button className={`tab-btn ${squadView === "all" ? "active" : ""}`} onClick={() => setSquadView("all")}>Overall</button>
               </div>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>SORT BY</span>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 7, color: "#fff", padding: "6px 10px", fontSize: 12, fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, cursor: "pointer", outline: "none" }}>
-                  {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-                </select>
+                {squadDisplayMode === "table" && (
+                  <>
+                    <span style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>SORT BY</span>
+                    <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 7, color: "#fff", padding: "6px 10px", fontSize: 12, fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, cursor: "pointer", outline: "none" }}>
+                      {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                    </select>
+                  </>
+                )}
+                <div style={{ display: "flex", gap: 4, background: "#191740", borderRadius: 8, padding: 3, border: "1px solid #ffffff0f" }}>
+                  <button onClick={() => setSquadDisplayMode("tiles")} style={{ ...S.btn, padding: "5px 12px", background: squadDisplayMode === "tiles" ? "#347ebf" : "none", color: squadDisplayMode === "tiles" ? "#fff" : "#8899bb", fontSize: 12 }}>Tiles</button>
+                  <button onClick={() => setSquadDisplayMode("table")} style={{ ...S.btn, padding: "5px 12px", background: squadDisplayMode === "table" ? "#347ebf" : "none", color: squadDisplayMode === "table" ? "#fff" : "#8899bb", fontSize: 12 }}>Table</button>
+                </div>
               </div>
             </div>
-            <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f", overflowX: "auto" }}>
+            {squadDisplayMode === "tiles" && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14, marginBottom: 8 }}>
+                {sorted.map(p => (
+                  <div key={p.id} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s" }} className="card">
+                    {/* Photo */}
+                    <div style={{ height: 160, background: "linear-gradient(160deg, #191740, #0d0c22)", position: "relative", overflow: "hidden" }}>
+                      {p.photo
+                        ? <img src={p.photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#347ebf22", border: "2px solid #347ebf44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>👤</div>
+                          </div>}
+                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(transparent, #191740)" }} />
+                      <span style={{ position: "absolute", top: 8, right: 8, background: `${POS_COLOR[p.pos] || "#8b5cf6"}cc`, color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4 }}>{p.pos}</span>
+                    </div>
+                    {/* Info */}
+                    <div style={{ padding: "10px 10px 12px" }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, lineHeight: 1.2, marginBottom: 8 }}>{p.name}</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{p.apps || 0}</div>
+                          <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase" }}>Apps</div>
+                        </div>
+                        <div style={{ width: 1, background: "#ffffff0f" }} />
+                        {p.pos === "GK"
+                          ? <div style={{ textAlign: "center" }}>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: "#347ebf" }}>{p.cleanSheets || 0}</div>
+                              <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase" }}>CS</div>
+                            </div>
+                          : <div style={{ textAlign: "center" }}>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: (p.goals||0) > 0 ? "#10b981" : "#fff" }}>{p.goals || 0}</div>
+                              <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase" }}>Goals</div>
+                            </div>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {sorted.length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, gridColumn: "1/-1" }}>No players in this view.</div>}
+              </div>
+            )}
+            {squadDisplayMode === "table" && <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f", overflowX: "auto" }}>
               <table style={{ minWidth: 560 }}>
                 <thead>
                   <tr>
@@ -1086,8 +1161,8 @@ export default function App() {
                   {sorted.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "#8899bb", padding: 20 }}>No players in this view.</td></tr>}
                 </tbody>
               </table>
-            </div>
-            <div style={{ marginTop: 10, fontSize: 11, color: "#8899bb" }}>CS = Clean Sheets · MotM = Man of the Match · Tap column headers to sort</div>
+            </div>}
+            {squadDisplayMode === "table" && <div style={{ marginTop: 10, fontSize: 11, color: "#8899bb" }}>CS = Clean Sheets · MotM = Man of the Match · Tap column headers to sort</div>}
           </div>
           );
         })()}
