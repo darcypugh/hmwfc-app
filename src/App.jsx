@@ -304,7 +304,7 @@ function AdminSquad({ items, onSave }) {
   const [list, setList] = useState(items);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, playing: true, photo: "" }]);
+  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, playing: true, photo: "", about: "" }]);
   const uploadPhoto = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -349,6 +349,10 @@ function AdminSquad({ items, onSave }) {
             <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>🟨 Cards</label><input style={S.input} type="number" value={p.yellowCards || 0} onChange={e => update(idx, "yellowCards", +e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>🟥 Cards</label><input style={S.input} type="number" value={p.redCards || 0} onChange={e => update(idx, "redCards", +e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>MotM</label><input style={S.input} type="number" value={p.motm || 0} onChange={e => update(idx, "motm", +e.target.value)} /></div>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <label style={S.label}>About this player</label>
+            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
       ))}
@@ -519,6 +523,7 @@ export default function App() {
   const [squadDisplayMode, setSquadDisplayMode] = useState("tiles");
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
 
@@ -1070,6 +1075,66 @@ export default function App() {
           });
           return (
           <div>
+            {/* Player profile modal */}
+            {selectedPlayer && (
+              <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setSelectedPlayer(null)}>
+                <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 500, overflow: "hidden", boxShadow: "0 20px 60px #00000088", margin: "auto" }} onClick={e => e.stopPropagation()}>
+                  {/* Photo header */}
+                  <div style={{ height: 220, position: "relative", overflow: "hidden", background: "linear-gradient(160deg, #191740, #0d0c22)" }}>
+                    {selectedPlayer.photo
+                      ? <img src={selectedPlayer.photo} alt={selectedPlayer.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <div style={{ width: 90, height: 90, borderRadius: "50%", background: "#347ebf22", border: "2px solid #347ebf44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42 }}>👤</div>
+                        </div>}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", background: "linear-gradient(transparent, #191740)" }} />
+                    <div style={{ position: "absolute", bottom: 16, left: 20, right: 20 }}>
+                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{selectedPlayer.name}</div>
+                          <span style={{ background: `${POS_COLOR[selectedPlayer.pos] || "#8b5cf6"}cc`, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 5, marginTop: 4, display: "inline-block" }}>{selectedPlayer.pos}</span>
+                        </div>
+                        <button onClick={() => setSelectedPlayer(null)} style={{ background: "#ffffff22", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#fff", fontSize: 16, cursor: "pointer", flexShrink: 0 }}>✕</button>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Stats grid */}
+                  <div style={{ padding: "16px 20px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
+                      {[
+                        { label: "Apps", value: selectedPlayer.apps || 0, color: "#fff" },
+                        { label: "Goals", value: selectedPlayer.goals || 0, color: (selectedPlayer.goals||0) > 0 ? "#10b981" : "#fff" },
+                        { label: "Clean Sheets", value: selectedPlayer.cleanSheets || 0, color: (selectedPlayer.cleanSheets||0) > 0 ? "#347ebf" : "#fff" },
+                        { label: "MotM", value: selectedPlayer.motm || 0, color: (selectedPlayer.motm||0) > 0 ? "#f59e0b" : "#fff" },
+                      ].map(s => (
+                        <div key={s.label} style={{ background: "#0d0c22", borderRadius: 10, padding: "12px 8px", textAlign: "center", border: "1px solid #ffffff0f" }}>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: s.color }}>{s.value}</div>
+                          <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Cards row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "12px 8px", textAlign: "center", border: "1px solid #ffffff0f" }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: (selectedPlayer.yellowCards||0) > 0 ? "#f59e0b" : "#fff" }}>{selectedPlayer.yellowCards || 0}</div>
+                        <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 }}>🟨 Yellow Cards</div>
+                      </div>
+                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "12px 8px", textAlign: "center", border: "1px solid #ffffff0f" }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: (selectedPlayer.redCards||0) > 0 ? "#ef4444" : "#fff" }}>{selectedPlayer.redCards || 0}</div>
+                        <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 }}>🟥 Red Cards</div>
+                      </div>
+                    </div>
+                    {/* About */}
+                    {selectedPlayer.about && (
+                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "14px 16px", border: "1px solid #ffffff0f" }}>
+                        <div style={{ fontSize: 10, color: "#347ebf", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>About</div>
+                        <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.7 }}>{selectedPlayer.about}</div>
+                      </div>
+                    )}
+                    <button onClick={() => setSelectedPlayer(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", width: "100%", marginTop: 14, fontSize: 12 }}>Close</button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>First Team Squad</div>
             {/* Tabs + Sort + View Toggle */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
@@ -1095,7 +1160,7 @@ export default function App() {
             {squadDisplayMode === "tiles" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14, marginBottom: 8 }}>
                 {sorted.map(p => (
-                  <div key={p.id} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s" }} className="card">
+                  <div key={p.id} onClick={() => setSelectedPlayer(p)} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", cursor: "pointer" }} className="card">
                     {/* Photo */}
                     <div style={{ height: 160, background: "linear-gradient(160deg, #191740, #0d0c22)", position: "relative", overflow: "hidden" }}>
                       {p.photo
@@ -1147,7 +1212,7 @@ export default function App() {
                 </thead>
                 <tbody>
                   {sorted.map(p => (
-                    <tr key={p.id} className="squad-row" style={{ transition: "background 0.15s" }}>
+                    <tr key={p.id} className="squad-row" style={{ transition: "background 0.15s", cursor: "pointer" }} onClick={() => setSelectedPlayer(p)}>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
                       <td><span style={{ background: `${POS_COLOR[p.pos] || "#8b5cf6"}22`, color: POS_COLOR[p.pos] || "#8b5cf6", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>{p.pos}</span></td>
                       <td style={{ color: "#aabbcc" }}>{p.apps || 0}</td>
