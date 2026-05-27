@@ -1162,7 +1162,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              </div>
                 {/* Contact the club */}
                 <div style={{ marginTop: 24 }}>
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Contact the Club</div>
@@ -1190,6 +1189,7 @@ export default function App() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
           </div>
           </div>
