@@ -774,8 +774,8 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge)
                               ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} />
-                              : <div style={{ width: 56, height: 56, background: "#347ebf22", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: weWereHome ? "#fff" : "#aabbcc", lineHeight: 1.2 }}>{weWereHome ? "The Wells" : oppName}</div>
+                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{weWereHome ? "The Wells" : oppName}</div>
                           </div>
                           {/* Score */}
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
@@ -787,8 +787,8 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge)
                               ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} />
-                              : <div style={{ width: 56, height: 56, background: "#347ebf22", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: !weWereHome ? "#fff" : "#aabbcc", lineHeight: 1.2 }}>{!weWereHome ? "The Wells" : oppName}</div>
+                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{!weWereHome ? "The Wells" : oppName}</div>
                           </div>
                         </div>
                         {/* Venue */}
@@ -801,11 +801,10 @@ export default function App() {
                             {/* Home scorers */}
                             <div style={{ flex: 1, textAlign: "right" }}>
                               {((latestResult.homeScorers || latestResult.scorers || "")).split(",").filter(s => s.trim() && (weWereHome ? true : !latestResult.homeScorers)).map((s,i) => {
-                                const badge = weWereHome ? oursBadge : oppBadge;
                                 return (
                                   <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}>
                                     <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
-                                    {badge ? <img src={badge} alt="" style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 12 }}>⚽</span>}
+                                    <span style={{ fontSize: 12 }}>⚽</span>
                                   </div>
                                 );
                               })}
@@ -815,10 +814,9 @@ export default function App() {
                             {/* Away scorers */}
                             <div style={{ flex: 1, textAlign: "left" }}>
                               {((latestResult.awayScorers || "")).split(",").filter(s => s.trim()).map((s,i) => {
-                                const badge = !weWereHome ? oursBadge : oppBadge;
                                 return (
                                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                                    {badge ? <img src={badge} alt="" style={{ width: 16, height: 16, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 12 }}>⚽</span>}
+                                    <span style={{ fontSize: 12 }}>⚽</span>
                                     <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
                                   </div>
                                 );
@@ -955,7 +953,7 @@ export default function App() {
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               {r.badge
                                 ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
-                                : <div style={{ width: 22, height: 22, flexShrink: 0 }} />}
+                                : <div style={{ width: 22, height: 22, background: "#ffffff08", borderRadius: 4, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 }}>🛡</div>}
                               {r.team}
                             </div>
                           </td>
@@ -1078,59 +1076,52 @@ export default function App() {
             {/* Player profile modal */}
             {selectedPlayer && (
               <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setSelectedPlayer(null)}>
-                <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 500, overflow: "hidden", boxShadow: "0 20px 60px #00000088", margin: "auto" }} onClick={e => e.stopPropagation()}>
-                  {/* Photo header */}
-                  <div style={{ height: 220, position: "relative", overflow: "hidden", background: "linear-gradient(160deg, #191740, #0d0c22)" }}>
-                    {selectedPlayer.photo
-                      ? <img src={selectedPlayer.photo} alt={selectedPlayer.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <div style={{ width: 90, height: 90, borderRadius: "50%", background: "#347ebf22", border: "2px solid #347ebf44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42 }}>👤</div>
-                        </div>}
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", background: "linear-gradient(transparent, #191740)" }} />
-                    <div style={{ position: "absolute", bottom: 16, left: 20, right: 20 }}>
-                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                        <div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{selectedPlayer.name}</div>
-                          <span style={{ background: `${POS_COLOR[selectedPlayer.pos] || "#8b5cf6"}cc`, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 5, marginTop: 4, display: "inline-block" }}>{selectedPlayer.pos}</span>
-                        </div>
-                        <button onClick={() => setSelectedPlayer(null)} style={{ background: "#ffffff22", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#fff", fontSize: 16, cursor: "pointer", flexShrink: 0 }}>✕</button>
+                <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px #00000088", margin: "auto" }} onClick={e => e.stopPropagation()}>
+                  {/* Side photo + stats layout */}
+                  <div style={{ display: "flex", minHeight: 260 }}>
+                    {/* Left — photo with right-fade */}
+                    <div style={{ width: 160, flexShrink: 0, position: "relative", background: "linear-gradient(160deg,#0d0c22,#191740)", overflow: "hidden" }}>
+                      {selectedPlayer.photo
+                        ? <img src={selectedPlayer.photo} alt={selectedPlayer.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#347ebf22", border: "2px solid #347ebf44", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34 }}>👤</div>
+                          </div>}
+                      {/* Right-side gradient fade */}
+                      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 50%, #191740 100%)" }} />
+                    </div>
+                    {/* Right — name, pos badge, stats */}
+                    <div style={{ flex: 1, padding: "18px 18px 18px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+                      <div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, lineHeight: 1.1, marginBottom: 6 }}>{selectedPlayer.name}</div>
+                        <span style={{ background: `${POS_COLOR[selectedPlayer.pos] || "#8b5cf6"}cc`, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 5, display: "inline-block" }}>{selectedPlayer.pos}</span>
+                      </div>
+                      {/* Stat pills */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 14 }}>
+                        {[
+                          { label: "Apps", value: selectedPlayer.apps || 0, color: "#fff" },
+                          { label: "Goals", value: selectedPlayer.goals || 0, color: (selectedPlayer.goals||0) > 0 ? "#10b981" : "#fff" },
+                          { label: "CS", value: selectedPlayer.cleanSheets || 0, color: (selectedPlayer.cleanSheets||0) > 0 ? "#347ebf" : "#fff" },
+                          { label: "MotM", value: selectedPlayer.motm || 0, color: (selectedPlayer.motm||0) > 0 ? "#f59e0b" : "#fff" },
+                          { label: "🟨", value: selectedPlayer.yellowCards || 0, color: (selectedPlayer.yellowCards||0) > 0 ? "#f59e0b" : "#fff" },
+                          { label: "🟥", value: selectedPlayer.redCards || 0, color: (selectedPlayer.redCards||0) > 0 ? "#ef4444" : "#fff" },
+                        ].map(s => (
+                          <div key={s.label} style={{ background: "#0d0c2288", borderRadius: 8, padding: "8px 6px", textAlign: "center", border: "1px solid #ffffff0f" }}>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
+                            <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 1 }}>{s.label}</div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                  {/* Stats grid */}
-                  <div style={{ padding: "16px 20px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
-                      {[
-                        { label: "Apps", value: selectedPlayer.apps || 0, color: "#fff" },
-                        { label: "Goals", value: selectedPlayer.goals || 0, color: (selectedPlayer.goals||0) > 0 ? "#10b981" : "#fff" },
-                        { label: "Clean Sheets", value: selectedPlayer.cleanSheets || 0, color: (selectedPlayer.cleanSheets||0) > 0 ? "#347ebf" : "#fff" },
-                        { label: "MotM", value: selectedPlayer.motm || 0, color: (selectedPlayer.motm||0) > 0 ? "#f59e0b" : "#fff" },
-                      ].map(s => (
-                        <div key={s.label} style={{ background: "#0d0c22", borderRadius: 10, padding: "12px 8px", textAlign: "center", border: "1px solid #ffffff0f" }}>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: s.color }}>{s.value}</div>
-                          <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 }}>{s.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Cards row */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "12px 8px", textAlign: "center", border: "1px solid #ffffff0f" }}>
-                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: (selectedPlayer.yellowCards||0) > 0 ? "#f59e0b" : "#fff" }}>{selectedPlayer.yellowCards || 0}</div>
-                        <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 }}>🟨 Yellow Cards</div>
-                      </div>
-                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "12px 8px", textAlign: "center", border: "1px solid #ffffff0f" }}>
-                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: (selectedPlayer.redCards||0) > 0 ? "#ef4444" : "#fff" }}>{selectedPlayer.redCards || 0}</div>
-                        <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 }}>🟥 Red Cards</div>
-                      </div>
-                    </div>
-                    {/* About */}
+                  {/* About + Close */}
+                  <div style={{ padding: "0 18px 20px" }}>
                     {selectedPlayer.about && (
-                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "14px 16px", border: "1px solid #ffffff0f" }}>
+                      <div style={{ background: "#0d0c22", borderRadius: 10, padding: "14px 16px", border: "1px solid #ffffff0f", marginBottom: 14 }}>
                         <div style={{ fontSize: 10, color: "#347ebf", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>About</div>
                         <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.7 }}>{selectedPlayer.about}</div>
                       </div>
                     )}
-                    <button onClick={() => setSelectedPlayer(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", width: "100%", marginTop: 14, fontSize: 12 }}>Close</button>
+                    <button onClick={() => setSelectedPlayer(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", width: "100%", fontSize: 12 }}>Close</button>
                   </div>
                 </div>
               </div>
@@ -1299,7 +1290,7 @@ export default function App() {
               {(data.merch || []).map(m => (
                 <div key={m.id} className="merch-card" onClick={() => { setSelectedMerch(m); setSelectedSize(""); setQty(1); }}>
                   {m.image
-                    ? <img src={m.image} alt="" style={{ width: "100%", height: 160, objectFit: "contain", borderRadius: 8, marginBottom: 4, background: "#0d0c22" }} />
+                    ? <img src={m.image} alt="" style={{ width: "100%", height: 120, objectFit: "contain", borderRadius: 8, marginBottom: 4, background: "#0d0c22", padding: 8 }} />
                     : <div style={{ fontSize: 44 }}>{m.emoji}</div>}
                   {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 4 }}>{m.tag}</span>}
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "center" }}>{m.name}</div>
