@@ -582,6 +582,23 @@ export default function App() {
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
         td { padding: 11px 12px; font-size: 14px; border-bottom: 1px solid #ffffff07; }
+        .fixture-card-inner { display: flex; align-items: center; gap: 10px; }
+        .fixture-teams { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .fixture-venue { min-width: 110px; font-size: 11px; color: #8899bb; text-align: right; flex-shrink: 0; }
+        .fixture-date { min-width: 60px; font-size: 12px; color: #8899bb; font-weight: 600; flex-shrink: 0; }
+        @media (max-width: 520px) {
+          .fixture-card-inner { flex-direction: column; align-items: stretch; gap: 8px; }
+          .fixture-teams { flex-direction: column; gap: 6px; }
+          .fixture-venue { min-width: unset; text-align: left; }
+          .fixture-date { min-width: unset; }
+          .fixture-team-home { justify-content: flex-start !important; flex-direction: row-reverse; }
+          .fixture-team-away { justify-content: flex-start !important; }
+          .fixture-score { align-self: center; }
+          .home-merch-strip { padding-bottom: 8px; }
+        }
+        @media (max-width: 680px) {
+          .home-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       {showLogin && <AdminLogin onSuccess={() => { setShowLogin(false); setAdminOpen(true); }} onClose={() => setShowLogin(false)} />}
@@ -615,7 +632,7 @@ export default function App() {
             </button>
             <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" onClick={() => setActive("Home")} style={{ height: 64, filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer" }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(14px, 4vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>HEMSWORTH MINERS WELFARE FC</div>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(13px, 3.8vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
             </div>
             <button onClick={() => setShowLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap", flexShrink: 0 }}>⚙</button>
@@ -661,9 +678,9 @@ export default function App() {
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
                       <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
-                    <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
                       {data.merch.slice(0, 4).map(m => (
-                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: 110, transition: "transform 0.2s" }}>
+                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
                           {m.image
                             ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                                 <img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} />
@@ -1006,56 +1023,48 @@ export default function App() {
                   const homeBadge = getBadgeForFixture(f, f.home);
                   const awayBadge = getBadgeForFixture(f, f.away);
                   return (
-                    <div key={f.id} className="card" style={{ padding: "16px 20px" }}>
+                    <div key={f.id} className="card" style={{ padding: "14px 16px" }}>
                       {(f.friendly || f.cup) && (
                         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                           {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 1, background: "#f59e0b18", padding: "2px 8px", borderRadius: 4 }}>⭐ Friendly</span>}
                           {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, letterSpacing: 1, background: "#8b5cf622", padding: "2px 8px", borderRadius: 4 }}>🏆 Cup</span>}
                         </div>
                       )}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                        <div style={{ minWidth: 60, fontSize: 12, color: "#8899bb", fontWeight: 600 }}>{f.date}</div>
-                        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }}>
+                      <div className="fixture-card-inner">
+                        <div className="fixture-date">{f.date}</div>
+                        <div className="fixture-teams">
+                          {/* Home */}
+                          <div className="fixture-team-home" style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }}>
                             <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "right" }}>{f.home}</span>
-                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
+                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 26, height: 26, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 18, flexShrink: 0 }}>🛡</span>}
                           </div>
-                          {f.result
-                            ? <div style={{ textAlign: "center", flexShrink: 0 }}>
-                                <span style={{ display: "block", background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 80 }}>{f.result}</span>
-                                {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, letterSpacing: 0.5, marginTop: 4 }}>HT {f.halftime}</div>}
-                              </div>
-                            : <span style={{ background: "#ffffff0f", padding: "4px 14px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 80, textAlign: "center", flexShrink: 0 }}>{f.time}</span>}
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-start" }}>
-                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
+                          {/* Score/Time */}
+                          <div className="fixture-score" style={{ flexShrink: 0, textAlign: "center" }}>
+                            {f.result
+                              ? <div>
+                                  <span style={{ display: "block", background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 12px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 72, textAlign: "center" }}>{f.result}</span>
+                                  {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, marginTop: 3 }}>HT {f.halftime}</div>}
+                                </div>
+                              : <span style={{ background: "#ffffff0f", padding: "4px 12px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 72, display: "inline-block", textAlign: "center" }}>{f.time}</span>}
+                          </div>
+                          {/* Away */}
+                          <div className="fixture-team-away" style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-start" }}>
+                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 26, height: 26, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 18, flexShrink: 0 }}>🛡</span>}
                             <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700 }}>{f.away}</span>
                           </div>
                         </div>
-                        <div style={{ minWidth: 110, fontSize: 11, color: "#8899bb", textAlign: "right" }}>📍 {f.venue}</div>
+                        <div className="fixture-venue">📍 {f.venue}</div>
                       </div>
+                      {/* Scorers */}
                       {f.type === "result" && (f.homeScorers || f.awayScorers) && (
-                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07", display: "flex", alignItems: "flex-start", gap: 10 }}>
-                          {/* Match date column width — keeps scorers aligned with team names */}
-                          <div style={{ minWidth: 60, flexShrink: 0 }} />
-                          {/* Scorers inner — mirrors the team name flex layout */}
-                          <div style={{ flex: 1, display: "flex", gap: 10 }}>
-                            {/* Home scorers — left aligned, matching home team position */}
-                            <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
-                              {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
-                                <div key={i}>⚽ {s.trim()}</div>
-                              ))}
-                            </div>
-                            {/* Score column spacer */}
-                            <div style={{ flexShrink: 0, minWidth: 100 }} />
-                            {/* Away scorers — left aligned from away team name start */}
-                            <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
-                              {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => (
-                                <div key={i}>⚽ {s.trim()}</div>
-                              ))}
-                            </div>
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
+                          <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "right" }}>
+                            {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>{s.trim()} ⚽</div>)}
                           </div>
-                          {/* Venue column width */}
-                          <div style={{ minWidth: 110, flexShrink: 0 }} />
+                          <div style={{ width: 72, flexShrink: 0 }} />
+                          <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
+                            {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>⚽ {s.trim()}</div>)}
+                          </div>
                         </div>
                       )}
                     </div>
