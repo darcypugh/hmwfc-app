@@ -79,7 +79,7 @@ function RichEditor({ value, onChange }) {
       editorRef.current.innerHTML = value || "";
       setInitialized(true);
     }
-  }, []);
+  }, [initialized, value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (editorRef.current && initialized) {
