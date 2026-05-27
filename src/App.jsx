@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set } from "firebase/database";
 
@@ -42,12 +42,12 @@ const DEFAULT_DATA = {
     { id: 4, date: "4 May", home: "Hemsworth Miners Welfare FC", away: "Thornton FC", time: "", venue: "Welfare Ground", result: "2 – 0", halftime: "1 – 0", homeScorers: "Williams 12, Okafor 71", awayScorers: "", scorers: "", friendly: false, homeBadge: "", awayBadge: "", type: "result" },
   ],
   squad: [
-    { id: 1, name: "Marcus Trent", pos: "GK", no: 1, apps: 30, goals: 0, cleanSheets: 12, yellowCards: 0, redCards: 0, motm: 3, playing: true },
-    { id: 2, name: "Carlos Mendes", pos: "CB", no: 5, apps: 31, goals: 2, cleanSheets: 10, yellowCards: 4, redCards: 0, motm: 2, playing: true },
-    { id: 3, name: "Rafi Hadley", pos: "CM", no: 8, apps: 32, goals: 11, cleanSheets: 0, yellowCards: 5, redCards: 1, motm: 4, playing: true },
-    { id: 4, name: "Sam Okafor", pos: "AM", no: 10, apps: 31, goals: 14, cleanSheets: 0, yellowCards: 2, redCards: 0, motm: 6, playing: true },
-    { id: 5, name: "Luca Williams", pos: "FW", no: 9, apps: 32, goals: 18, cleanSheets: 0, yellowCards: 3, redCards: 0, motm: 8, playing: true },
-    { id: 6, name: "Dion Taylor", pos: "FW", no: 11, apps: 26, goals: 9, cleanSheets: 0, yellowCards: 1, redCards: 0, motm: 1, playing: false },
+    { id: 1, name: "Marcus Trent", pos: "GK", no: 1, apps: 30, goals: 0, cleanSheets: 12, yellowCards: 0, redCards: 0, motm: 3, playing: true, photo: "", about: "", baseApps: 30, baseGoals: 0, baseCleanSheets: 12, baseYellowCards: 0, baseRedCards: 0, baseMotm: 3, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 },
+    { id: 2, name: "Carlos Mendes", pos: "CB", no: 5, apps: 31, goals: 2, cleanSheets: 10, yellowCards: 4, redCards: 0, motm: 2, playing: true, photo: "", about: "", baseApps: 31, baseGoals: 2, baseCleanSheets: 10, baseYellowCards: 4, baseRedCards: 0, baseMotm: 2, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 },
+    { id: 3, name: "Rafi Hadley", pos: "CM", no: 8, apps: 32, goals: 11, cleanSheets: 0, yellowCards: 5, redCards: 1, motm: 4, playing: true, photo: "", about: "", baseApps: 32, baseGoals: 11, baseCleanSheets: 0, baseYellowCards: 5, baseRedCards: 1, baseMotm: 4, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 },
+    { id: 4, name: "Sam Okafor", pos: "AM", no: 10, apps: 31, goals: 14, cleanSheets: 0, yellowCards: 2, redCards: 0, motm: 6, playing: true, photo: "", about: "", baseApps: 31, baseGoals: 14, baseCleanSheets: 0, baseYellowCards: 2, baseRedCards: 0, baseMotm: 6, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 },
+    { id: 5, name: "Luca Williams", pos: "FW", no: 9, apps: 32, goals: 18, cleanSheets: 0, yellowCards: 3, redCards: 0, motm: 8, playing: true, photo: "", about: "", baseApps: 32, baseGoals: 18, baseCleanSheets: 0, baseYellowCards: 3, baseRedCards: 0, baseMotm: 8, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 },
+    { id: 6, name: "Dion Taylor", pos: "FW", no: 11, apps: 26, goals: 9, cleanSheets: 0, yellowCards: 1, redCards: 0, motm: 1, playing: false, photo: "", about: "", baseApps: 26, baseGoals: 9, baseCleanSheets: 0, baseYellowCards: 1, baseRedCards: 0, baseMotm: 1, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 },
   ],
   merch: [
     { id: 1, name: "Home Kit 26/27", price: "£55", emoji: "👕", tag: "NEW", image: "", isClothing: true, stripeLink: "", sizes: { XS: "available", S: "available", M: "available", L: "available", XL: "available", XXL: "low", "3XL": "sold_out" } },
@@ -68,6 +68,82 @@ const S = {
   btn: { border: "none", borderRadius: 7, padding: "8px 16px", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, cursor: "pointer", transition: "opacity 0.2s" },
   row: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" },
 };
+
+// ── Rich Text Editor ─────────────────────────────────────────────────────────
+function RichEditor({ value, onChange }) {
+  const editorRef = useRef(null);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (editorRef.current && !initialized) {
+      editorRef.current.innerHTML = value || "";
+      setInitialized(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (editorRef.current && initialized) {
+      const current = editorRef.current.innerHTML;
+      if (current !== value) {
+        const sel = window.getSelection();
+        const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+        editorRef.current.innerHTML = value || "";
+        if (range) {
+          try { sel.removeAllRanges(); sel.addRange(range); } catch(e) {}
+        }
+      }
+    }
+  }, [value, initialized]);
+
+  const exec = (cmd, val) => {
+    editorRef.current.focus();
+    document.execCommand(cmd, false, val || null);
+    onChange(editorRef.current.innerHTML);
+  };
+
+  const handleInput = () => onChange(editorRef.current.innerHTML);
+
+  const toolBtn = (label, cmd, val) => (
+    <button key={label} onMouseDown={e => { e.preventDefault(); exec(cmd, val); }}
+      style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 5, color: "#aabbcc", fontWeight: 700, fontSize: 12, padding: "4px 9px", cursor: "pointer", fontFamily: "serif", lineHeight: 1 }}>
+      {label}
+    </button>
+  );
+
+  return (
+    <div style={{ border: "1px solid #347ebf44", borderRadius: 8, overflow: "hidden", background: "#0d0c22" }}>
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "8px 10px", borderBottom: "1px solid #ffffff0f", background: "#191740" }}>
+        {toolBtn("B", "bold")}
+        {toolBtn("I", "italic")}
+        {toolBtn("U", "underline")}
+        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
+        {toolBtn("P", "formatBlock", "p")}
+        {toolBtn("H2", "formatBlock", "h2")}
+        {toolBtn("H3", "formatBlock", "h3")}
+        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
+        {toolBtn("• List", "insertUnorderedList")}
+        {toolBtn("1. List", "insertOrderedList")}
+      </div>
+      {/* Editor area */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onBlur={handleInput}
+        style={{ minHeight: 140, padding: "12px 14px", color: "#aabbcc", fontSize: 14, lineHeight: 1.7, outline: "none", fontFamily: "Barlow, sans-serif" }}
+      />
+      <style>{`
+        [contenteditable] p { margin: 0 0 10px; }
+        [contenteditable] h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #fff; margin: 12px 0 6px; }
+        [contenteditable] h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin: 10px 0 4px; }
+        [contenteditable] ul, [contenteditable] ol { margin: 0 0 10px 20px; }
+        [contenteditable] b, [contenteditable] strong { color: #fff; }
+      `}</style>
+    </div>
+  );
+}
 
 function AdminNews({ items, onSave }) {
   const [list, setList] = useState(items);
@@ -111,7 +187,7 @@ function AdminNews({ items, onSave }) {
                 <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
               </div>
               <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update(idx, "title", e.target.value)} /></div>
-              <div><label style={S.label}>Body</label><textarea style={{ ...S.input, height: 100, resize: "vertical" }} value={n.body} onChange={e => update(idx, "body", e.target.value)} /></div>
+              <div><label style={S.label}>Body</label><RichEditor value={n.body} onChange={val => update(idx, "body", val)} /></div>
               <div>
                 <label style={S.label}>Article Image</label>
                 <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#0d0c22", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12 }}>
@@ -300,11 +376,51 @@ function AdminFixtures({ items, tableData, onSave }) {
   );
 }
 
+const STAT_FIELDS = ["Apps","Goals","CS","Yellow","Red","MotM"];
+const STAT_KEYS   = ["Apps","Goals","CleanSheets","YellowCards","RedCards","Motm"];
+
+function StatRow({ prefix, p, onChange, label, color }) {
+  return (
+    <div style={{ background: "#191740", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color, letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {STAT_FIELDS.map((f, i) => {
+          const key = prefix + STAT_KEYS[i];
+          return (
+            <div key={key} style={{ flex: 1, minWidth: 50 }}>
+              <label style={{ ...S.label, fontSize: 9 }}>{f}</label>
+              <input style={{ ...S.input, padding: "5px 6px", fontSize: 12 }} type="number" value={p[key] || 0} onChange={e => onChange(key, +e.target.value)} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AdminSquad({ items, onSave }) {
   const [list, setList] = useState(items);
-  const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
+  const update = (idx, field, val) => {
+    const updated = list.map((x, i) => {
+      if (i !== idx) return x;
+      const next = { ...x, [field]: val };
+      // If a season stat changed, recalculate the career total
+      if (field.startsWith("season")) {
+        const statKey = field.replace("season", "").charAt(0).toLowerCase() + field.replace("season", "").slice(1);
+        const baseKey = "base" + field.replace("season", "");
+        next[statKey] = (next[baseKey] || 0) + val;
+      }
+      return next;
+    });
+    setList(updated);
+  };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addPlayer = () => setList([...list, { id: Date.now(), name: "", pos: "CM", no: 0, apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, playing: true, photo: "", about: "" }]);
+  const addPlayer = () => setList([...list, {
+    id: Date.now(), name: "", pos: "CM", no: 0, playing: true, photo: "", about: "",
+    apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0,
+    baseApps: 0, baseGoals: 0, baseCleanSheets: 0, baseYellowCards: 0, baseRedCards: 0, baseMotm: 0,
+    seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0,
+  }]);
   const uploadPhoto = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -321,9 +437,13 @@ function AdminSquad({ items, onSave }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Tick "Playing?" to show a player in the Current Season tab. Untick to move them to the Overall tab only.</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>
+        Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses — career totals update automatically.
+        Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
+      </div>
       {list.map((p, idx) => (
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
+          {/* Name / pos / playing / delete */}
           <div style={S.row}>
             <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update(idx, "name", e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update(idx, "pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
@@ -335,21 +455,47 @@ function AdminSquad({ items, onSave }) {
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
             </div>
           </div>
-          <div style={{ ...S.row, marginTop: 8, alignItems: "flex-start" }}>
-            <div style={{ flexShrink: 0 }}>
-              <label style={S.label}>Photo</label>
-              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: "pointer", overflow: "hidden" }}>
-                {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📷</span>}
-                <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPhoto(idx, e.target.files[0])} />
-              </label>
-            </div>
-            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>Apps</label><input style={S.input} type="number" value={p.apps} onChange={e => update(idx, "apps", +e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>Goals</label><input style={S.input} type="number" value={p.goals} onChange={e => update(idx, "goals", +e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>CS</label><input style={S.input} type="number" value={p.cleanSheets || 0} onChange={e => update(idx, "cleanSheets", +e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>🟨 Cards</label><input style={S.input} type="number" value={p.yellowCards || 0} onChange={e => update(idx, "yellowCards", +e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>🟥 Cards</label><input style={S.input} type="number" value={p.redCards || 0} onChange={e => update(idx, "redCards", +e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 55 }}><label style={S.label}>MotM</label><input style={S.input} type="number" value={p.motm || 0} onChange={e => update(idx, "motm", +e.target.value)} /></div>
+          {/* Photo */}
+          <div style={{ marginTop: 8 }}>
+            <label style={S.label}>Photo</label>
+            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: "pointer", overflow: "hidden" }}>
+              {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📷</span>}
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPhoto(idx, e.target.files[0])} />
+            </label>
           </div>
+          {/* Season stats — these drive the career totals */}
+          <StatRow prefix="season" p={p} label="This Season (updates career totals automatically)" color="#347ebf"
+            onChange={(key, val) => update(idx, key, val)} />
+          {/* Career totals — read only display + manual override */}
+          <div style={{ background: "#191740", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#f59e0b", letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Career Totals (auto-calculated · edit to override)</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[
+                { label: "Apps", key: "apps" },
+                { label: "Goals", key: "goals" },
+                { label: "CS", key: "cleanSheets" },
+                { label: "Yellow", key: "yellowCards" },
+                { label: "Red", key: "redCards" },
+                { label: "MotM", key: "motm" },
+              ].map(({ label, key }) => (
+                <div key={key} style={{ flex: 1, minWidth: 50 }}>
+                  <label style={{ ...S.label, fontSize: 9 }}>{label}</label>
+                  <input style={{ ...S.input, padding: "5px 6px", fontSize: 12, borderColor: "#f59e0b33" }} type="number" value={p[key] || 0}
+                    onChange={e => {
+                      const val = +e.target.value;
+                      const baseKey = "base" + key.charAt(0).toUpperCase() + key.slice(1);
+                      const seasonKey = "season" + key.charAt(0).toUpperCase() + key.slice(1);
+                      // Update career total and recalculate base (base = career - season)
+                      setList(list.map((x, i) => i === idx ? {
+                        ...x, [key]: val,
+                        [baseKey]: Math.max(0, val - (x[seasonKey] || 0))
+                      } : x));
+                    }} />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* About */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>About this player</label>
             <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
@@ -510,6 +656,20 @@ function AdminLogin({ onSuccess, onClose }) {
   );
 }
 
+const parseNewsDate = (d) => {
+  if (!d) return 0;
+  const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
+  const months = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
+  const parts = clean.split(" ");
+  if (parts.length >= 3) {
+    const day = parseInt(parts[0]);
+    const mon = months[parts[1].slice(0,3)] ?? 0;
+    const yr = parseInt(parts[2]) + (parseInt(parts[2]) < 100 ? 2000 : 0);
+    return new Date(yr, mon, day).getTime();
+  }
+  return 0;
+};
+
 export default function App() {
   const [active, setActive] = useState("Home");
   const [fixtureTab, setFixtureTab] = useState("upcoming");
@@ -643,7 +803,9 @@ export default function App() {
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
 
         {active === "Home" && (() => {
-          const latest = data.news && data.news.length > 0 ? data.news[0] : null;
+
+          const sortedNews = [...(data.news || [])].sort((a, b) => parseNewsDate(b.date) - parseNewsDate(a.date));
+          const latest = sortedNews.length > 0 ? sortedNews[0] : null;
           const sorted = [...data.table].sort((a, b) => a.pos - b.pos);
           const total = sorted.length;
           const getZone = (pos) => {
@@ -717,7 +879,7 @@ export default function App() {
                       </div>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, lineHeight: 1.15, marginBottom: 14 }}>{latest.title}</div>
                       <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 16 }}>
-                        {latest.body.slice(0, 180)}{latest.body.length > 180 ? "..." : ""}
+                        {(latest.body || "").replace(/<[^>]+>/g, "").slice(0, 180)}{(latest.body || "").replace(/<[^>]+>/g, "").length > 180 ? "..." : ""}
                       </div>
                       <button onClick={() => { setSelectedArticle(latest); setActive("News"); }} style={{ background: "none", border: "1px solid #347ebf55", borderRadius: 7, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", transition: "all 0.2s" }}>
                         Read full story →
@@ -911,14 +1073,14 @@ export default function App() {
                     <span style={{ color: "#8899bb", fontSize: 12 }}>{selectedArticle.date}</span>
                   </div>
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, lineHeight: 1.15, marginBottom: 18 }}>{selectedArticle.title}</div>
-                  <div style={{ fontSize: 15, color: "#aabbcc", lineHeight: 1.8 }}>{selectedArticle.body}</div>
+                  <div style={{ fontSize: 15, color: "#aabbcc", lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: selectedArticle.body }} />
                 </div>
               </div>
             ) : (
               <div>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Latest News</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
-                  {data.news.map(n => (
+                  {[...(data.news || [])].sort((a, b) => parseNewsDate(b.date) - parseNewsDate(a.date)).map(n => (
                     <div key={n.id} className="card" onClick={() => setSelectedArticle(n)} style={{ cursor: "pointer" }}>
                       {n.image
                         ? <img src={n.image} alt="" style={{ width: "100%", height: 180, objectFit: "cover" }} />
@@ -930,7 +1092,7 @@ export default function App() {
                           <span style={{ color: "#8899bb", fontSize: 11 }}>{n.date}</span>
                         </div>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 8, lineHeight: 1.2 }}>{n.title}</div>
-                        <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.6 }}>{n.body.slice(0, 100)}{n.body.length > 100 ? "..." : ""}</div>
+                        <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.6 }}>{(n.body || "").replace(/<[^>]+>/g, "").slice(0, 100)}{(n.body || "").replace(/<[^>]+>/g, "").length > 100 ? "..." : ""}</div>
                         <div style={{ marginTop: 12, color: "#347ebf", fontSize: 12, fontWeight: 700, fontFamily: "Barlow Condensed, sans-serif", letterSpacing: 1 }}>READ MORE →</div>
                       </div>
                     </div>
@@ -1088,9 +1250,17 @@ export default function App() {
           ];
           const squad = data.squad || [];
           const filtered = squadView === "current" ? squad.filter(p => p.playing) : squad;
+          // For current season tab, display season stats; for overall, display career totals
+          const getStat = (p, key) => {
+            if (squadView === "current") {
+              const seasonKey = "season" + key.charAt(0).toUpperCase() + key.slice(1);
+              return p[seasonKey] !== undefined ? p[seasonKey] : p[key] || 0;
+            }
+            return p[key] || 0;
+          };
           const sorted = [...filtered].sort((a, b) => {
             if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
-            return (b[sortBy] || 0) - (a[sortBy] || 0);
+            return getStat(b, sortBy) - getStat(a, sortBy);
           });
           return (
           <div>
@@ -1116,17 +1286,20 @@ export default function App() {
                     <div style={{ flex: 1, padding: "18px 18px 18px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
                       <div>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, lineHeight: 1.1, marginBottom: 6 }}>{selectedPlayer.name}</div>
-                        <span style={{ background: `${POS_COLOR[selectedPlayer.pos] || "#8b5cf6"}cc`, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 5, display: "inline-block" }}>{selectedPlayer.pos}</span>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                        <span style={{ background: `${POS_COLOR[selectedPlayer.pos] || "#8b5cf6"}cc`, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 5 }}>{selectedPlayer.pos}</span>
+                        <span style={{ background: squadView === "current" ? "#347ebf22" : "#f59e0b22", color: squadView === "current" ? "#347ebf" : "#f59e0b", fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 5, letterSpacing: 1 }}>{squadView === "current" ? "THIS SEASON" : "CAREER"}</span>
+                      </div>
                       </div>
                       {/* Stat pills */}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 14 }}>
                         {[
-                          { label: "Apps", value: selectedPlayer.apps || 0, color: "#fff" },
-                          { label: "Goals", value: selectedPlayer.goals || 0, color: (selectedPlayer.goals||0) > 0 ? "#10b981" : "#fff" },
-                          { label: "CS", value: selectedPlayer.cleanSheets || 0, color: (selectedPlayer.cleanSheets||0) > 0 ? "#347ebf" : "#fff" },
-                          { label: "MotM", value: selectedPlayer.motm || 0, color: (selectedPlayer.motm||0) > 0 ? "#f59e0b" : "#fff" },
-                          { label: "🟨", value: selectedPlayer.yellowCards || 0, color: (selectedPlayer.yellowCards||0) > 0 ? "#f59e0b" : "#fff" },
-                          { label: "🟥", value: selectedPlayer.redCards || 0, color: (selectedPlayer.redCards||0) > 0 ? "#ef4444" : "#fff" },
+                          { label: "Apps", value: getStat(selectedPlayer,"apps"), color: "#fff" },
+                          { label: "Goals", value: getStat(selectedPlayer,"goals"), color: getStat(selectedPlayer,"goals") > 0 ? "#10b981" : "#fff" },
+                          { label: "CS", value: getStat(selectedPlayer,"cleanSheets"), color: getStat(selectedPlayer,"cleanSheets") > 0 ? "#347ebf" : "#fff" },
+                          { label: "MotM", value: getStat(selectedPlayer,"motm"), color: getStat(selectedPlayer,"motm") > 0 ? "#f59e0b" : "#fff" },
+                          { label: "🟨", value: getStat(selectedPlayer,"yellowCards"), color: getStat(selectedPlayer,"yellowCards") > 0 ? "#f59e0b" : "#fff" },
+                          { label: "🟥", value: getStat(selectedPlayer,"redCards"), color: getStat(selectedPlayer,"redCards") > 0 ? "#ef4444" : "#fff" },
                         ].map(s => (
                           <div key={s.label} style={{ background: "#0d0c2288", borderRadius: 8, padding: "8px 6px", textAlign: "center", border: "1px solid #ffffff0f" }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
@@ -1190,17 +1363,17 @@ export default function App() {
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, lineHeight: 1.2, marginBottom: 8 }}>{p.name}</div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <div style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{p.apps || 0}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{getStat(p, "apps")}</div>
                           <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase" }}>Apps</div>
                         </div>
                         <div style={{ width: 1, background: "#ffffff0f" }} />
                         {p.pos === "GK"
                           ? <div style={{ textAlign: "center" }}>
-                              <div style={{ fontSize: 16, fontWeight: 700, color: "#347ebf" }}>{p.cleanSheets || 0}</div>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: "#347ebf" }}>{getStat(p, "cleanSheets")}</div>
                               <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase" }}>CS</div>
                             </div>
                           : <div style={{ textAlign: "center" }}>
-                              <div style={{ fontSize: 16, fontWeight: 700, color: (p.goals||0) > 0 ? "#10b981" : "#fff" }}>{p.goals || 0}</div>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: getStat(p,"goals") > 0 ? "#10b981" : "#fff" }}>{getStat(p, "goals")}</div>
                               <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 0.5, textTransform: "uppercase" }}>Goals</div>
                             </div>}
                       </div>
@@ -1229,12 +1402,12 @@ export default function App() {
                     <tr key={p.id} className="squad-row" style={{ transition: "background 0.15s", cursor: "pointer" }} onClick={() => setSelectedPlayer(p)}>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
                       <td><span style={{ background: `${POS_COLOR[p.pos] || "#8b5cf6"}22`, color: POS_COLOR[p.pos] || "#8b5cf6", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>{p.pos}</span></td>
-                      <td style={{ color: "#aabbcc" }}>{p.apps || 0}</td>
-                      <td style={{ fontWeight: 700, color: (p.goals||0) > 10 ? "#f59e0b" : (p.goals||0) > 0 ? "#10b981" : "#8899bb" }}>{p.goals || 0}</td>
-                      <td style={{ color: (p.cleanSheets||0) > 0 ? "#347ebf" : "#8899bb" }}>{p.cleanSheets || 0}</td>
-                      <td style={{ color: (p.yellowCards||0) > 0 ? "#f59e0b" : "#8899bb" }}>{p.yellowCards || 0}</td>
-                      <td style={{ color: (p.redCards||0) > 0 ? "#ef4444" : "#8899bb" }}>{p.redCards || 0}</td>
-                      <td style={{ fontWeight: 700, color: (p.motm||0) > 0 ? "#f59e0b" : "#8899bb" }}>{p.motm || 0}</td>
+                      <td style={{ color: "#aabbcc" }}>{getStat(p,"apps")}</td>
+                      <td style={{ fontWeight: 700, color: getStat(p,"goals") > 10 ? "#f59e0b" : getStat(p,"goals") > 0 ? "#10b981" : "#8899bb" }}>{getStat(p,"goals")}</td>
+                      <td style={{ color: getStat(p,"cleanSheets") > 0 ? "#347ebf" : "#8899bb" }}>{getStat(p,"cleanSheets")}</td>
+                      <td style={{ color: getStat(p,"yellowCards") > 0 ? "#f59e0b" : "#8899bb" }}>{getStat(p,"yellowCards")}</td>
+                      <td style={{ color: getStat(p,"redCards") > 0 ? "#ef4444" : "#8899bb" }}>{getStat(p,"redCards")}</td>
+                      <td style={{ fontWeight: 700, color: getStat(p,"motm") > 0 ? "#f59e0b" : "#8899bb" }}>{getStat(p,"motm")}</td>
                     </tr>
                   ))}
                   {sorted.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "#8899bb", padding: 20 }}>No players in this view.</td></tr>}
