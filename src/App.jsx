@@ -594,7 +594,7 @@ export default function App() {
           .fixture-team-home { justify-content: flex-start !important; flex-direction: row-reverse; }
           .fixture-team-away { justify-content: flex-start !important; }
           .fixture-score { align-self: center; }
-          .home-merch-strip { padding-bottom: 8px; }
+          .home-merch-strip { padding-bottom: 8px; scroll-padding-right: 20px; }
         }
         @media (max-width: 680px) {
           .home-grid { grid-template-columns: 1fr !important; }
@@ -626,11 +626,11 @@ export default function App() {
 
       <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 100%)", borderBottom: "1px solid #ffffff0f" }}>
         <div style={{ maxWidth: 980, margin: "0 auto", padding: "0 16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, paddingTop: 12, paddingBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 3vw, 14px)", paddingTop: 12, paddingBottom: 12 }}>
             <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menu">
               <span /><span /><span />
             </button>
-            <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" onClick={() => setActive("Home")} style={{ height: 64, filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer" }} />
+            <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" onClick={() => setActive("Home")} style={{ height: "clamp(44px, 12vw, 64px)", filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(13px, 3.8vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
@@ -678,7 +678,7 @@ export default function App() {
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
                       <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
-                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
                       {data.merch.slice(0, 4).map(m => (
                         <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
                           {m.image
@@ -1100,7 +1100,7 @@ export default function App() {
                 <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px #00000088", margin: "auto" }} onClick={e => e.stopPropagation()}>
                   {/* Side photo + stats layout */}
                   <div style={{ display: "flex", minHeight: 260 }}>
-                    {/* Left — photo with right-fade */}
+                    {/* Left — photo with right-fade and bottom-fade */}
                     <div style={{ width: 160, flexShrink: 0, position: "relative", background: "linear-gradient(160deg,#0d0c22,#191740)", overflow: "hidden" }}>
                       {selectedPlayer.photo
                         ? <img src={selectedPlayer.photo} alt={selectedPlayer.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
@@ -1109,6 +1109,8 @@ export default function App() {
                           </div>}
                       {/* Right-side gradient fade */}
                       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 50%, #191740 100%)" }} />
+                      {/* Bottom gradient fade */}
+                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to bottom, transparent, #191740)" }} />
                     </div>
                     {/* Right — name, pos badge, stats */}
                     <div style={{ flex: 1, padding: "18px 18px 18px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
