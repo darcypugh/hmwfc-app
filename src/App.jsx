@@ -55,6 +55,7 @@ const DEFAULT_DATA = {
     { id: 3, name: "Matchday Programme", price: "£4", emoji: "📰", tag: "", image: "", isClothing: false, stripeLink: "", sizes: {} },
     { id: 4, name: "Training Top", price: "£35", emoji: "🧥", tag: "", image: "", isClothing: true, stripeLink: "", sizes: { XS: "available", S: "available", M: "available", L: "low", XL: "sold_out", XXL: "sold_out", "3XL": "sold_out" } },
   ],
+  gallery: [],
 };
 
 const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
@@ -603,9 +604,111 @@ function AdminMerch({ items, onSave }) {
   );
 }
 
+function AdminGallery({ items, onSave }) {
+  const [albums, setAlbums] = useState(items || []);
+  const [expanded, setExpanded] = useState(null);
+
+  const addAlbum = () => {
+    const a = [...albums, { id: Date.now(), name: "New Album", date: "", cover: "", photos: [] }];
+    setAlbums(a); setExpanded(a.length - 1);
+  };
+  const updateAlbum = (idx, field, val) => setAlbums(albums.map((a, i) => i === idx ? { ...a, [field]: val } : a));
+  const delAlbum = (idx) => { const a = albums.filter((_, i) => i !== idx); setAlbums(a); onSave(a); };
+
+  const uploadPhotos = (idx, files) => {
+    const fileArr = Array.from(files);
+    let loaded = 0;
+    const newPhotos = [];
+    fileArr.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        newPhotos.push({ id: Date.now() + Math.random(), src: e.target.result });
+        loaded++;
+        if (loaded === fileArr.length) {
+          const updated = albums.map((a, i) => i === idx ? { ...a, photos: [...(a.photos || []), ...newPhotos], cover: a.cover || newPhotos[0].src } : a);
+          setAlbums(updated);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removePhoto = (albumIdx, photoId) => {
+    const updated = albums.map((a, i) => {
+      if (i !== albumIdx) return a;
+      const photos = (a.photos || []).filter(p => p.id !== photoId);
+      return { ...a, photos, cover: photos.length > 0 ? (a.cover === a.photos.find(p=>p.id===photoId)?.src ? photos[0].src : a.cover) : "" };
+    });
+    setAlbums(updated);
+  };
+
+  const save = () => onSave(albums);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Photo Albums</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addAlbum}>+ New Album</button>
+          <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once.</div>
+      {albums.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No albums yet — tap "+ New Album" to get started.</div>}
+      {albums.map((a, idx) => (
+        <div key={a.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+          {/* Album header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
+            {a.cover
+              ? <img src={a.cover} alt="" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} />
+              : <div style={{ width: 52, height: 52, background: "#191740", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📸</div>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{a.name || "(unnamed)"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{a.date || "No date"} · {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</div>
+            </div>
+            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setExpanded(expanded === idx ? null : idx)}>{expanded === idx ? "Close" : "Edit"}</button>
+            <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 10px" }} onClick={() => delAlbum(idx)}>✕</button>
+          </div>
+          {/* Expanded editor */}
+          {expanded === idx && (
+            <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
+              <div style={S.row}>
+                <div style={{ flex: 2 }}><label style={S.label}>Album Name</label><input style={S.input} value={a.name} onChange={e => updateAlbum(idx, "name", e.target.value)} placeholder="e.g. vs Frickley Athletic — 3 Aug" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Date</label><input style={S.input} value={a.date} onChange={e => updateAlbum(idx, "date", e.target.value)} placeholder="3 Aug 2026" /></div>
+              </div>
+              {/* Upload */}
+              <div style={{ marginTop: 10 }}>
+                <label style={S.label}>Add Photos</label>
+                <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12 }}>
+                  <div style={{ fontSize: 28 }}>📷</div>
+                  <div><div style={{ fontSize: 13, color: "#aabbcc" }}>Tap to upload photos</div><div style={{ fontSize: 11, color: "#8899bb" }}>Select multiple at once</div></div>
+                  <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => uploadPhotos(idx, e.target.files)} />
+                </label>
+              </div>
+              {/* Photo grid */}
+              {(a.photos || []).length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 8, marginTop: 12 }}>
+                  {a.photos.map(p => (
+                    <div key={p.id} style={{ position: "relative", paddingTop: "100%" }}>
+                      <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }} />
+                      <button onClick={() => removePhoto(idx, p.id)} style={{ position: "absolute", top: 3, right: 3, background: "#ef4444cc", border: "none", borderRadius: "50%", width: 20, height: 20, color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>✕</button>
+                      <button onClick={() => updateAlbum(idx, "cover", p.src)} style={{ position: "absolute", bottom: 3, left: 3, background: a.cover === p.src ? "#10b981cc" : "#000000aa", border: "none", borderRadius: 4, color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", padding: "2px 5px" }}>{a.cover === p.src ? "COVER" : "Set cover"}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button style={{ ...S.btn, background: "#10b981", color: "#fff", marginTop: 12 }} onClick={save}>Save Album</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -630,6 +733,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Fixtures" && <AdminFixtures items={data.fixtures} tableData={data.table} onSave={v => onUpdate("fixtures", v)} />}
         {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
+        {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
       </div>
     </div>
   );
@@ -684,6 +788,7 @@ export default function App() {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
 
@@ -703,6 +808,7 @@ export default function App() {
 
   const updateSection = (section, value) => {
     const nd = { ...data, [section]: value };
+    if (section === "table") nd.tableUpdatedAt = new Date().toISOString();
     setData(nd);
     set(ref(db, "hmwfc"), nd);
   };
@@ -1050,7 +1156,36 @@ export default function App() {
                     </tbody>
                   </table>
                   <div style={{ padding: "10px 12px", borderTop: "1px solid #ffffff0f" }}>
-                    <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW FULL TABLE →</button>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW FULL TABLE →</button>
+                      {data.tableUpdatedAt && <span style={{ fontSize: 10, color: "#8899bb66" }}>Updated {new Date(data.tableUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+                {/* Contact the club */}
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Contact the Club</div>
+                  <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <a href="mailto:HMWFC_1981@hotmail.com" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
+                      <div style={{ width: 36, height: 36, background: "#347ebf22", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>✉️</div>
+                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>EMAIL</div><div style={{ fontSize: 13, fontWeight: 600 }}>HMWFC_1981@hotmail.com</div></div>
+                    </a>
+                    <div style={{ height: 1, background: "#ffffff07" }} />
+                    <a href="https://x.com/hemsworthmwfc" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
+                      <div style={{ width: 36, height: 36, background: "#ffffff0f", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 15, color: "#fff", flexShrink: 0 }}>𝕏</div>
+                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>X / TWITTER</div><div style={{ fontSize: 13, fontWeight: 600 }}>@hemsworthmwfc</div></div>
+                    </a>
+                    <div style={{ height: 1, background: "#ffffff07" }} />
+                    <a href="https://instagram.com/hemsworthmwfc" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, background: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" }}>📷</div>
+                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>INSTAGRAM</div><div style={{ fontSize: 13, fontWeight: 600 }}>@hemsworthmwfc</div></div>
+                    </a>
+                    <div style={{ height: 1, background: "#ffffff07" }} />
+                    <a href="https://facebook.com/search/top?q=Hemsworth+Miners+Welfare+FC" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
+                      <div style={{ width: 36, height: 36, background: "#1877f222", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👥</div>
+                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>FACEBOOK</div><div style={{ fontSize: 13, fontWeight: 600 }}>Hemsworth Miners Welfare FC</div></div>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1160,6 +1295,7 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+              {data.tableUpdatedAt && <div style={{ marginTop: 10, fontSize: 11, color: "#8899bb66", textAlign: "right" }}>Last updated: {new Date(data.tableUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div>}
             </div>
           );
         })()}
@@ -1499,13 +1635,44 @@ export default function App() {
 
         {active === "Gallery" && (
           <div>
-            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Photo Gallery</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-              {["⚽","🏃","🏆","👏","🎯","📸","🥅","🎽"].map((e, i) => (
-                <div key={i} className="card" style={{ height: 160, display: "flex", alignItems: "center", justifyContent: "center", background: `hsl(${220 + i * 5}, 30%, ${10 + i * 2}%)`, fontSize: 52 }}>{e}</div>
-              ))}
-            </div>
-            <div style={{ textAlign: "center", marginTop: 24, color: "#8899bb", fontSize: 13 }}>Full gallery coming soon — match photos added weekly.</div>
+            {selectedAlbum ? (
+              <div>
+                <button onClick={() => setSelectedAlbum(null)} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, marginBottom: 4 }}>{selectedAlbum.name}</div>
+                {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 20 }}>📅 {selectedAlbum.date}</div>}
+                {(selectedAlbum.photos || []).length === 0
+                  ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No photos in this album yet.</div>
+                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+                      {selectedAlbum.photos.map(p => (
+                        <div key={p.id} style={{ paddingTop: "75%", position: "relative", borderRadius: 10, overflow: "hidden" }}>
+                          <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                      ))}
+                    </div>}
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Photo Gallery</div>
+                {(data.gallery || []).length === 0
+                  ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No albums yet — check back soon!</div>
+                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+                      {(data.gallery || []).map(a => (
+                        <div key={a.id} className="card" onClick={() => setSelectedAlbum(a)} style={{ cursor: "pointer", overflow: "hidden" }}>
+                          {a.cover
+                            ? <img src={a.cover} alt="" style={{ width: "100%", height: 140, objectFit: "cover" }} />
+                            : <div style={{ height: 140, background: "linear-gradient(135deg,#191740,#0d0c22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📸</div>}
+                          <div style={{ padding: "12px 14px 14px" }}>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{a.name}</div>
+                            <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 10 }}>
+                              {a.date && <span>📅 {a.date}</span>}
+                              <span>📷 {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>}
+              </div>
+            )}
           </div>
         )}
 
