@@ -894,7 +894,7 @@ export default function App() {
                   <div style={{ marginTop: 20 }}>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {data.news.slice(1).map(n => (
+                      {sortedNews.slice(1).map(n => (
                         <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); }}>
                           <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
                           <div style={{ minWidth: 0 }}>
@@ -1330,14 +1330,12 @@ export default function App() {
                 <button className={`tab-btn ${squadView === "all" ? "active" : ""}`} onClick={() => setSquadView("all")}>Overall</button>
               </div>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-                {squadDisplayMode === "table" && (
-                  <>
+                <>
                     <span style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>SORT BY</span>
                     <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 7, color: "#fff", padding: "6px 10px", fontSize: 12, fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, cursor: "pointer", outline: "none" }}>
                       {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                     </select>
                   </>
-                )}
                 <div style={{ display: "flex", gap: 4, background: "#191740", borderRadius: 8, padding: 3, border: "1px solid #ffffff0f" }}>
                   <button onClick={() => setSquadDisplayMode("tiles")} style={{ ...S.btn, padding: "5px 12px", background: squadDisplayMode === "tiles" ? "#347ebf" : "none", color: squadDisplayMode === "tiles" ? "#fff" : "#8899bb", fontSize: 12 }}>Tiles</button>
                   <button onClick={() => setSquadDisplayMode("table")} style={{ ...S.btn, padding: "5px 12px", background: squadDisplayMode === "table" ? "#347ebf" : "none", color: squadDisplayMode === "table" ? "#fff" : "#8899bb", fontSize: 12 }}>Table</button>
