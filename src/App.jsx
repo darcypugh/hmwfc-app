@@ -640,7 +640,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "28px 20px 60px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
 
         {active === "Home" && (() => {
           const latest = data.news && data.news.length > 0 ? data.news[0] : null;
@@ -670,7 +670,7 @@ export default function App() {
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 280px", gap: 24, alignItems: "start" }} className="home-grid">
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 280px; } @media(max-width:680px){ .home-grid { grid-template-columns: 1fr !important; } }`}</style>
               {/* Latest news */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 {/* Merch strip */}
                 {data.merch && data.merch.length > 0 && (
                   <div style={{ marginBottom: 24 }}>
@@ -698,7 +698,7 @@ export default function App() {
                 )}
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest News</div>
                 {latest ? (
-                  <div className="card" style={{ overflow: "hidden" }}>
+                  <div className="card" style={{ overflow: "hidden", minWidth: 0 }}>
                     {/* Hero image */}
                     {latest.image
                       ? <div style={{ position: "relative", height: 220, overflow: "hidden" }}>
@@ -751,7 +751,7 @@ export default function App() {
               </div>
 
               {/* Mini league table */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 {/* Latest result card */}
                 {/* Upcoming fixtures */}
                 {(() => {
@@ -767,7 +767,7 @@ export default function App() {
                           const weHome = f.home.includes("Hemsworth");
                           return (
                             <div key={f.id} style={{ padding: "12px 14px", borderBottom: i < upcoming.length - 1 ? "1px solid #ffffff07" : "none" }}>
-                              <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 6, letterSpacing: 0.5 }}>{f.date} · {f.time} · {f.venue}</div>
+                              <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 6, letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.date} · {f.time} · {f.venue}</div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 {homeBadge ? <img src={homeBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
                                 <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: weHome ? 700 : 400, color: "#fff", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{weHome ? "The Wells" : f.home}</span>
@@ -878,7 +878,7 @@ export default function App() {
                                 ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", display: "block" }} />
                                 : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>🛡</div>}
                             </td>
-                            <td style={{ padding: "6px 4px", fontSize: 12, fontWeight: isOurs ? 700 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110 }}>
+                            <td style={{ padding: "6px 4px", fontSize: 12, fontWeight: isOurs ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 0, width: "100%" }}>
                               {isOurs ? "The Wells" : r.team.split(" ").slice(0,2).join(" ")}
                             </td>
                             <td style={{ padding: "6px 6px", fontSize: 12, fontWeight: 700, textAlign: "right" }}>{r.pts}</td>
