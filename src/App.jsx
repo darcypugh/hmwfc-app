@@ -663,11 +663,17 @@ export default function App() {
                     </div>
                     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
                       {data.merch.slice(0, 4).map(m => (
-                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, padding: "14px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer", flexShrink: 0, width: 110, transition: "transform 0.2s" }}>
-                          {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3 }}>{m.tag}</span>}
-                          <div style={{ fontSize: 30 }}>{m.emoji}</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", lineHeight: 1.2 }}>{m.name}</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: 110, transition: "transform 0.2s" }}>
+                          {m.image
+                            ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                                <img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} />
+                              </div>
+                            : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
+                          <div style={{ padding: "8px 10px 10px" }}>
+                            {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>{m.name}</div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -747,9 +753,9 @@ export default function App() {
                               <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 6, letterSpacing: 0.5 }}>{f.date} · {f.time} · {f.venue}</div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 {homeBadge ? <img src={homeBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
-                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: weHome ? 700 : 400, color: weHome ? "#fff" : "#aabbcc", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{weHome ? "The Wells" : f.home}</span>
+                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: weHome ? 700 : 400, color: "#fff", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{weHome ? "The Wells" : f.home}</span>
                                 <span style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, flexShrink: 0 }}>vs</span>
-                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: !weHome ? 700 : 400, color: !weHome ? "#fff" : "#aabbcc", flex: 1, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!weHome ? "The Wells" : f.away}</span>
+                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: !weHome ? 700 : 400, color: "#fff", flex: 1, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!weHome ? "The Wells" : f.away}</span>
                                 {awayBadge ? <img src={awayBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
                               </div>
                             </div>
@@ -770,12 +776,12 @@ export default function App() {
                       <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
                         {/* Badges + Score */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-                          {/* Home badge */}
+                          {/* Home badge — fixed height name prevents misalignment */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge)
-                              ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} />
-                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{weWereHome ? "The Wells" : oppName}</div>
+                              ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
+                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
                           </div>
                           {/* Score */}
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
@@ -786,9 +792,9 @@ export default function App() {
                           {/* Away badge */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge)
-                              ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} />
-                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{!weWereHome ? "The Wells" : oppName}</div>
+                              ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
+                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
                           </div>
                         </div>
                         {/* Venue */}
@@ -833,10 +839,11 @@ export default function App() {
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: "1px solid #ffffff0f" }}>
-                        <th style={{ padding: "8px 10px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "left", width: 4 }}></th>
-                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "left" }}>#</th>
-                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "left" }}>Club</th>
-                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1, textAlign: "right" }}>Pts</th>
+                        <th style={{ width: 3 }}></th>
+                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}>#</th>
+                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}></th>
+                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}>Club</th>
+                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "right" }}>Pts</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -848,11 +855,16 @@ export default function App() {
                         return (
                           <tr key={r.pos} style={{ background: isOurs ? "#347ebf14" : "transparent", borderTop: showDivider ? "1px solid #ffffff14" : "none" }}>
                             <td style={{ padding: 0, width: 3 }}><div style={{ width: 3, height: 36, background: isOurs ? "#347ebf" : zoneColor[zone], opacity: 0.8 }} /></td>
-                            <td style={{ padding: "8px 6px", fontSize: 12, color: isOurs ? "#347ebf" : zoneColor[zone], fontWeight: 700 }}>{r.pos}</td>
-                            <td style={{ padding: "8px 6px", fontSize: 12, fontWeight: isOurs ? 700 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 130 }}>
+                            <td style={{ padding: "6px 4px", fontSize: 12, color: isOurs ? "#347ebf" : zoneColor[zone], fontWeight: 700 }}>{r.pos}</td>
+                            <td style={{ padding: "6px 4px", width: 24 }}>
+                              {r.badge
+                                ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", display: "block" }} />
+                                : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>🛡</div>}
+                            </td>
+                            <td style={{ padding: "6px 4px", fontSize: 12, fontWeight: isOurs ? 700 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110 }}>
                               {isOurs ? "The Wells" : r.team.split(" ").slice(0,2).join(" ")}
                             </td>
-                            <td style={{ padding: "8px 6px", fontSize: 12, fontWeight: 700, textAlign: "right" }}>{r.pts}</td>
+                            <td style={{ padding: "6px 6px", fontSize: 12, fontWeight: 700, textAlign: "right" }}>{r.pts}</td>
                           </tr>
                         );
                       })}
