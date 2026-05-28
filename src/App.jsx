@@ -838,17 +838,17 @@ export default function App() {
   }, []);
   
   useEffect(() => {
-  const ALLOWED_EMAIL = "your-email@gmail.com"; // ← change this!
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (user && user.email === ALLOWED_EMAIL) {
+    if (user) {
       setShowLogin(false);
       setAdminOpen(true);
-    } else if (user) {
-      signOut(auth); // kick out unauthorised accounts
+    } else {
+      signOut(auth);
     }
   });
   return () => unsub();
 }, []);
+
 
 
 
