@@ -821,8 +821,6 @@ export default function App() {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
-  const [_adminUser, setAdminUser] = useState(null);
-  const [_authChecked, setAuthChecked] = useState(false);
 
 
   useEffect(() => {
@@ -842,8 +840,6 @@ export default function App() {
   useEffect(() => {
   const ALLOWED_EMAIL = "your-email@gmail.com"; // ← change this!
   const unsub = onAuthStateChanged(auth, (user) => {
-    setAdminUser(user);
-    setAuthChecked(true);
     if (user && user.email === ALLOWED_EMAIL) {
       setShowLogin(false);
       setAdminOpen(true);
