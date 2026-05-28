@@ -58,7 +58,7 @@ const DEFAULT_DATA = {
   gallery: [],
 };
 
-const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
+const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
 const ADMIN_PASSWORD = "wells2026";
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
@@ -251,7 +251,7 @@ function AdminTable({ items, onSave }) {
                     <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, e.target.files[0])} />
                   </label>
                 </td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 40 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update(idx, "stadium", e.target.value)} /></td>
                 {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
@@ -283,7 +283,7 @@ function AdminFixtures({ items, tableData, onSave }) {
   const getStadium = (teamName) => { const t = (tableData||[]).find(r => r.team === teamName); return t && t.stadium ? t.stadium : ""; };
   const addNew = () => {
     const defaultVenue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
-    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, homeBadge: "", awayBadge: "", type: "upcoming" }];
+    const l = [...list, { id: Date.now(), date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue: defaultVenue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "", type: "upcoming" }];
     setList(l); setEditing(l.length - 1);
   };
   const save = () => { onSave(list); setEditing(null); };
@@ -306,7 +306,7 @@ function AdminFixtures({ items, tableData, onSave }) {
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: editing === idx ? 12 : 0 }}>
             <div style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, background: "#f59e0b18", padding: "2px 6px", borderRadius: 3 }}>FRIENDLY</span>}
-              {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, background: "#8b5cf622", padding: "2px 6px", borderRadius: 3 }}>CUP</span>}
+              {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, background: "#8b5cf622", padding: "2px 6px", borderRadius: 3 }}>{f.cupType ? f.cupType.toUpperCase() : "CUP"}</span>}
               <span style={{ color: "#8899bb" }}>{f.date}</span>
               <span style={{ fontWeight: 600 }}>{f.home} vs {f.away}</span>
               {f.result && <span style={{ color: "#347ebf", fontWeight: 700 }}>{f.result}</span>}
@@ -332,6 +332,17 @@ function AdminFixtures({ items, tableData, onSave }) {
                   <input type="checkbox" id={`cup-${idx}`} checked={!!f.cup} onChange={e => update(idx, "cup", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#8b5cf6" }} />
                   <label htmlFor={`cup-${idx}`} style={{ fontSize: 13, color: "#8b5cf6", fontWeight: 700, cursor: "pointer" }}>🏆 Cup Game</label>
                 </div>
+                {f.cup && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <select value={f.cupType || ""} onChange={e => update(idx, "cupType", e.target.value)} style={{ ...S.input, width: "auto", color: "#8b5cf6", borderColor: "#8b5cf644" }}>
+                      <option value="">Select cup...</option>
+                      <option value="FA Cup">FA Cup</option>
+                      <option value="FA Vase">FA Vase</option>
+                      <option value="League Cup">League Cup</option>
+                      <option value="S&H Senior">S&amp;H Senior</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div style={S.row}>
                 <div style={{ flex: 1 }}>
@@ -722,9 +733,9 @@ function AdminPanel({ data, onUpdate, onClose }) {
           <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }} onClick={onClose}>✕ Exit Admin</button>
         </div>
       </div>
-      <div style={{ background: "#191740", borderBottom: "1px solid #ffffff0f", padding: "0 24px", display: "flex", gap: 4 }}>
+      <div style={{ background: "#191740", borderBottom: "1px solid #ffffff0f", padding: "0 24px", display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch", flexShrink: 0 }}>
         {SECTIONS.map(s => (
-          <button key={s} onClick={() => setSection(s)} style={{ ...S.btn, borderRadius: 0, borderBottom: section === s ? "2px solid #347ebf" : "2px solid transparent", color: section === s ? "#347ebf" : "#8899bb", background: "none", padding: "12px 16px" }}>{s}</button>
+          <button key={s} onClick={() => setSection(s)} style={{ ...S.btn, borderRadius: 0, borderBottom: section === s ? "2px solid #347ebf" : "2px solid transparent", color: section === s ? "#347ebf" : "#8899bb", background: "none", padding: "12px 16px", flexShrink: 0, whiteSpace: "nowrap" }}>{s}</button>
         ))}
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
@@ -1324,7 +1335,7 @@ export default function App() {
                       {(f.friendly || f.cup) && (
                         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                           {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 1, background: "#f59e0b18", padding: "2px 8px", borderRadius: 4 }}>⭐ Friendly</span>}
-                          {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, letterSpacing: 1, background: "#8b5cf622", padding: "2px 8px", borderRadius: 4 }}>🏆 Cup</span>}
+                          {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, letterSpacing: 1, background: "#8b5cf622", padding: "2px 8px", borderRadius: 4 }}>🏆 {f.cupType || "Cup"}</span>}
                         </div>
                       )}
                       <div className="fixture-card-inner">
@@ -1672,6 +1683,76 @@ export default function App() {
                     </div>}
               </div>
             )}
+          </div>
+        )}
+
+        {active === "Download" && (
+          <div style={{ maxWidth: 520, margin: "0 auto" }}>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>Download the App</div>
+            <div style={{ fontSize: 14, color: "#8899bb", marginBottom: 28, lineHeight: 1.6 }}>The Wells app works on any phone — no App Store needed. Follow the steps for your device below.</div>
+
+            {/* iOS */}
+            <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
+              <div style={{ background: "linear-gradient(135deg,#1c1c1e,#2c2c2e)", padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid #ffffff0f" }}>
+                <div style={{ fontSize: 28 }}>🍎</div>
+                <div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900 }}>iPhone / iPad</div>
+                  <div style={{ fontSize: 11, color: "#8899bb" }}>Safari browser required</div>
+                </div>
+              </div>
+              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { step: "1", icon: "🌐", text: "Open Safari and go to", detail: "hemsworthmwfc.co.uk" },
+                  { step: "2", icon: "⬆️", text: "Tap the Share button at the bottom of the screen", detail: "(the box with an arrow pointing up)" },
+                  { step: "3", icon: "➕", text: 'Scroll down and tap "Add to Home Screen"', detail: null },
+                  { step: "4", icon: "✅", text: 'Tap "Add" in the top right corner', detail: "The app will appear on your home screen with the HMWFC badge" },
+                ].map(({ step, icon, text, detail }) => (
+                  <div key={step} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div style={{ width: 28, height: 28, background: "#347ebf22", border: "1px solid #347ebf44", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 13, color: "#347ebf", flexShrink: 0 }}>{step}</div>
+                    <div>
+                      <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.4 }}>{icon} {text}</div>
+                      {detail && <div style={{ fontSize: 12, color: "#8899bb", marginTop: 3 }}>{detail}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Android */}
+            <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 14, overflow: "hidden", marginBottom: 28 }}>
+              <div style={{ background: "linear-gradient(135deg,#1a2a1a,#1e3a1e)", padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid #ffffff0f" }}>
+                <div style={{ fontSize: 28 }}>🤖</div>
+                <div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900 }}>Android</div>
+                  <div style={{ fontSize: 11, color: "#8899bb" }}>Chrome browser required</div>
+                </div>
+              </div>
+              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { step: "1", icon: "🌐", text: "Open Chrome and go to", detail: "hemsworthmwfc.co.uk" },
+                  { step: "2", icon: "⋮", text: "Tap the three dots menu in the top right corner", detail: null },
+                  { step: "3", icon: "➕", text: 'Tap "Add to Home screen" or "Install App"', detail: null },
+                  { step: "4", icon: "✅", text: 'Tap "Add" or "Install" to confirm', detail: "The app will appear on your home screen with the HMWFC badge" },
+                ].map(({ step, icon, text, detail }) => (
+                  <div key={step} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div style={{ width: 28, height: 28, background: "#10b98122", border: "1px solid #10b98144", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 13, color: "#10b981", flexShrink: 0 }}>{step}</div>
+                    <div>
+                      <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.4 }}>{icon} {text}</div>
+                      {detail && <div style={{ fontSize: 12, color: "#8899bb", marginTop: 3 }}>{detail}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Badge */}
+            <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", gap: 16, marginBottom: 8 }}>
+              <img src={`data:image/png;base64,${LOGO_B64}`} alt="HMWFC" style={{ height: 52, filter: "drop-shadow(0 0 10px #347ebf66)", flexShrink: 0 }} />
+              <div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900, marginBottom: 3 }}>Once installed it works like a real app</div>
+                <div style={{ fontSize: 12, color: "#8899bb", lineHeight: 1.6 }}>Opens full screen with no browser bar · Works offline for cached pages · Always up to date</div>
+              </div>
+            </div>
           </div>
         )}
 
