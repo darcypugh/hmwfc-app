@@ -62,7 +62,6 @@ const DEFAULT_DATA = {
 };
 
 const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
-const ADMIN_PASSWORD = "wells2026";
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -822,8 +821,8 @@ export default function App() {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
-  const [adminUser, setAdminUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [_adminUser, setAdminUser] = useState(null);
+  const [_authChecked, setAuthChecked] = useState(false);
 
 
   useEffect(() => {
