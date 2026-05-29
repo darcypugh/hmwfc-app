@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, runTransaction } from "firebase/database";
+import { getDatabase, ref, onValue, set, update, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
@@ -942,10 +942,10 @@ export default function App() {
 
 
   const updateSection = (section, value) => {
-    const nd = { ...data, [section]: value };
-    if (section === "table") nd.tableUpdatedAt = new Date().toISOString();
-    setData(nd);
-    set(ref(db, "hmwfc"), nd);
+    setData(prev => ({ ...prev, [section]: value }));
+    const patch = { [`hmwfc/${section}`]: value };
+    if (section === "table") patch["hmwfc/tableUpdatedAt"] = new Date().toISOString();
+    update(ref(db), patch);
   };
 
   if (loading) return (
