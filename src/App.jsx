@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, update, increment } from "firebase/database";
+import { getDatabase, ref, onValue, set, update, increment, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
@@ -25,8 +25,9 @@ const markLiked = (id) => localStorage.setItem(`liked_${id}`, "true");
 
 const handleLike = (articleId) => {
   if (hasLiked(articleId)) return;
-  update(ref(db, "hmwfc/likes"), { [articleId]: increment(1) });
   markLiked(articleId);
+  const likeRef = ref(db, `hmwfc/likes/${articleId}`);
+  runTransaction(likeRef, (current) => (current || 0) + 1);
 };
 
 // LOGO removed - use /logo.png
