@@ -541,12 +541,16 @@ function AdminMerch({ items, onSave }) {
     update(idx, "sizes", sizes);
   };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addItem = () => { const l = [...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "", image: "", isClothing: false, stripeLink: "", sizes: {} }]; setList(l); setExpanded(l.length - 1); };
+  const addItem = () => { const l = [...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "", image: "", isClothing: false, soldOut: false, stripeLink: "", sizes: {} }]; setList(l); setExpanded(l.length - 1); };
   const save = () => onSave(list);
   const uploadImage = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => update(idx, "image", e.target.result);
+    reader.onload = (e) => {
+      const updated = list.map((x, i) => i === idx ? { ...x, image: e.target.result } : x);
+      setList(updated);
+      onSave(updated);
+    };
     reader.readAsDataURL(file);
   };
   return (
@@ -595,6 +599,11 @@ function AdminMerch({ items, onSave }) {
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
                 <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update(idx, "isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
                 <label htmlFor={`clothing-${idx}`} style={{ fontSize: 13, color: "#347ebf", fontWeight: 700, cursor: "pointer" }}>👕 This item has sizes (XS–3XL)</label>
+              </div>
+              {/* Sold out toggle */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
+                <input type="checkbox" id={`soldout-${idx}`} checked={!!m.soldOut} onChange={e => update(idx, "soldOut", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ef4444" }} />
+                <label htmlFor={`soldout-${idx}`} style={{ fontSize: 13, color: "#ef4444", fontWeight: 700, cursor: "pointer" }}>🚫 Mark as sold out</label>
               </div>
               {/* Size stock manager */}
               {m.isClothing && (
@@ -1772,11 +1781,13 @@ export default function App() {
                       </div>
                     </div>
                     {/* Buy button */}
-                    {selectedMerch.stripeLink
-                      ? <a href={`${selectedMerch.stripeLink}?quantity=${qty}${selectedSize ? `&metadata[size]=${selectedSize}` : ""}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none", opacity: selectedMerch.isClothing && !selectedSize ? 0.4 : 1, pointerEvents: selectedMerch.isClothing && !selectedSize ? "none" : "auto" }}>
-                          {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now — ${selectedMerch.price}`}
-                        </a>
-                      : <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>}
+                    {selectedMerch.soldOut
+                      ? <div style={{ background: "#ef444422", border: "1px solid #ef444444", borderRadius: 10, padding: "13px 0", textAlign: "center", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1 }}>Sold Out</div>
+                      : selectedMerch.stripeLink
+                        ? <a href={`${selectedMerch.stripeLink}?quantity=${qty}${selectedSize ? `&metadata[size]=${selectedSize}` : ""}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none", opacity: selectedMerch.isClothing && !selectedSize ? 0.4 : 1, pointerEvents: selectedMerch.isClothing && !selectedSize ? "none" : "auto" }}>
+                            {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now — ${selectedMerch.price}`}
+                          </a>
+                        : <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>}
                     <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
                   </div>
                 </div>
@@ -1791,6 +1802,7 @@ export default function App() {
                     ? <img src={m.image} alt="" style={{ width: "100%", height: 120, objectFit: "contain", borderRadius: 8, marginBottom: 4, background: "#0d0c22", padding: 8 }} />
                     : <div style={{ fontSize: 44 }}>{m.emoji}</div>}
                   {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 4 }}>{m.tag}</span>}
+                  {m.soldOut && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 4 }}>SOLD OUT</span>}
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "center" }}>{m.name}</div>
                   {m.isClothing && <div style={{ fontSize: 10, color: "#8899bb", letterSpacing: 0.5 }}>Sizes available</div>}
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
