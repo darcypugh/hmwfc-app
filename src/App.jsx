@@ -157,6 +157,7 @@ function RichEditor({ value, onChange }) {
 
 function AdminNews({ items, onSave }) {
   const [list, setList] = useState(items);
+  useEffect(() => { setList(items); }, [items]);
   const [editing, setEditing] = useState(null);
 
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
@@ -223,6 +224,7 @@ function AdminNews({ items, onSave }) {
 
 function AdminTable({ items, onSave }) {
   const [list, setList] = useState(items);
+  useEffect(() => { setList(items); }, [items]);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addRow = () => setList([...list, { pos: list.length + 1, team: "", stadium: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
@@ -279,6 +281,7 @@ function AdminTable({ items, onSave }) {
 
 function AdminFixtures({ items, tableData, onSave }) {
   const [list, setList] = useState(items || []);
+  useEffect(() => { setList(items || []); }, [items]);
   const [editing, setEditing] = useState(null);
   const update = (idx, field, val) => {
     const updated = list.map((x, i) => i === idx ? { ...x, [field]: val } : x);
@@ -421,6 +424,7 @@ function StatRow({ prefix, p, onChange, label, color }) {
 
 function AdminSquad({ items, onSave }) {
   const [list, setList] = useState(items);
+  useEffect(() => { setList(items); }, [items]);
   const update = (idx, field, val) => {
     const updated = list.map((x, i) => {
       if (i !== idx) return x;
@@ -535,6 +539,7 @@ const SIZE_COLORS = { available: "#10b981", low: "#f59e0b", sold_out: "#ef4444" 
 function AdminMerch({ items, onSave }) {
   const [list, setList] = useState(items);
   const [expanded, setExpanded] = useState(null);
+  useEffect(() => { setList(items); }, [items]);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const updateSize = (idx, size, status) => {
     const sizes = { ...(list[idx].sizes || {}), [size]: status };
@@ -635,6 +640,7 @@ function AdminMerch({ items, onSave }) {
 
 function AdminGallery({ items, onSave }) {
   const [albums, setAlbums] = useState(items || []);
+  useEffect(() => { setAlbums(items || []); }, [items]);
   const [expanded, setExpanded] = useState(null);
   const [uploading, setUploading] = useState({}); // { [albumIdx]: { done, total } }
 
