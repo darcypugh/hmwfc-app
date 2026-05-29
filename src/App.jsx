@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, update, increment } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA5f5io1ilDXxaZhFlIuslA4gq8CCMur7w",
@@ -17,6 +18,7 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
 const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
+const storage = getStorage(firebaseApp);
 
 const hasLiked = (id) => localStorage.getItem(`liked_${id}`) === "true";
 const markLiked = (id) => localStorage.setItem(`liked_${id}`, "true");
@@ -629,39 +631,84 @@ function AdminMerch({ items, onSave }) {
 function AdminGallery({ items, onSave }) {
   const [albums, setAlbums] = useState(items || []);
   const [expanded, setExpanded] = useState(null);
+  const [uploading, setUploading] = useState({}); // { [albumIdx]: { done, total } }
 
   const addAlbum = () => {
     const a = [...albums, { id: Date.now(), name: "New Album", date: "", cover: "", photos: [] }];
     setAlbums(a); setExpanded(a.length - 1);
   };
   const updateAlbum = (idx, field, val) => setAlbums(albums.map((a, i) => i === idx ? { ...a, [field]: val } : a));
-  const delAlbum = (idx) => { const a = albums.filter((_, i) => i !== idx); setAlbums(a); onSave(a); };
+
+  const delAlbum = (idx) => {
+    const album = albums[idx];
+    // Delete all photos from Storage
+    (album.photos || []).forEach(p => {
+      if (p.storagePath) {
+        try { deleteObject(storageRef(storage, p.storagePath)); } catch (e) {}
+      }
+    });
+    const a = albums.filter((_, i) => i !== idx);
+    setAlbums(a);
+    onSave(a);
+  };
 
   const uploadPhotos = (idx, files) => {
     const fileArr = Array.from(files);
-    let loaded = 0;
+    if (!fileArr.length) return;
+    setUploading(u => ({ ...u, [idx]: { done: 0, total: fileArr.length } }));
     const newPhotos = [];
+    let completed = 0;
+
     fileArr.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        newPhotos.push({ id: Date.now() + Math.random(), src: e.target.result });
-        loaded++;
-        if (loaded === fileArr.length) {
-          const updated = albums.map((a, i) => i === idx ? { ...a, photos: [...(a.photos || []), ...newPhotos], cover: a.cover || newPhotos[0].src } : a);
-          setAlbums(updated);
+      const photoId = Date.now() + Math.random();
+      const path = `gallery/${albums[idx].id}/${photoId}_${file.name}`;
+      const sRef = storageRef(storage, path);
+      const task = uploadBytesResumable(sRef, file);
+
+      task.on("state_changed", null, (err) => {
+        console.error("Upload error:", err);
+        completed++;
+        setUploading(u => ({ ...u, [idx]: { done: completed, total: fileArr.length } }));
+        if (completed === fileArr.length) {
+          setUploading(u => { const n = { ...u }; delete n[idx]; return n; });
         }
-      };
-      reader.readAsDataURL(file);
+      }, () => {
+        getDownloadURL(task.snapshot.ref).then(url => {
+          newPhotos.push({ id: photoId, src: url, storagePath: path });
+          completed++;
+          setUploading(u => ({ ...u, [idx]: { done: completed, total: fileArr.length } }));
+          if (completed === fileArr.length) {
+            setUploading(u => { const n = { ...u }; delete n[idx]; return n; });
+            setAlbums(prev => {
+              const updated = prev.map((a, i) => {
+                if (i !== idx) return a;
+                const allPhotos = [...(a.photos || []), ...newPhotos];
+                return { ...a, photos: allPhotos, cover: a.cover || newPhotos[0].src };
+              });
+              onSave(updated);
+              return updated;
+            });
+          }
+        });
+      });
     });
   };
 
   const removePhoto = (albumIdx, photoId) => {
+    const album = albums[albumIdx];
+    const photo = (album.photos || []).find(p => p.id === photoId);
+    // Delete from Storage
+    if (photo && photo.storagePath) {
+      try { deleteObject(storageRef(storage, photo.storagePath)); } catch (e) {}
+    }
     const updated = albums.map((a, i) => {
       if (i !== albumIdx) return a;
       const photos = (a.photos || []).filter(p => p.id !== photoId);
-      return { ...a, photos, cover: photos.length > 0 ? (a.cover === a.photos.find(p=>p.id===photoId)?.src ? photos[0].src : a.cover) : "" };
+      const newCover = a.cover === photo?.src ? (photos[0]?.src || "") : a.cover;
+      return { ...a, photos, cover: newCover };
     });
     setAlbums(updated);
+    onSave(updated);
   };
 
   const save = () => onSave(albums);
@@ -675,7 +722,7 @@ function AdminGallery({ items, onSave }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once.</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once — they go straight to cloud storage.</div>
       {albums.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No albums yet — tap "+ New Album" to get started.</div>}
       {albums.map((a, idx) => (
         <div key={a.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
@@ -701,10 +748,15 @@ function AdminGallery({ items, onSave }) {
               {/* Upload */}
               <div style={{ marginTop: 10 }}>
                 <label style={S.label}>Add Photos</label>
-                <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 28 }}>📷</div>
-                  <div><div style={{ fontSize: 13, color: "#aabbcc" }}>Tap to upload photos</div><div style={{ fontSize: 11, color: "#8899bb" }}>Select multiple at once</div></div>
-                  <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={e => uploadPhotos(idx, e.target.files)} />
+                <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: uploading[idx] ? "default" : "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12, opacity: uploading[idx] ? 0.7 : 1 }}>
+                  <div style={{ fontSize: 28 }}>{uploading[idx] ? "⏳" : "📷"}</div>
+                  <div>
+                    {uploading[idx]
+                      ? <><div style={{ fontSize: 13, color: "#aabbcc" }}>Uploading {uploading[idx].done} of {uploading[idx].total}...</div><div style={{ fontSize: 11, color: "#8899bb" }}>Please wait</div></>
+                      : <><div style={{ fontSize: 13, color: "#aabbcc" }}>Tap to upload photos</div><div style={{ fontSize: 11, color: "#8899bb" }}>Select multiple at once · stored in cloud</div></>
+                    }
+                  </div>
+                  <input type="file" accept="image/*" multiple style={{ display: "none" }} disabled={!!uploading[idx]} onChange={e => uploadPhotos(idx, e.target.files)} />
                 </label>
               </div>
               {/* Photo grid */}
@@ -714,7 +766,7 @@ function AdminGallery({ items, onSave }) {
                     <div key={p.id} style={{ position: "relative", paddingTop: "100%" }}>
                       <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }} />
                       <button onClick={() => removePhoto(idx, p.id)} style={{ position: "absolute", top: 3, right: 3, background: "#ef4444cc", border: "none", borderRadius: "50%", width: 20, height: 20, color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>✕</button>
-                      <button onClick={() => updateAlbum(idx, "cover", p.src)} style={{ position: "absolute", bottom: 3, left: 3, background: a.cover === p.src ? "#10b981cc" : "#000000aa", border: "none", borderRadius: 4, color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", padding: "2px 5px" }}>{a.cover === p.src ? "COVER" : "Set cover"}</button>
+                      <button onClick={() => { updateAlbum(idx, "cover", p.src); }} style={{ position: "absolute", bottom: 3, left: 3, background: a.cover === p.src ? "#10b981cc" : "#000000aa", border: "none", borderRadius: 4, color: "#fff", fontSize: 9, fontWeight: 700, cursor: "pointer", padding: "2px 5px" }}>{a.cover === p.src ? "COVER" : "Set cover"}</button>
                     </div>
                   ))}
                 </div>
