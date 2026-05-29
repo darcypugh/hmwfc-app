@@ -23,12 +23,7 @@ const storage = getStorage(firebaseApp);
 const hasLiked = (id) => localStorage.getItem(`liked_${id}`) === "true";
 const markLiked = (id) => localStorage.setItem(`liked_${id}`, "true");
 
-const handleLike = (articleId) => {
-  if (hasLiked(articleId)) return;
-  markLiked(articleId);
-  const likeRef = ref(db, `hmwfc/likes/${articleId}`);
-  runTransaction(likeRef, (current) => (current || 0) + 1);
-};
+
 
 // LOGO removed - use /logo.png
 
@@ -885,6 +880,14 @@ export default function App() {
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
 
+  const handleLike = (articleId) => {
+    if (hasLiked(articleId)) return;
+    markLiked(articleId);
+    setLikes(prev => ({ ...prev, [articleId]: (prev[articleId] || 0) + 1 }));
+    const likeRef = ref(db, `hmwfc/likes/${articleId}`);
+    runTransaction(likeRef, (current) => (current || 0) + 1);
+  };
+
 
   useEffect(() => {
     const dbRef = ref(db, "hmwfc");
@@ -915,7 +918,7 @@ export default function App() {
   useEffect(() => {
     const likesRef = ref(db, "hmwfc/likes");
     const unsub = onValue(likesRef, (snapshot) => {
-      setLikes(snapshot.exists() ? snapshot.val() : {});
+      if (snapshot.exists()) setLikes(snapshot.val());
     });
     return () => unsub();
   }, []);
