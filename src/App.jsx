@@ -838,16 +838,21 @@ export default function App() {
   }, []);
   
   useEffect(() => {
+  const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (user) {
+    if (user && ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
+    } else if (user) {
+      signOut(auth);
+      alert("Access denied.");
     } else {
       signOut(auth);
     }
   });
   return () => unsub();
 }, []);
+
 
 
 
