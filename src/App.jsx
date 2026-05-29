@@ -546,6 +546,14 @@ function AdminMerch({ items, onSave }) {
     update(idx, "sizes", sizes);
   };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
+  const moveItem = (idx, dir) => {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= list.length) return;
+    const l = [...list];
+    [l[idx], l[newIdx]] = [l[newIdx], l[idx]];
+    setList(l);
+    onSave(l);
+  };
   const addItem = () => { const l = [...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "", image: "", isClothing: false, soldOut: false, stripeLink: "", sizes: {} }]; setList(l); setExpanded(l.length - 1); };
   const save = () => onSave(list);
   const uploadImage = (idx, file) => {
@@ -577,6 +585,10 @@ function AdminMerch({ items, onSave }) {
               <div style={{ fontSize: 12, color: "#8899bb" }}>{m.price}{m.isClothing ? " · Clothing" : ""}{m.stripeLink ? " · ✓ Payment link" : " · No payment link"}</div>
             </div>
             <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setExpanded(expanded === idx ? null : idx)}>{expanded === idx ? "Close" : "Edit"}</button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <button style={{ ...S.btn, background: "#ffffff0a", color: "#aabbcc", padding: "2px 7px", fontSize: 10, lineHeight: 1 }} onClick={() => moveItem(idx, -1)} disabled={idx === 0} title="Move up">▲</button>
+              <button style={{ ...S.btn, background: "#ffffff0a", color: "#aabbcc", padding: "2px 7px", fontSize: 10, lineHeight: 1 }} onClick={() => moveItem(idx, 1)} disabled={idx === list.length - 1} title="Move down">▼</button>
+            </div>
             <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 10px" }} onClick={() => del(idx)}>✕</button>
           </div>
           {/* Expanded edit */}
@@ -1112,7 +1124,7 @@ export default function App() {
                       <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
                     <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      {data.merch.slice(0, 4).map(m => (
+                      {data.merch.map(m => (
                         <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
                           {m.image
                             ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
