@@ -894,6 +894,36 @@ export default function App() {
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
+  const [pullY, setPullY] = useState(0);
+  const [pulling, setPulling] = useState(false);
+  const touchStartY = useRef(0);
+  const PULL_THRESHOLD = 80;
+
+  useEffect(() => {
+    const onTouchStart = (e) => {
+      if (window.scrollY === 0) touchStartY.current = e.touches[0].clientY;
+    };
+    const onTouchMove = (e) => {
+      if (window.scrollY !== 0) return;
+      const dy = e.touches[0].clientY - touchStartY.current;
+      if (dy > 0) setPullY(Math.min(dy, PULL_THRESHOLD + 20));
+    };
+    const onTouchEnd = () => {
+      if (pullY >= PULL_THRESHOLD) {
+        setPulling(true);
+        setTimeout(() => { window.location.reload(); }, 300);
+      }
+      setPullY(0);
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [pullY]);
 
   const handleLike = (articleId) => {
     if (hasLiked(articleId)) return;
@@ -1937,6 +1967,30 @@ export default function App() {
       <div style={{ borderTop: "1px solid #ffffff0f", padding: "18px 20px", textAlign: "center", color: "#8899bb", fontSize: 12, letterSpacing: 1 }}>
         © 2026 HEMSWORTH MINERS WELFARE FC · THE WELLS · ALL RIGHTS RESERVED
       </div>
+
+      {/* Pull-to-refresh indicator */}
+      {pullY > 0 && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, display: "flex", justifyContent: "center", zIndex: 999, pointerEvents: "none" }}>
+          <div style={{ marginTop: Math.min(pullY - 20, 50), background: "#191740", border: "1px solid #347ebf44", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, opacity: Math.min(pullY / PULL_THRESHOLD, 1), transition: "opacity 0.1s", boxShadow: "0 4px 20px #00000066" }}>
+            {pullY >= PULL_THRESHOLD ? "↻" : "↓"}
+          </div>
+        </div>
+      )}
+      {pulling && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, display: "flex", justifyContent: "center", zIndex: 999, pointerEvents: "none" }}>
+          <div style={{ marginTop: 30, background: "#191740", border: "1px solid #347ebf", borderRadius: 20, padding: "6px 16px", fontSize: 12, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, letterSpacing: 1 }}>Refreshing...</div>
+        </div>
+      )}
+
+      {/* Scroll to top — Squad page only */}
+      {active === "Squad" && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          style={{ position: "fixed", bottom: 24, right: 20, width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", boxShadow: "0 4px 20px #00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, transition: "transform 0.2s" }}
+          aria-label="Scroll to top">
+          ↑
+        </button>
+      )}
     </div>
   );
 }
