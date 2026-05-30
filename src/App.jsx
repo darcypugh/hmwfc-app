@@ -3,6 +3,8 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, update, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import { inject } from "@vercel/analytics";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyA5f5io1ilDXxaZhFlIuslA4gq8CCMur7w",
@@ -889,6 +891,7 @@ const parseNewsDate = (d) => {
 };
 
 export default function App() {
+  inject();
   const [active, setActive] = useState("Home");
   const [squadSearch, setSquadSearch] = useState("");
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
