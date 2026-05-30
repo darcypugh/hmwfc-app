@@ -5,6 +5,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { Analytics } from "@vercel/analytics/react";
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyA5f5io1ilDXxaZhFlIuslA4gq8CCMur7w",
   authDomain: "wells-app-6d7c6.firebaseapp.com",
