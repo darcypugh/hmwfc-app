@@ -424,6 +424,7 @@ function StatRow({ prefix, p, onChange, label, color }) {
 
 function AdminSquad({ items, onSave }) {
   const [list, setList] = useState(items);
+  const [adminSquadSearch, setAdminSquadSearch] = useState("");
   useEffect(() => { setList(items); }, [items]);
   const update = (idx, field, val) => {
     const updated = list.map((x, i) => {
@@ -440,12 +441,7 @@ function AdminSquad({ items, onSave }) {
     setList(updated);
   };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
-  const addPlayer = () => setList([...list, {
-    id: Date.now(), name: "", pos: "CM", no: 0, playing: true, photo: "", about: "",
-    apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0,
-    baseApps: 0, baseGoals: 0, baseCleanSheets: 0, baseYellowCards: 0, baseRedCards: 0, baseMotm: 0,
-    seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0,
-  }]);
+
   const uploadPhoto = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -458,15 +454,19 @@ function AdminSquad({ items, onSave }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Squad</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={addPlayer}>+ Player</button>
+          <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={() => { setList(l => { const next = [...l, { id: Date.now(), name: "", pos: "CM", no: 0, playing: true, photo: "", about: "", apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, baseApps: 0, baseGoals: 0, baseCleanSheets: 0, baseYellowCards: 0, baseRedCards: 0, baseMotm: 0, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 }]; return next; }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50); }}>+ Player</button>
+          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Back to top">↑ Top</button>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <input value={adminSquadSearch} onChange={e => setAdminSquadSearch(e.target.value)} placeholder="🔍 Search players..." style={{ width: "100%", background: "#191740", border: "1px solid #ffffff15", borderRadius: 8, padding: "9px 14px", color: "#fff", fontSize: 13, fontFamily: "Barlow, sans-serif", outline: "none" }} />
       </div>
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>
         Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses — career totals update automatically.
         Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
       </div>
-      {list.map((p, idx) => (
+      {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p, idx) => (
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
@@ -890,6 +890,8 @@ const parseNewsDate = (d) => {
 
 export default function App() {
   const [active, setActive] = useState("Home");
+  const [squadSearch, setSquadSearch] = useState("");
+  const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -961,14 +963,14 @@ export default function App() {
   }, []);
   
   useEffect(() => {
-  const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
+  const ALLOWED_EMAILS = ["YOUR_EMAIL@gmail.com"]; // 👈 replace with your email
   const unsub = onAuthStateChanged(auth, (user) => {
     if (user && ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
     } else if (user) {
       signOut(auth);
-      alert("Access denied.");
+      alert("Access denied. You are not authorised to access this area.");
     } else {
       signOut(auth);
     }
@@ -987,7 +989,6 @@ export default function App() {
 
 
 
-
   const updateSection = (section, value) => {
     setData(prev => ({ ...prev, [section]: value }));
     const patch = { [`hmwfc/${section}`]: value };
@@ -997,9 +998,19 @@ export default function App() {
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <style>{`
+        @keyframes logoPulse { 0%,100% { opacity:1; transform: scale(1); filter: drop-shadow(0 0 18px #347ebf99); } 50% { opacity:0.75; transform: scale(1.06); filter: drop-shadow(0 0 36px #347ebfcc); } }
+        @keyframes loadingDots { 0%,100% { opacity:0.3; } 50% { opacity:1; } }
+        .loading-dot { display:inline-block; animation: loadingDots 1.2s ease-in-out infinite; }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
       <div style={{ textAlign: "center" }}>
-        <img src={"/logo.png"} alt="HMWFC" style={{ height: 64, marginBottom: 20, filter: "drop-shadow(0 0 12px #347ebf66)" }} />
-        <div style={{ color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, letterSpacing: 2 }}>Loading...</div>
+        <img src={"/logo.png"} alt="HMWFC" style={{ height: 140, marginBottom: 32, animation: "logoPulse 2s ease-in-out infinite" }} />
+        <div style={{ color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, letterSpacing: 4 }}>
+          LOADING<span className="loading-dot">.</span><span className="loading-dot">.</span><span className="loading-dot">.</span>
+        </div>
+        <div style={{ color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, letterSpacing: 2, marginTop: 8 }}>HEMSWORTH MINERS WELFARE FC</div>
       </div>
     </div>
   );
@@ -1170,7 +1181,7 @@ export default function App() {
                         {(latest.body || "").replace(/<[^>]+>/g, "").slice(0, 180)}{(latest.body || "").replace(/<[^>]+>/g, "").length > 180 ? "..." : ""}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <button onClick={() => { setSelectedArticle(latest); setActive("News"); }} style={{ background: "none", border: "1px solid #347ebf55", borderRadius: 7, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", transition: "all 0.2s" }}>
+                        <button onClick={() => { setSelectedArticle(latest); setActive("News"); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "none", border: "1px solid #347ebf55", borderRadius: 7, color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "8px 18px", cursor: "pointer", transition: "all 0.2s" }}>
                           Read full story →
                         </button>
                         <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#8899bb", fontSize: 13 }}>
@@ -1188,7 +1199,7 @@ export default function App() {
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {sortedNews.slice(1).map(n => (
-                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); }}>
+                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                           <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center" }}>
@@ -1441,7 +1452,7 @@ export default function App() {
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Latest News</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
                   {[...(data.news || [])].sort((a, b) => parseNewsDate(b.date) - parseNewsDate(a.date)).map(n => (
-                    <div key={n.id} className="card" onClick={() => setSelectedArticle(n)} style={{ cursor: "pointer" }}>
+                    <div key={n.id} className="card" onClick={() => { setSelectedArticle(n); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ cursor: "pointer" }}>
                       {n.image
                         ? <img src={n.image} alt="" style={{ width: "100%", height: 180, objectFit: "cover" }} />
                         : <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "28px 20px 18px", fontSize: 44, textAlign: "center" }}>{n.emoji}</div>
@@ -1615,7 +1626,7 @@ export default function App() {
             { key: "motm", label: "MotM" },
           ];
           const squad = data.squad || [];
-          const filtered = squadView === "current" ? squad.filter(p => p.playing) : squad;
+          const filtered = squadView === "current" ? squad.filter(p => p.playing) : squadView === "past" ? squad.filter(p => !p.playing) : squad;
           // For current season tab, display season stats; for overall, display career totals
           const getStat = (p, key) => {
             if (squadView === "current") {
@@ -1624,7 +1635,8 @@ export default function App() {
             }
             return p[key] || 0;
           };
-          const sorted = [...filtered].sort((a, b) => {
+          const searchedFiltered = squadSearch.trim() ? filtered.filter(p => p.name.toLowerCase().includes(squadSearch.toLowerCase())) : filtered;
+          const sorted = [...searchedFiltered].sort((a, b) => {
             if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
             return getStat(b, sortBy) - getStat(a, sortBy);
           });
@@ -1688,13 +1700,15 @@ export default function App() {
                 </div>
               </div>
             )}
-            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>First Team Squad</div>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>First Team</div>
             {/* Tabs + Sort + View Toggle */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 6 }}>
-                <button className={`tab-btn ${squadView === "current" ? "active" : ""}`} onClick={() => setSquadView("current")}>Current Season</button>
+                <button className={`tab-btn ${squadView === "current" ? "active" : ""}`} onClick={() => setSquadView("current")}>Current Squad</button>
+                <button className={`tab-btn ${squadView === "past" ? "active" : ""}`} onClick={() => setSquadView("past")}>Past Players</button>
                 <button className={`tab-btn ${squadView === "all" ? "active" : ""}`} onClick={() => setSquadView("all")}>Overall</button>
               </div>
+              <button onClick={() => { setSquadSearchOpen(o => !o); setSquadSearch(""); }} style={{ background: squadSearchOpen ? "#347ebf22" : "#ffffff0f", border: `1px solid ${squadSearchOpen ? "#347ebf" : "#ffffff15"}`, borderRadius: 8, color: squadSearchOpen ? "#347ebf" : "#aabbcc", padding: "5px 10px", cursor: "pointer", fontSize: 15, lineHeight: 1 }} title="Search players">🔍</button>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <>
                     <span style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>SORT BY</span>
@@ -1708,6 +1722,17 @@ export default function App() {
                 </div>
               </div>
             </div>
+            {squadSearchOpen && (
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  autoFocus
+                  value={squadSearch}
+                  onChange={e => setSquadSearch(e.target.value)}
+                  placeholder="Search player name..."
+                  style={{ width: "100%", background: "#191740", border: "1px solid #347ebf44", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, fontFamily: "Barlow, sans-serif", outline: "none" }}
+                />
+              </div>
+            )}
             {squadDisplayMode === "tiles" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14, marginBottom: 8 }}>
                 {sorted.map(p => (
@@ -1847,7 +1872,7 @@ export default function App() {
               </div>
             )}
             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 8 }}>Club Shop</div>
-            <div style={{ color: "#8899bb", fontSize: 13, marginBottom: 22 }}>Support The Wells — wear the colours with pride.</div>
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 16 }}>
               {(data.merch || []).map(m => (
                 <div key={m.id} className="merch-card" onClick={() => { setSelectedMerch(m); setSelectedSize(""); setQty(1); }}>
