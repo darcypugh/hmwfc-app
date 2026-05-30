@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, update, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import { Analytics } from "@vercel/analytics/react";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA5f5io1ilDXxaZhFlIuslA4gq8CCMur7w",
@@ -2028,6 +2029,7 @@ export default function App() {
           ↑
         </button>
       )}
+      <Analytics />
     </div>
   );
 }
