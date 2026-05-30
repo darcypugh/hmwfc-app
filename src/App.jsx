@@ -466,7 +466,7 @@ function AdminSquad({ items, onSave }) {
         Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses — career totals update automatically.
         Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
       </div>
-      {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p, idx) => {
+      {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p, idx) => (
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
@@ -526,7 +526,7 @@ function AdminSquad({ items, onSave }) {
             <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
-      })}
+      ))}
     </div>
   );
 }
@@ -1199,7 +1199,7 @@ export default function App() {
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {sortedNews.slice(1).map(n => (
-                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { { setSelectedArticle(n); window.scrollTo({ top: 0, behavior: "smooth" }); }; setActive("News"); }}>
+                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                           <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center" }}>
