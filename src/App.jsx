@@ -890,6 +890,8 @@ const parseNewsDate = (d) => {
 
 export default function App() {
   const [active, setActive] = useState("Home");
+  const [squadSearch, setSquadSearch] = useState("");
+  const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -1633,8 +1635,6 @@ export default function App() {
             }
             return p[key] || 0;
           };
-          const [squadSearch, setSquadSearch] = useState("");
-          const [squadSearchOpen, setSquadSearchOpen] = useState(false);
           const searchedFiltered = squadSearch.trim() ? filtered.filter(p => p.name.toLowerCase().includes(squadSearch.toLowerCase())) : filtered;
           const sorted = [...searchedFiltered].sort((a, b) => {
             if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
