@@ -4,7 +4,6 @@ import { getDatabase, ref, onValue, set, update, runTransaction } from "firebase
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
-
 const firebaseConfig = {
   apiKey: "AIzaSyA5f5io1ilDXxaZhFlIuslA4gq8CCMur7w",
   authDomain: "wells-app-6d7c6.firebaseapp.com",
@@ -467,7 +466,9 @@ function AdminSquad({ items, onSave }) {
         Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses — career totals update automatically.
         Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
       </div>
-      {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p, idx) => (
+      {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p) => {
+        const idx = list.indexOf(p);
+        return (
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
@@ -527,7 +528,8 @@ function AdminSquad({ items, onSave }) {
             <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -978,6 +980,14 @@ useEffect(() => {
   });
   return () => unsub();
 }, []);
+
+  useEffect(() => {
+    const likesRef = ref(db, "hmwfc/likes");
+    const unsub = onValue(likesRef, (snapshot) => {
+      if (snapshot.exists()) setLikes(snapshot.val());
+    });
+    return () => unsub();
+  }, []);
 
 
 
