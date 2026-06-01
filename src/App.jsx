@@ -965,17 +965,17 @@ export default function App() {
     return () => unsub();
   }, []);
   
-  useEffect(() => {
-  const ALLOWED_EMAILS = ["YOUR_EMAIL@gmail.com"]; // 👈 replace with your email
+useEffect(() => {
+ const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (user && ALLOWED_EMAILS.includes(user.email)) {
+    if (!user) return;
+    if (ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
-    } else if (user) {
-      signOut(auth);
-      alert("Access denied. You are not authorised to access this area.");
     } else {
-      signOut(auth);
+      signOut(auth).then(() => {
+        alert("Access denied. You are not authorised to access this area.");
+      });
     }
   });
   return () => unsub();
