@@ -66,9 +66,16 @@ const DEFAULT_DATA = {
     { id: 4, name: "Training Top", price: "£35", emoji: "🧥", tag: "", image: "", isClothing: true, stripeLink: "", sizes: { XS: "available", S: "available", M: "available", L: "low", XL: "sold_out", XXL: "sold_out", "3XL": "sold_out" } },
   ],
   gallery: [],
+  draw: {
+    description: "<p>Join our <strong>Monthly Draw</strong> for just <strong>£10/month</strong>. The prize pot is half the total entry money. 59 numbers available — enter now for your chance to win!</p>",
+    winnerMonth: "June",
+    winnerNumber: 0,
+    stripeLink: "",
+    members: Array.from({ length: 59 }, (_, i) => ({ number: i + 1, name: "" })),
+  },
 };
 
-const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
+const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Draw", "Download"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -806,9 +813,89 @@ function AdminGallery({ items, onSave }) {
   );
 }
 
+
+function AdminDraw({ drawData, onSave }) {
+  const [desc, setDesc] = useState(drawData.description || "");
+  const [winnerMonth, setWinnerMonth] = useState(drawData.winnerMonth || "");
+  const [winnerNumber, setWinnerNumber] = useState(drawData.winnerNumber || 0);
+  const [stripeLink, setStripeLink] = useState(drawData.stripeLink || "");
+  const [members, setMembers] = useState(drawData.members || Array.from({ length: 59 }, (_, i) => ({ number: i + 1, name: "" })));
+  useEffect(() => {
+    setDesc(drawData.description || "");
+    setWinnerMonth(drawData.winnerMonth || "");
+    setWinnerNumber(drawData.winnerNumber || 0);
+    setStripeLink(drawData.stripeLink || "");
+    setMembers(drawData.members || Array.from({ length: 59 }, (_, i) => ({ number: i + 1, name: "" })));
+  }, [drawData]);
+
+  const updateMember = (idx, name) => setMembers(members.map((m, i) => i === idx ? { ...m, name } : m));
+  const save = () => onSave({ description: desc, winnerMonth, winnerNumber: +winnerNumber, stripeLink, members });
+  const editorRef = useRef(null);
+  const execCmd = (cmd, val = null) => { editorRef.current && editorRef.current.focus(); document.execCommand(cmd, false, val); };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Monthly Draw</div>
+        <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
+      </div>
+
+      {/* Description editor */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Page Description (supports bold, italic etc)</label>
+        <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+          {[["Bold","bold"],["Italic","italic"],["Underline","underline"]].map(([l,c]) => (
+            <button key={c} style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "4px 10px", fontSize: 12 }} onMouseDown={e => { e.preventDefault(); execCmd(c); }}>{l}</button>
+          ))}
+          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "4px 10px", fontSize: 12 }} onMouseDown={e => { e.preventDefault(); execCmd("insertUnorderedList"); }}>• List</button>
+          <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "4px 10px", fontSize: 12 }} onMouseDown={e => { e.preventDefault(); execCmd("removeFormat"); }}>Clear</button>
+        </div>
+        <div ref={editorRef} contentEditable suppressContentEditableWarning
+          onInput={e => setDesc(e.currentTarget.innerHTML)}
+          dangerouslySetInnerHTML={{ __html: desc }}
+          style={{ ...S.input, minHeight: 80, height: "auto", padding: 10, lineHeight: 1.7 }} />
+      </div>
+
+      {/* Winner section */}
+      <div style={{ background: "#191740", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#f59e0b", marginBottom: 10 }}>🏆 Winner Settings</div>
+        <div style={S.row}>
+          <div style={{ flex: 2 }}>
+            <label style={S.label}>Winner Month (e.g. July, December)</label>
+            <input style={S.input} value={winnerMonth} onChange={e => setWinnerMonth(e.target.value)} placeholder="June" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={S.label}>Winning Number (0 = no winner)</label>
+            <input style={S.input} type="number" min="0" max="59" value={winnerNumber} onChange={e => setWinnerNumber(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {/* Stripe link */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Join The Draw — Stripe Payment Link</label>
+        <input style={S.input} value={stripeLink} onChange={e => setStripeLink(e.target.value)} placeholder="https://buy.stripe.com/..." />
+      </div>
+
+      {/* Members grid */}
+      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Draw Members (1–59)</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 12 }}>Leave blank for vacant numbers.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
+        {members.map((m, idx) => (
+          <div key={m.number} style={{ display: "flex", alignItems: "center", gap: 8, background: "#0d0c22", borderRadius: 8, padding: "6px 10px", border: `1px solid ${winnerNumber === m.number ? "#f59e0b44" : "#ffffff0f"}` }}>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: winnerNumber === m.number ? "linear-gradient(135deg,#f59e0b,#d97706)" : "#347ebf22", border: `1px solid ${winnerNumber === m.number ? "#f59e0b" : "#347ebf44"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: winnerNumber === m.number ? "#fff" : "#347ebf", flexShrink: 0 }}>{m.number}</div>
+            <input style={{ ...S.input, padding: "4px 6px", fontSize: 12, flex: 1 }} value={m.name} onChange={e => updateMember(idx, e.target.value)} placeholder="Vacant" />
+          </div>
+        ))}
+      </div>
+      <button style={{ ...S.btn, background: "#10b981", color: "#fff", marginTop: 16 }} onClick={save}>Save All</button>
+    </div>
+  );
+}
+
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Draw"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -835,6 +922,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
+        {section === "Draw" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
       </div>
     </div>
   );
@@ -893,8 +981,6 @@ const parseNewsDate = (d) => {
 
 export default function App() {
   const [active, setActive] = useState("Home");
-  const [squadSearch, setSquadSearch] = useState("");
-  const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -965,17 +1051,17 @@ export default function App() {
     return () => unsub();
   }, []);
   
-useEffect(() => {
- const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
+  useEffect(() => {
+  const ALLOWED_EMAILS = ["YOUR_EMAIL@gmail.com"]; // 👈 replace with your email
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (!user) return;
-    if (ALLOWED_EMAILS.includes(user.email)) {
+    if (user && ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
+    } else if (user) {
+      signOut(auth);
+      alert("Access denied. You are not authorised to access this area.");
     } else {
-      signOut(auth).then(() => {
-        alert("Access denied. You are not authorised to access this area.");
-      });
+      signOut(auth);
     }
   });
   return () => unsub();
@@ -1202,7 +1288,7 @@ useEffect(() => {
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {sortedNews.slice(1).map(n => (
-                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { { setSelectedArticle(n); window.scrollTo({ top: 0, behavior: "smooth" }); }; setActive("News"); }}>
                           <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center" }}>
@@ -1638,6 +1724,8 @@ useEffect(() => {
             }
             return p[key] || 0;
           };
+          const [squadSearch, setSquadSearch] = useState("");
+          const [squadSearchOpen, setSquadSearchOpen] = useState(false);
           const searchedFiltered = squadSearch.trim() ? filtered.filter(p => p.name.toLowerCase().includes(squadSearch.toLowerCase())) : filtered;
           const sorted = [...searchedFiltered].sort((a, b) => {
             if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
@@ -1936,6 +2024,68 @@ useEffect(() => {
             )}
           </div>
         )}
+
+        {active === "Draw" && (() => {
+          const draw = data.draw || {};
+          const members = draw.members || [];
+          const prize = Math.floor((members.filter(m => m.name && m.name.trim()).length * 10) / 2);
+          const winnerNum = draw.winnerNumber || 0;
+          const winnerMember = members.find(m => m.number === winnerNum);
+          return (
+            <div style={{ padding: "0 0 40px" }}>
+              {/* Header */}
+              <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", borderRadius: 14, padding: "24px 20px", marginBottom: 20, border: "1px solid #347ebf22" }}>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>Monthly Draw 🎟️</div>
+                <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: draw.description || "" }} />
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+                  <div style={{ background: "#347ebf22", border: "1px solid #347ebf44", borderRadius: 10, padding: "12px 18px", flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>ENTRY PRICE</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf" }}>£10<span style={{ fontSize: 13, fontWeight: 400, color: "#8899bb" }}>/month</span></div>
+                  </div>
+                  <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 10, padding: "12px 18px", flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>THIS MONTH'S PRIZE</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#10b981" }}>£{prize}</div>
+                  </div>
+                  <div style={{ background: "#8b5cf622", border: "1px solid #8b5cf644", borderRadius: 10, padding: "12px 18px", flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>NUMBERS TAKEN</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#8b5cf6" }}>{members.filter(m => m.name && m.name.trim()).length}<span style={{ fontSize: 13, fontWeight: 400, color: "#8899bb" }}>/59</span></div>
+                  </div>
+                </div>
+                {draw.stripeLink && (
+                  <a href={draw.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "14px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>
+                    🎟️ Join The Draw — £10/month
+                  </a>
+                )}
+              </div>
+
+              {/* Winner */}
+              {winnerNum > 0 && winnerMember && (
+                <div style={{ background: "linear-gradient(135deg, #f59e0b22, #d97706011)", border: "2px solid #f59e0b66", borderRadius: 14, padding: "20px", marginBottom: 20, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#f59e0b", letterSpacing: 2, marginBottom: 4 }}>{draw.winnerMonth} WINNER</div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 4 }}>{winnerMember.name}</div>
+                  <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg,#f59e0b,#d97706)", fontSize: 18, fontWeight: 900, color: "#fff" }}>{winnerNum}</div>
+                </div>
+              )}
+
+              {/* Numbers grid */}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 12 }}>Draw Numbers</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 8 }}>
+                {members.map(m => {
+                  const isWinner = m.number === winnerNum;
+                  const isTaken = m.name && m.name.trim();
+                  return (
+                    <div key={m.number} style={{ background: isWinner ? "linear-gradient(135deg,#f59e0b22,#d9770611)" : isTaken ? "#191740" : "#0d0c22", border: `1px solid ${isWinner ? "#f59e0b" : isTaken ? "#347ebf33" : "#ffffff0f"}`, borderRadius: 10, padding: "10px 8px", textAlign: "center", transition: "all 0.2s" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: isWinner ? "linear-gradient(135deg,#f59e0b,#d97706)" : isTaken ? "#347ebf22" : "#ffffff08", border: `1px solid ${isWinner ? "#f59e0b" : isTaken ? "#347ebf44" : "#ffffff11"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: isWinner ? "#fff" : isTaken ? "#347ebf" : "#8899bb", margin: "0 auto 6px" }}>{m.number}</div>
+                      <div style={{ fontSize: 10, color: isWinner ? "#f59e0b" : isTaken ? "#fff" : "#8899bb", fontWeight: isTaken ? 700 : 400, lineHeight: 1.2, wordBreak: "break-word" }}>{isTaken ? m.name : "Vacant"}</div>
+                      {isWinner && <div style={{ fontSize: 9, color: "#f59e0b", fontWeight: 900, marginTop: 3, letterSpacing: 1 }}>WINNER</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {active === "Download" && (
           <div style={{ maxWidth: 520, margin: "0 auto" }}>
