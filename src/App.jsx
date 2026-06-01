@@ -964,7 +964,7 @@ export default function App() {
   }, []);
   
 useEffect(() => {
-  const ALLOWED_EMAILS = ["darcypugh@live.com"];
+ const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
   const unsub = onAuthStateChanged(auth, (user) => {
     if (!user) return;
     if (ALLOWED_EMAILS.includes(user.email)) {
