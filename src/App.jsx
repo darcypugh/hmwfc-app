@@ -1202,7 +1202,7 @@ export default function App() {
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#8899bb", textTransform: "uppercase", marginBottom: 12 }}>More News</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {sortedNews.slice(1).map(n => (
-                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { { setSelectedArticle(n); window.scrollTo({ top: 0, behavior: "smooth" }); }; setActive("News"); }}>
+                        <div key={n.id} className="card" style={{ padding: "14px 18px", display: "flex", gap: 14, alignItems: "center" }} onClick={() => { setSelectedArticle(n); setActive("News"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                           <div style={{ fontSize: 28, flexShrink: 0 }}>{n.emoji}</div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center" }}>
