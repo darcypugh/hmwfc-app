@@ -3,7 +3,6 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, update, runTransaction } from "firebase/database";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { Analytics } from "@vercel/analytics/react";
 
 
 const firebaseConfig = {
@@ -964,29 +963,21 @@ export default function App() {
     return () => unsub();
   }, []);
   
-  useEffect(() => {
-  const ALLOWED_EMAILS = ["YOUR_EMAIL@gmail.com"]; // 👈 replace with your email
+useEffect(() => {
+ const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (user && ALLOWED_EMAILS.includes(user.email)) {
+    if (!user) return;
+    if (ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
-    } else if (user) {
-      signOut(auth);
-      alert("Access denied. You are not authorised to access this area.");
     } else {
-      signOut(auth);
+      signOut(auth).then(() => {
+        alert("Access denied. You are not authorised to access this area.");
+      });
     }
   });
   return () => unsub();
 }, []);
-
-  useEffect(() => {
-    const likesRef = ref(db, "hmwfc/likes");
-    const unsub = onValue(likesRef, (snapshot) => {
-      if (snapshot.exists()) setLikes(snapshot.val());
-    });
-    return () => unsub();
-  }, []);
 
 
 
@@ -2035,7 +2026,6 @@ export default function App() {
           ↑
         </button>
       )}
-      <Analytics />
     </div>
   );
 }
