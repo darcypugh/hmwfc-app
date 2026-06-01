@@ -76,7 +76,7 @@ const DEFAULT_DATA = {
   },
 };
 
-const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Draw", "Download"];
+const NAV_ITEMS = ["Home", "Help The Wells", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -902,7 +902,7 @@ function AdminDraw({ drawData, onSave }) {
 
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Draw"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Help The Wells"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -929,7 +929,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
-        {section === "Draw" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
+        {section === "Help The Wells" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
       </div>
     </div>
   );
@@ -1231,6 +1231,27 @@ export default function App() {
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 280px; } @media(max-width:680px){ .home-grid { grid-template-columns: 1fr !important; } }`}</style>
               {/* Latest news */}
               <div style={{ minWidth: 0 }}>
+                {/* Help The Wells strip */}
+                {data.draw && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
+                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
+                      {/* Monthly Draw card */}
+                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
+                        <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
+                        <div style={{ padding: "8px 10px 10px" }}>
+                          <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>Monthly Draw</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#10b981" }}>£10/month</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Merch strip */}
                 {data.merch && data.merch.length > 0 && (
                   <div style={{ marginBottom: 24 }}>
@@ -2033,7 +2054,7 @@ export default function App() {
           </div>
         )}
 
-        {active === "Draw" && (() => {
+        {active === "Help The Wells" && (() => {
           const draw = data.draw || {};
           const members = draw.members || [];
           const takenCount = members.filter(m => m.name && m.name.trim()).length;
