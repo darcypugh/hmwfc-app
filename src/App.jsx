@@ -66,9 +66,17 @@ const DEFAULT_DATA = {
     { id: 4, name: "Training Top", price: "£35", emoji: "🧥", tag: "", image: "", isClothing: true, stripeLink: "", sizes: { XS: "available", S: "available", M: "available", L: "low", XL: "sold_out", XXL: "sold_out", "3XL": "sold_out" } },
   ],
   gallery: [],
+  draw: {
+    description: "<p>Join our <strong>Monthly Draw</strong> for just <strong>£10/month</strong>. The prize pot is half the total entry money. 59 numbers available — enter now for your chance to win!</p>",
+    winnerMonth: "June",
+    winnerNumber: 0,
+    stripeLink: "",
+    nextDrawDate: "Last Sunday of each month",
+    members: Array.from({ length: 59 }, (_, i) => ({ number: i + 1, name: "" })),
+  },
 };
 
-const NAV_ITEMS = ["Home", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
+const NAV_ITEMS = ["Home", "Help The Wells", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -806,9 +814,95 @@ function AdminGallery({ items, onSave }) {
   );
 }
 
+
+function AdminDraw({ drawData, onSave }) {
+  const [desc, setDesc] = useState(drawData.description || "");
+  const [winnerMonth, setWinnerMonth] = useState(drawData.winnerMonth || "");
+  const [winnerNumber, setWinnerNumber] = useState(drawData.winnerNumber || 0);
+  const [stripeLink, setStripeLink] = useState(drawData.stripeLink || "");
+  const [nextDrawDate, setNextDrawDate] = useState(drawData.nextDrawDate || "");
+  const [members, setMembers] = useState(drawData.members || Array.from({ length: 59 }, (_, i) => ({ number: i + 1, name: "" })));
+  useEffect(() => {
+    setDesc(drawData.description || "");
+    setWinnerMonth(drawData.winnerMonth || "");
+    setWinnerNumber(drawData.winnerNumber || 0);
+    setStripeLink(drawData.stripeLink || "");
+    setNextDrawDate(drawData.nextDrawDate || "");
+    setMembers(drawData.members || Array.from({ length: 59 }, (_, i) => ({ number: i + 1, name: "" })));
+  }, [drawData]);
+
+  const updateMember = (idx, name) => setMembers(members.map((m, i) => i === idx ? { ...m, name } : m));
+  const save = () => onSave({ description: desc, winnerMonth, winnerNumber: +winnerNumber, stripeLink, nextDrawDate, members });
+  const editorRef = useRef(null);
+  const execCmd = (cmd, val = null) => { editorRef.current && editorRef.current.focus(); document.execCommand(cmd, false, val); };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Monthly Draw</div>
+        <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
+      </div>
+
+      {/* Description editor */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Page Description (supports bold, italic etc)</label>
+        <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+          {[["Bold","bold"],["Italic","italic"],["Underline","underline"]].map(([l,c]) => (
+            <button key={c} style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "4px 10px", fontSize: 12 }} onMouseDown={e => { e.preventDefault(); execCmd(c); }}>{l}</button>
+          ))}
+          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "4px 10px", fontSize: 12 }} onMouseDown={e => { e.preventDefault(); execCmd("insertUnorderedList"); }}>• List</button>
+          <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "4px 10px", fontSize: 12 }} onMouseDown={e => { e.preventDefault(); execCmd("removeFormat"); }}>Clear</button>
+        </div>
+        <div ref={editorRef} contentEditable suppressContentEditableWarning
+          onInput={e => setDesc(e.currentTarget.innerHTML)}
+          dangerouslySetInnerHTML={{ __html: desc }}
+          style={{ ...S.input, minHeight: 80, height: "auto", padding: 10, lineHeight: 1.7 }} />
+      </div>
+
+      {/* Winner section */}
+      <div style={{ background: "#191740", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#f59e0b", marginBottom: 10 }}>🏆 Winner Settings</div>
+        <div style={S.row}>
+          <div style={{ flex: 2 }}>
+            <label style={S.label}>Winner Month (e.g. July, December)</label>
+            <input style={S.input} value={winnerMonth} onChange={e => setWinnerMonth(e.target.value)} placeholder="June" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={S.label}>Winning Number (0 = no winner)</label>
+            <input style={S.input} type="number" min="0" max="59" value={winnerNumber} onChange={e => setWinnerNumber(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {/* Next draw date */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Next Draw Date (e.g. Sunday 29th June 2026)</label>
+        <input style={S.input} value={nextDrawDate} onChange={e => setNextDrawDate(e.target.value)} placeholder="Sunday 29th June 2026" />
+      </div>
+
+      {/* Stripe link */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Join The Draw — Stripe Payment Link</label>
+        <input style={S.input} value={stripeLink} onChange={e => setStripeLink(e.target.value)} placeholder="https://buy.stripe.com/..." />
+      </div>      {/* Members grid */}
+      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Draw Members (1–59)</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 12 }}>Leave blank for vacant numbers.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
+        {members.map((m, idx) => (
+          <div key={m.number} style={{ display: "flex", alignItems: "center", gap: 8, background: "#0d0c22", borderRadius: 8, padding: "6px 10px", border: `1px solid ${winnerNumber === m.number ? "#f59e0b44" : "#ffffff0f"}` }}>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: winnerNumber === m.number ? "linear-gradient(135deg,#f59e0b,#d97706)" : "#347ebf22", border: `1px solid ${winnerNumber === m.number ? "#f59e0b" : "#347ebf44"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: winnerNumber === m.number ? "#fff" : "#347ebf", flexShrink: 0 }}>{m.number}</div>
+            <input style={{ ...S.input, padding: "4px 6px", fontSize: 12, flex: 1 }} value={m.name} onChange={e => updateMember(idx, e.target.value)} placeholder="Vacant" />
+          </div>
+        ))}
+      </div>
+      <button style={{ ...S.btn, background: "#10b981", color: "#fff", marginTop: 16 }} onClick={save}>Save All</button>
+    </div>
+  );
+}
+
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Help The Wells"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -835,6 +929,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
+        {section === "Help The Wells" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
       </div>
     </div>
   );
@@ -895,6 +990,7 @@ export default function App() {
   const [active, setActive] = useState("Home");
   const [squadSearch, setSquadSearch] = useState("");
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
+  const [drawOpen, setDrawOpen] = useState(false);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -965,17 +1061,17 @@ export default function App() {
     return () => unsub();
   }, []);
   
-useEffect(() => {
- const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
+  useEffect(() => {
+  const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (!user) return;
-    if (ALLOWED_EMAILS.includes(user.email)) {
+    if (user && ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
+    } else if (user) {
+      signOut(auth);
+      alert("Access denied. You are not authorised to access this area.");
     } else {
-      signOut(auth).then(() => {
-        alert("Access denied. You are not authorised to access this area.");
-      });
+      signOut(auth);
     }
   });
   return () => unsub();
@@ -1135,6 +1231,27 @@ useEffect(() => {
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 280px; } @media(max-width:680px){ .home-grid { grid-template-columns: 1fr !important; } }`}</style>
               {/* Latest news */}
               <div style={{ minWidth: 0 }}>
+                {/* Help The Wells strip */}
+                {data.draw && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
+                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
+                      {/* Monthly Draw card */}
+                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
+                        <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
+                        <div style={{ padding: "8px 10px 10px" }}>
+                          <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>Monthly Draw</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#10b981" }}>£10/month</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Merch strip */}
                 {data.merch && data.merch.length > 0 && (
                   <div style={{ marginBottom: 24 }}>
@@ -1936,6 +2053,92 @@ useEffect(() => {
             )}
           </div>
         )}
+
+        {active === "Help The Wells" && (() => {
+          const draw = data.draw || {};
+          const members = draw.members || [];
+          const takenCount = members.filter(m => m.name && m.name.trim()).length;
+          const prize = Math.floor((takenCount * 10) / 2);
+          const winnerNum = draw.winnerNumber || 0;
+          const winnerMember = members.find(m => m.number === winnerNum);
+          return (
+            <div style={{ padding: "0 0 40px" }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>Fundraising 🎟️</div>
+
+              {/* Monthly Draw collapsible card */}
+              <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, marginBottom: 16, overflow: "hidden" }}>
+                    {/* Header row — always visible */}
+                    <div onClick={() => setDrawOpen(o => !o)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 6 }}>Monthly Draw</div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <span style={{ background: "#347ebf22", border: "1px solid #347ebf44", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#347ebf", fontWeight: 700 }}>£10/month</span>
+                          <span style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#10b981", fontWeight: 700 }}>Prize £{prize}</span>
+                          <span style={{ background: "#8b5cf622", border: "1px solid #8b5cf644", borderRadius: 6, padding: "4px 10px", fontSize: 12, color: "#8b5cf6", fontWeight: 700 }}>{takenCount}/59 taken</span>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 18, color: "#347ebf", transition: "transform 0.3s", transform: drawOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</div>
+                    </div>
+
+                    {/* Join button — always visible */}
+                    {draw.stripeLink && (
+                      <div style={{ padding: "0 20px 16px" }}>
+                        <a href={draw.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>
+                          🎟️ Join The Draw — £10/month
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Expandable content */}
+                    {drawOpen && (
+                      <div style={{ borderTop: "1px solid #ffffff0f", padding: "20px" }}>
+                        {/* Description */}
+                        {draw.description && (
+                          <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 20, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: draw.description }} />
+                        )}
+
+                        {/* Next draw date */}
+                        {draw.nextDrawDate && (
+                          <div style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ fontSize: 20 }}>📅</div>
+                            <div>
+                              <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>NEXT DRAW</div>
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900 }}>{draw.nextDrawDate}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Winner */}
+                        {winnerNum > 0 && winnerMember && (
+                          <div style={{ background: "linear-gradient(135deg,#f59e0b11,#d9770608)", border: "2px solid #f59e0b66", borderRadius: 12, padding: "18px", marginBottom: 20, textAlign: "center" }}>
+                            <div style={{ fontSize: 28, marginBottom: 6 }}>🏆</div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#f59e0b", letterSpacing: 2, marginBottom: 4 }}>{draw.winnerMonth} WINNER</div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, marginBottom: 8 }}>{winnerMember.name}</div>
+                            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#f59e0b,#d97706)", fontSize: 16, fontWeight: 900, color: "#fff" }}>{winnerNum}</div>
+                          </div>
+                        )}
+
+                        {/* Numbers grid */}
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 12 }}>All Numbers</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(85px, 1fr))", gap: 6 }}>
+                          {members.map(m => {
+                            const isWinner = m.number === winnerNum;
+                            const isTaken = m.name && m.name.trim();
+                            return (
+                              <div key={m.number} style={{ background: isWinner ? "linear-gradient(135deg,#f59e0b22,#d9770611)" : isTaken ? "#0d0c22" : "#0d0c2299", border: `1px solid ${isWinner ? "#f59e0b" : isTaken ? "#347ebf33" : "#ffffff08"}`, borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
+                                <div style={{ width: 28, height: 28, borderRadius: "50%", background: isWinner ? "linear-gradient(135deg,#f59e0b,#d97706)" : isTaken ? "#347ebf22" : "#ffffff08", border: `1px solid ${isWinner ? "#f59e0b" : isTaken ? "#347ebf44" : "#ffffff11"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: isWinner ? "#fff" : isTaken ? "#347ebf" : "#8899bb", margin: "0 auto 5px" }}>{m.number}</div>
+                                <div style={{ fontSize: 9, color: isWinner ? "#f59e0b" : isTaken ? "#fff" : "#8899bb", fontWeight: isTaken ? 700 : 400, lineHeight: 1.2, wordBreak: "break-word" }}>{isTaken ? m.name : "Vacant"}</div>
+                                {isWinner && <div style={{ fontSize: 8, color: "#f59e0b", fontWeight: 900, marginTop: 2, letterSpacing: 1 }}>WINNER</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+            </div>
+          );
+        })()}
 
         {active === "Download" && (
           <div style={{ maxWidth: 520, margin: "0 auto" }}>
