@@ -963,29 +963,21 @@ export default function App() {
     return () => unsub();
   }, []);
   
-  useEffect(() => {
+useEffect(() => {
   const ALLOWED_EMAILS = ["darcypugh@live.com"];
   const unsub = onAuthStateChanged(auth, (user) => {
-    if (user && ALLOWED_EMAILS.includes(user.email)) {
+    if (!user) return;
+    if (ALLOWED_EMAILS.includes(user.email)) {
       setShowLogin(false);
       setAdminOpen(true);
-    } else if (user) {
-      signOut(auth);
-      alert("Access denied. You are not authorised to access this area.");
     } else {
-      signOut(auth);
+      signOut(auth).then(() => {
+        alert("Access denied. You are not authorised to access this area.");
+      });
     }
   });
   return () => unsub();
 }, []);
-
-  useEffect(() => {
-    const likesRef = ref(db, "hmwfc/likes");
-    const unsub = onValue(likesRef, (snapshot) => {
-      if (snapshot.exists()) setLikes(snapshot.val());
-    });
-    return () => unsub();
-  }, []);
 
 
 
