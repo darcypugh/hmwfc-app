@@ -1428,6 +1428,8 @@ export default function App() {
     return () => unsub();
   }, []);
 
+const [leaderboard, setLeaderboard] = useState([]);
+
 useEffect(() => {
   const unsub = onValue(ref(db, "users"), (snap) => {
     if (!snap.exists()) { setLeaderboard([]); return; }
@@ -2713,8 +2715,6 @@ useEffect(() => {
 
 
         {active === "The Clubhouse" && (() => {
-          const [leaderboard, setLeaderboard] = useState([]);
-          
 
           return (
             <div style={{ padding: "0 0 40px" }}>
