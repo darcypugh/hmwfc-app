@@ -1054,7 +1054,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [squadView, setSquadView] = useState("current");
-  const [sortBy, setSortBy] = useState("goals");
+  const [sortBy, setSortBy] = useState("name");
   const [squadDisplayMode, setSquadDisplayMode] = useState("tiles");
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
@@ -1228,7 +1228,7 @@ export default function App() {
           .home-merch-strip { padding-bottom: 8px; scroll-padding-right: 20px; }
         }
         @media (max-width: 680px) {
-          .home-grid { grid-template-columns: 1fr !important; }
+          @media(max-width:780px){ .home-grid { grid-template-columns: 1fr !important; } }
         }
       `}</style>
 
@@ -1284,7 +1284,7 @@ export default function App() {
       )}
 
       <div style={{ background: "linear-gradient(135deg, #191740 0%, #0d0c22 100%)", borderBottom: "1px solid #ffffff0f" }}>
-        <div style={{ maxWidth: 980, margin: "0 auto", padding: "0 16px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 3vw, 14px)", paddingTop: 12, paddingBottom: 12 }}>
             <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menu">
               <span /><span /><span />
@@ -1299,7 +1299,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
 
         {active === "Home" && (() => {
 
@@ -1328,8 +1328,8 @@ export default function App() {
           const oppBadge = latestResult && getBadge(oppName, latestResult);
           const weWereHome = latestResult && latestResult.home.includes("Hemsworth");
           return (
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 280px", gap: 24, alignItems: "start" }} className="home-grid">
-              <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 280px; } @media(max-width:680px){ .home-grid { grid-template-columns: 1fr !important; } }`}</style>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 24, alignItems: "start" }} className="home-grid">
+              <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 340px; } @media(max-width:780px){ @media(max-width:780px){ .home-grid { grid-template-columns: 1fr !important; } } }`}</style>
               {/* Latest news */}
               <div style={{ minWidth: 0 }}>
                 {/* Help The Wells strip */}
