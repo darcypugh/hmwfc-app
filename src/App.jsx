@@ -478,11 +478,30 @@ function AdminSquad({ items, onSave, scrollRef }) {
   };
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
 
+  const [photoUploading, setPhotoUploading] = useState({});
+
   const uploadPhoto = (idx, file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => update(idx, "photo", e.target.result);
-    reader.readAsDataURL(file);
+    const player = list[idx];
+    const photoId = Date.now();
+    const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
+    const sRef = storageRef(storage, path);
+    const task = uploadBytesResumable(sRef, file);
+    setPhotoUploading(u => ({ ...u, [idx]: true }));
+    task.on("state_changed", null,
+      (err) => { console.error("Photo upload error:", err); setPhotoUploading(u => { const n = { ...u }; delete n[idx]; return n; }); },
+      () => {
+        getDownloadURL(task.snapshot.ref).then(url => {
+          // Delete old photo from storage if it was a storage URL
+          if (player.photo && player.photo.includes("firebasestorage")) {
+            try { deleteObject(storageRef(storage, player.storagePath || "")); } catch(e) {}
+          }
+          update(idx, "photo", url);
+          update(idx, "storagePath", path);
+          setPhotoUploading(u => { const n = { ...u }; delete n[idx]; return n; });
+        });
+      }
+    );
   };
   const save = () => onSave(list);
   return (
@@ -521,10 +540,15 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* Photo */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>Photo</label>
-            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: "pointer", overflow: "hidden" }}>
-              {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>📷</span>}
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPhoto(idx, e.target.files[0])} />
+            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: photoUploading[idx] ? "default" : "pointer", overflow: "hidden", position: "relative" }}>
+              {photoUploading[idx]
+                ? <div style={{ fontSize: 11, color: "#347ebf", fontWeight: 700, textAlign: "center", padding: 4 }}>⏳</div>
+                : p.photo
+                  ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <span style={{ fontSize: 22 }}>📷</span>}
+              <input type="file" accept="image/*" style={{ display: "none" }} disabled={!!photoUploading[idx]} onChange={e => uploadPhoto(idx, e.target.files[0])} />
             </label>
+            {p.photo && !photoUploading[idx] && <button onClick={() => update(idx, "photo", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "2px 8px", fontSize: 10, marginLeft: 6 }}>Remove</button>}
           </div>
           {/* Season stats — these drive the career totals */}
           <StatRow prefix="season" p={p} label="This Season (updates career totals automatically)" color="#347ebf"
@@ -1018,6 +1042,8 @@ const parseNewsDate = (d) => {
 export default function App() {
   const [active, setActive] = useState("Home");
   const [squadSearch, setSquadSearch] = useState("");
+  const [squadPage, setSquadPage] = useState(0);
+  const SQUAD_PAGE_SIZE = 24;
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [navGroup, setNavGroup] = useState(null);
@@ -1836,6 +1862,8 @@ export default function App() {
             return p[key] || 0;
           };
           const searchedFiltered = squadSearch.trim() ? filtered.filter(p => p.name.toLowerCase().includes(squadSearch.toLowerCase())) : filtered;
+          const totalPlayers = searchedFiltered.length;
+          const totalPages = Math.ceil(totalPlayers / SQUAD_PAGE_SIZE);
           const sorted = [...searchedFiltered].sort((a, b) => {
             if (sortBy === "name") return (a.name || "").localeCompare(b.name || "");
             return getStat(b, sortBy) - getStat(a, sortBy);
@@ -1904,9 +1932,9 @@ export default function App() {
             {/* Tabs + Sort + View Toggle */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 6 }}>
-                <button className={`tab-btn ${squadView === "current" ? "active" : ""}`} onClick={() => setSquadView("current")}>Current Squad</button>
-                <button className={`tab-btn ${squadView === "past" ? "active" : ""}`} onClick={() => setSquadView("past")}>Past Players</button>
-                <button className={`tab-btn ${squadView === "all" ? "active" : ""}`} onClick={() => setSquadView("all")}>Overall</button>
+                <button className={`tab-btn ${squadView === "current" ? "active" : ""}`} onClick={() => { setSquadView("current"); setSquadPage(0); }}>Current Squad</button>
+                <button className={`tab-btn ${squadView === "past" ? "active" : ""}`} onClick={() => { setSquadView("past"); setSquadPage(0); }}>Past Players</button>
+                <button className={`tab-btn ${squadView === "all" ? "active" : ""}`} onClick={() => { setSquadView("all"); setSquadPage(0); }}>Overall</button>
               </div>
               <button onClick={() => { setSquadSearchOpen(o => !o); setSquadSearch(""); }} style={{ background: squadSearchOpen ? "#347ebf22" : "#ffffff0f", border: `1px solid ${squadSearchOpen ? "#347ebf" : "#ffffff15"}`, borderRadius: 8, color: squadSearchOpen ? "#347ebf" : "#aabbcc", padding: "5px 10px", cursor: "pointer", fontSize: 15, lineHeight: 1 }} title="Search players">🔍</button>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1935,7 +1963,7 @@ export default function App() {
             )}
             {squadDisplayMode === "tiles" && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 14, marginBottom: 8 }}>
-                {sorted.map(p => (
+                {sorted.slice(squadPage * SQUAD_PAGE_SIZE, (squadPage + 1) * SQUAD_PAGE_SIZE).map(p => (
                   <div key={p.id} onClick={() => setSelectedPlayer(p)} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", cursor: "pointer" }} className="card">
                     {/* Photo */}
                     <div style={{ height: 160, background: "linear-gradient(160deg, #191740, #0d0c22)", position: "relative", overflow: "hidden" }}>
@@ -1972,6 +2000,13 @@ export default function App() {
                 {sorted.length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, gridColumn: "1/-1" }}>No players in this view.</div>}
               </div>
             )}
+            {squadDisplayMode === "tiles" && totalPages > 1 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 24 }}>
+                <button onClick={() => { setSquadPage(p => Math.max(0, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={squadPage === 0} style={{ ...S.btn, background: squadPage === 0 ? "#ffffff08" : "#347ebf22", color: squadPage === 0 ? "#8899bb55" : "#347ebf", padding: "7px 16px" }}>← Prev</button>
+                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", fontWeight: 700 }}>{squadPage + 1} / {totalPages}</span>
+                <button onClick={() => { setSquadPage(p => Math.min(totalPages - 1, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={squadPage >= totalPages - 1} style={{ ...S.btn, background: squadPage >= totalPages - 1 ? "#ffffff08" : "#347ebf22", color: squadPage >= totalPages - 1 ? "#8899bb55" : "#347ebf", padding: "7px 16px" }}>Next →</button>
+              </div>
+            )}
             {squadDisplayMode === "table" && <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f", overflowX: "auto" }}>
               <table style={{ minWidth: 560 }}>
                 <thead>
@@ -1987,7 +2022,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map(p => (
+                  {sorted.slice(squadPage * SQUAD_PAGE_SIZE, (squadPage + 1) * SQUAD_PAGE_SIZE).map(p => (
                     <tr key={p.id} className="squad-row" style={{ transition: "background 0.15s", cursor: "pointer" }} onClick={() => setSelectedPlayer(p)}>
                       <td style={{ fontWeight: 600 }}>{p.name}</td>
                       <td><span style={{ background: `${POS_COLOR[p.pos] || "#8b5cf6"}22`, color: POS_COLOR[p.pos] || "#8b5cf6", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>{p.pos}</span></td>
@@ -2004,6 +2039,13 @@ export default function App() {
               </table>
             </div>}
             {squadDisplayMode === "table" && <div style={{ marginTop: 10, fontSize: 11, color: "#8899bb" }}>CS = Clean Sheets · MotM = Man of the Match · Tap column headers to sort</div>}
+            {squadDisplayMode === "table" && totalPages > 1 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 16 }}>
+                <button onClick={() => { setSquadPage(p => Math.max(0, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={squadPage === 0} style={{ ...S.btn, background: squadPage === 0 ? "#ffffff08" : "#347ebf22", color: squadPage === 0 ? "#8899bb55" : "#347ebf", padding: "7px 16px" }}>← Prev</button>
+                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", fontWeight: 700 }}>{squadPage + 1} / {totalPages}</span>
+                <button onClick={() => { setSquadPage(p => Math.min(totalPages - 1, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={squadPage >= totalPages - 1} style={{ ...S.btn, background: squadPage >= totalPages - 1 ? "#ffffff08" : "#347ebf22", color: squadPage >= totalPages - 1 ? "#8899bb55" : "#347ebf", padding: "7px 16px" }}>Next →</button>
+              </div>
+            )}
           </div>
           );
         })()}
