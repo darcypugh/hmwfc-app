@@ -482,34 +482,33 @@ function AdminSquad({ items, onSave, scrollRef }) {
 
   const uploadPhoto = (player, file) => {
     if (!file) return;
-    alert(`Starting upload for ${player.name}, file: ${file.name}, size: ${file.size}, storage bucket: ${storage.app.options.storageBucket}`);
+    const idx = list.indexOf(player);
+    const photoId = Date.now();
+    const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
+  const uploadPhoto = (player, file) => {
+    if (!file) return;
     const idx = list.indexOf(player);
     const photoId = Date.now();
     const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
     const sRef = storageRef(storage, path);
-    alert(`Storage ref created: ${path}`);
     const task = uploadBytesResumable(sRef, file);
-    alert(`Task created, state: ${task.snapshot.state}`);
     setPhotoUploading(u => ({ ...u, [player.id]: true }));
-    task.on("state_changed", null,
-      (err) => {
-        alert(`Photo upload failed: ${err.code} — ${err.message}`);
+    task.then(() => {
+      getDownloadURL(sRef).then(url => {
+        if (player.photo && player.photo.includes("firebasestorage")) {
+          try { deleteObject(storageRef(storage, player.storagePath || "")); } catch(e) {}
+        }
+        update(idx, "photo", url);
+        update(idx, "storagePath", path);
         setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
-      },
-      () => {
-        getDownloadURL(task.snapshot.ref).then(url => {
-          if (player.photo && player.photo.includes("firebasestorage")) {
-            try { deleteObject(storageRef(storage, player.storagePath || "")); } catch(e) {}
-          }
-          update(idx, "photo", url);
-          update(idx, "storagePath", path);
-          setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
-        }).catch(err => {
-          alert(`Failed to get download URL: ${err.code} — ${err.message}`);
-          setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
-        });
-      }
-    );
+      }).catch(err => {
+        alert(`Failed to get download URL: ${err.message}`);
+        setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+      });
+    }).catch(err => {
+      alert(`Upload failed: ${err.code} — ${err.message}`);
+      setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+    });
   };
   const save = () => onSave(list);
   return (
