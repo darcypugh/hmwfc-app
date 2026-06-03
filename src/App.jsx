@@ -489,7 +489,10 @@ function AdminSquad({ items, onSave, scrollRef }) {
     const task = uploadBytesResumable(sRef, file);
     setPhotoUploading(u => ({ ...u, [player.id]: true }));
     task.on("state_changed", null,
-      (err) => { console.error("Photo upload error:", err); setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; }); },
+      (err) => {
+        alert(`Photo upload failed: ${err.code} — ${err.message}`);
+        setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+      },
       () => {
         getDownloadURL(task.snapshot.ref).then(url => {
           if (player.photo && player.photo.includes("firebasestorage")) {
@@ -497,6 +500,9 @@ function AdminSquad({ items, onSave, scrollRef }) {
           }
           update(idx, "photo", url);
           update(idx, "storagePath", path);
+          setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+        }).catch(err => {
+          alert(`Failed to get download URL: ${err.code} — ${err.message}`);
           setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
         });
       }
