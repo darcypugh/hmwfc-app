@@ -1054,7 +1054,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [squadView, setSquadView] = useState("current");
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("goals");
   const [squadDisplayMode, setSquadDisplayMode] = useState("tiles");
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
