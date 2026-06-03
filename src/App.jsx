@@ -458,7 +458,7 @@ function StatRow({ prefix, p, onChange, label, color }) {
   );
 }
 
-function AdminSquad({ items, onSave }) {
+function AdminSquad({ items, onSave, scrollRef }) {
   const [list, setList] = useState(items);
   const [adminSquadSearch, setAdminSquadSearch] = useState("");
   useEffect(() => { setList(items); }, [items]);
@@ -490,8 +490,8 @@ function AdminSquad({ items, onSave }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Squad</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={() => { setList(l => { const next = [...l, { id: Date.now(), name: "", pos: "CM", no: 0, playing: true, photo: "", about: "", apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, baseApps: 0, baseGoals: 0, baseCleanSheets: 0, baseYellowCards: 0, baseRedCards: 0, baseMotm: 0, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 }]; return next; }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50); }}>+ Player</button>
-          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })} title="Jump to bottom">↓ Bottom</button>
+          <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={() => { setList(l => { const next = [...l, { id: Date.now(), name: "", pos: "CM", no: 0, playing: true, photo: "", about: "", apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, baseApps: 0, baseGoals: 0, baseCleanSheets: 0, baseYellowCards: 0, baseRedCards: 0, baseMotm: 0, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 }]; return next; }); setTimeout(() => { const el = scrollRef && scrollRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }, 50); }}>+ Player</button>
+          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => { const el = scrollRef && scrollRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }} title="Jump to bottom">↓ Bottom</button>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
@@ -930,6 +930,7 @@ function AdminDraw({ drawData, onSave }) {
 
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
+  const adminScrollRef = useRef(null);
   const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
@@ -950,11 +951,11 @@ function AdminPanel({ data, onUpdate, onClose }) {
           <button key={s} onClick={() => setSection(s)} style={{ ...S.btn, borderRadius: 0, borderBottom: section === s ? "2px solid #347ebf" : "2px solid transparent", color: section === s ? "#347ebf" : "#8899bb", background: "none", padding: "12px 16px", flexShrink: 0, whiteSpace: "nowrap" }}>{s}</button>
         ))}
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <div ref={adminScrollRef} data-admin-scroll style={{ flex: 1, overflowY: "auto", padding: 24 }}>
         {section === "News" && <AdminNews items={data.news} onSave={v => onUpdate("news", v)} />}
         {section === "Table" && <AdminTable items={data.table} onSave={v => onUpdate("table", v)} />}
         {section === "Fixtures" && <AdminFixtures items={data.fixtures} tableData={data.table} onSave={v => onUpdate("fixtures", v)} />}
-        {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
+        {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} scrollRef={adminScrollRef} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
         {section === "Fundraising" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
@@ -2322,7 +2323,7 @@ export default function App() {
       {/* Admin scroll to top — fixed bottom left */}
       {adminOpen && (
         <button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          onClick={() => { const el = document.querySelector('[data-admin-scroll]'); if (el) el.scrollTo({ top: 0, behavior: "smooth" }); }}
           style={{ position: "fixed", bottom: 24, left: 20, width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", boxShadow: "0 4px 20px #00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}
           aria-label="Scroll to top">
           ↑
