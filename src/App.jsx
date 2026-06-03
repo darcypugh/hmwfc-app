@@ -480,28 +480,31 @@ function AdminSquad({ items, onSave, scrollRef }) {
 
   const [photoUploading, setPhotoUploading] = useState({});
 
-  const uploadPhoto = (idx, file) => {
+  const uploadPhoto = (player, file) => {
     if (!file) return;
-    const player = list[idx];
-    const photoId = Date.now();
-    const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
-    const sRef = storageRef(storage, path);
-    const task = uploadBytesResumable(sRef, file);
-    setPhotoUploading(u => ({ ...u, [idx]: true }));
-    task.on("state_changed", null,
-      (err) => { console.error("Photo upload error:", err); setPhotoUploading(u => { const n = { ...u }; delete n[idx]; return n; }); },
-      () => {
-        getDownloadURL(task.snapshot.ref).then(url => {
-          // Delete old photo from storage if it was a storage URL
-          if (player.photo && player.photo.includes("firebasestorage")) {
-            try { deleteObject(storageRef(storage, player.storagePath || "")); } catch(e) {}
-          }
-          update(idx, "photo", url);
-          update(idx, "storagePath", path);
-          setPhotoUploading(u => { const n = { ...u }; delete n[idx]; return n; });
-        });
-      }
-    );
+    const idx = list.indexOf(player);
+    setPhotoUploading(u => ({ ...u, [player.id]: true }));
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 400;
+      const ratio = Math.min(MAX / img.width, MAX / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      URL.revokeObjectURL(url);
+      update(idx, "photo", compressed);
+      setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+    };
+    img.onerror = () => {
+      alert('Failed to load image');
+      URL.revokeObjectURL(url);
+      setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+    };
+    img.src = url;
   };
   const save = () => onSave(list);
   return (
@@ -540,15 +543,15 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* Photo */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>Photo</label>
-            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: photoUploading[idx] ? "default" : "pointer", overflow: "hidden", position: "relative" }}>
-              {photoUploading[idx]
+            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: photoUploading[p.id] ? "default" : "pointer", overflow: "hidden", position: "relative" }}>
+              {photoUploading[p.id]
                 ? <div style={{ fontSize: 11, color: "#347ebf", fontWeight: 700, textAlign: "center", padding: 4 }}>⏳</div>
                 : p.photo
                   ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : <span style={{ fontSize: 22 }}>📷</span>}
-              <input type="file" accept="image/*" style={{ display: "none" }} disabled={!!photoUploading[idx]} onChange={e => uploadPhoto(idx, e.target.files[0])} />
+              <input type="file" accept="image/*" style={{ display: "none" }} disabled={!!photoUploading[p.id]} onChange={e => uploadPhoto(p, e.target.files[0])} />
             </label>
-            {p.photo && !photoUploading[idx] && <button onClick={() => update(idx, "photo", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "2px 8px", fontSize: 10, marginLeft: 6 }}>Remove</button>}
+            {p.photo && !photoUploading[p.id] && <button onClick={() => update(idx, "photo", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "2px 8px", fontSize: 10, marginLeft: 6 }}>Remove</button>}
           </div>
           {/* Season stats — these drive the career totals */}
           <StatRow prefix="season" p={p} label="This Season (updates career totals automatically)" color="#347ebf"
@@ -1054,7 +1057,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [squadView, setSquadView] = useState("current");
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("goals");
   const [squadDisplayMode, setSquadDisplayMode] = useState("tiles");
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
@@ -1959,6 +1962,11 @@ export default function App() {
                   placeholder="Search player name..."
                   style={{ width: "100%", background: "#191740", border: "1px solid #347ebf44", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, fontFamily: "Barlow, sans-serif", outline: "none" }}
                 />
+              </div>
+            )}
+            {(squadView === "past" || squadView === "all") && (
+              <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 14, padding: "8px 12px", background: "#191740", borderRadius: 8, border: "1px solid #ffffff0f" }}>
+                📊 Stats shown cover appearances from 2017 to present day
               </div>
             )}
             {squadDisplayMode === "tiles" && (
