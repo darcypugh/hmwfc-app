@@ -487,7 +487,9 @@ function AdminSquad({ items, onSave, scrollRef }) {
     const photoId = Date.now();
     const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
     const sRef = storageRef(storage, path);
+    alert(`Storage ref created: ${path}`);
     const task = uploadBytesResumable(sRef, file);
+    alert(`Task created, state: ${task.snapshot.state}`);
     setPhotoUploading(u => ({ ...u, [player.id]: true }));
     task.on("state_changed", null,
       (err) => {
