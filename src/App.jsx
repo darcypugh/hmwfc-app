@@ -480,25 +480,24 @@ function AdminSquad({ items, onSave, scrollRef }) {
 
   const [photoUploading, setPhotoUploading] = useState({});
 
-  const uploadPhoto = (idx, file) => {
+  const uploadPhoto = (player, file) => {
     if (!file) return;
-    const player = list[idx];
+    const idx = list.indexOf(player);
     const photoId = Date.now();
     const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
     const sRef = storageRef(storage, path);
     const task = uploadBytesResumable(sRef, file);
-    setPhotoUploading(u => ({ ...u, [idx]: true }));
+    setPhotoUploading(u => ({ ...u, [player.id]: true }));
     task.on("state_changed", null,
-      (err) => { console.error("Photo upload error:", err); setPhotoUploading(u => { const n = { ...u }; delete n[idx]; return n; }); },
+      (err) => { console.error("Photo upload error:", err); setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; }); },
       () => {
         getDownloadURL(task.snapshot.ref).then(url => {
-          // Delete old photo from storage if it was a storage URL
           if (player.photo && player.photo.includes("firebasestorage")) {
             try { deleteObject(storageRef(storage, player.storagePath || "")); } catch(e) {}
           }
           update(idx, "photo", url);
           update(idx, "storagePath", path);
-          setPhotoUploading(u => { const n = { ...u }; delete n[idx]; return n; });
+          setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
         });
       }
     );
@@ -540,15 +539,15 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* Photo */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>Photo</label>
-            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: photoUploading[idx] ? "default" : "pointer", overflow: "hidden", position: "relative" }}>
-              {photoUploading[idx]
+            <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 52, height: 52, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, cursor: photoUploading[p.id] ? "default" : "pointer", overflow: "hidden", position: "relative" }}>
+              {photoUploading[p.id]
                 ? <div style={{ fontSize: 11, color: "#347ebf", fontWeight: 700, textAlign: "center", padding: 4 }}>⏳</div>
                 : p.photo
                   ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : <span style={{ fontSize: 22 }}>📷</span>}
-              <input type="file" accept="image/*" style={{ display: "none" }} disabled={!!photoUploading[idx]} onChange={e => uploadPhoto(idx, e.target.files[0])} />
+              <input type="file" accept="image/*" style={{ display: "none" }} disabled={!!photoUploading[p.id]} onChange={e => uploadPhoto(p, e.target.files[0])} />
             </label>
-            {p.photo && !photoUploading[idx] && <button onClick={() => update(idx, "photo", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "2px 8px", fontSize: 10, marginLeft: 6 }}>Remove</button>}
+            {p.photo && !photoUploading[p.id] && <button onClick={() => update(idx, "photo", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "2px 8px", fontSize: 10, marginLeft: 6 }}>Remove</button>}
           </div>
           {/* Season stats — these drive the career totals */}
           <StatRow prefix="season" p={p} label="This Season (updates career totals automatically)" color="#347ebf"
