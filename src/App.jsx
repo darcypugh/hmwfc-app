@@ -482,6 +482,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
 
   const uploadPhoto = (player, file) => {
     if (!file) return;
+    alert(`Starting upload for ${player.name}, file: ${file.name}, size: ${file.size}, storage bucket: ${storage.app.options.storageBucket}`);
     const idx = list.indexOf(player);
     const photoId = Date.now();
     const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
