@@ -31,9 +31,9 @@ const markViewed = (id) => localStorage.setItem(`viewed_${id}`, "true");
 
 const DEFAULT_DATA = {
   news: [
-    { id: 1, date: "16 May 2026", tag: "Match Report", title: "Victory at Riverside -- 3-1", body: "A commanding performance saw us take all three points. Goals from Williams, Okafor, and a late Hadley strike sealed the win.", emoji: "⚽" },
+    { id: 1, date: "16 May 2026", tag: "Match Report", title: "Victory at Riverside — 3-1", body: "A commanding performance saw us take all three points. Goals from Williams, Okafor, and a late Hadley strike sealed the win.", emoji: "⚽" },
     { id: 2, date: "12 May 2026", tag: "Transfer News", title: "Club Signs Midfielder Jack Brennan", body: "We're delighted to announce the signing of Jack Brennan on a two-year deal.", emoji: "📢" },
-    { id: 3, date: "8 May 2026", tag: "Community", title: "Junior Academy Open Day -- June 14th", body: "Opening our doors to young players aged 6–16. Come along and bring your boots!", emoji: "🏆" },
+    { id: 3, date: "8 May 2026", tag: "Community", title: "Junior Academy Open Day — June 14th", body: "Opening our doors to young players aged 6–16. Come along and bring your boots!", emoji: "🏆" },
   ],
   table: [
     { pos: 1, team: "Hemsworth Miners Welfare FC", p: 32, w: 22, d: 6, l: 4, gd: "+38", pts: 72, highlight: true, badge: "" },
@@ -69,7 +69,7 @@ const DEFAULT_DATA = {
   ],
   gallery: [],
   draw: {
-    description: "<p>Join our <strong>Monthly Draw</strong> for just <strong>£10/month</strong>. The prize pot is half the total entry money. 59 numbers available -- enter now for your chance to win!</p>",
+    description: "<p>Join our <strong>Monthly Draw</strong> for just <strong>£10/month</strong>. The prize pot is half the total entry money. 59 numbers available — enter now for your chance to win!</p>",
     winnerMonth: "June",
     winnerNumber: 0,
     stripeLink: "",
@@ -78,7 +78,9 @@ const DEFAULT_DATA = {
   },
 };
 
-const NAV_ITEMS = ["Home", "Help The Wells", "News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Download"];
+const NAV_ITEMS = ["Home", "News", "First Team", "Merch", "Gallery", "Help The Wells", "Download"];
+const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
+const HELP_WELLS_ITEMS = ["Fundraising"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -144,6 +146,30 @@ function RichEditor({ value, onChange }) {
         <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
         {toolBtn("• List", "insertUnorderedList")}
         {toolBtn("1. List", "insertOrderedList")}
+        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
+        {/* Font family */}
+        <select onMouseDown={e => e.stopPropagation()} onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("fontName", false, e.target.value); e.target.value = ""; }} defaultValue="" style={{ background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, color: "#aabbcc", fontSize: 11, padding: "3px 6px", cursor: "pointer" }}>
+          <option value="" disabled>Font</option>
+          <option value="Barlow, sans-serif">Barlow</option>
+          <option value="Barlow Condensed, sans-serif">Condensed</option>
+          <option value="Georgia, serif">Serif</option>
+          <option value="monospace">Mono</option>
+        </select>
+        {/* Font size */}
+        <select onMouseDown={e => e.stopPropagation()} onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("fontSize", false, e.target.value); e.target.value = ""; }} defaultValue="" style={{ background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, color: "#aabbcc", fontSize: 11, padding: "3px 6px", cursor: "pointer" }}>
+          <option value="" disabled>Size</option>
+          <option value="1">XS</option>
+          <option value="2">S</option>
+          <option value="3">M</option>
+          <option value="4">L</option>
+          <option value="5">XL</option>
+          <option value="6">2XL</option>
+          <option value="7">3XL</option>
+        </select>
+        {/* Text colour */}
+        <label title="Text colour" style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, padding: "3px 8px", fontSize: 11, color: "#aabbcc" }}>
+          A <input type="color" defaultValue="#ffffff" onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("foreColor", false, e.target.value); }} style={{ width: 16, height: 16, border: "none", background: "none", cursor: "pointer", padding: 0 }} />
+        </label>
       </div>
       {/* Editor area */}
       <div
@@ -257,7 +283,7 @@ function AdminTable({ items, onSave }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here -- it will appear on the homepage result card and anywhere else badges are shown.</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here — it will appear on the homepage result card and anywhere else badges are shown.</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead><tr>{["Badge","Pos","Team","Stadium","P","W","D","L","GD","Pts","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
@@ -322,7 +348,7 @@ function AdminFixtures({ items, tableData, onSave }) {
         <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addNew}>+ Add Fixture</button>
       </div>
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Tick Friendly or Cup to tag the match type. Upload opponent badges directly on the fixture for games against teams not in the league table.</div>
-      {list.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No fixtures yet -- tap "+ Add Fixture" to get started.</div>}
+      {list.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No fixtures yet — tap "+ Add Fixture" to get started.</div>}
       {list.map((f, idx) => (
         <div key={f.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: editing === idx ? 12 : 0 }}>
@@ -473,7 +499,7 @@ function AdminSquad({ items, onSave }) {
         <input value={adminSquadSearch} onChange={e => setAdminSquadSearch(e.target.value)} placeholder="🔍 Search players..." style={{ width: "100%", background: "#191740", border: "1px solid #ffffff15", borderRadius: 8, padding: "9px 14px", color: "#fff", fontSize: 13, fontFamily: "Barlow, sans-serif", outline: "none" }} />
       </div>
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>
-        Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses -- career totals update automatically.
+        Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses — career totals update automatically.
         Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
       </div>
       {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p) => {
@@ -500,10 +526,10 @@ function AdminSquad({ items, onSave }) {
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPhoto(idx, e.target.files[0])} />
             </label>
           </div>
-          {/* Season stats -- these drive the career totals */}
+          {/* Season stats — these drive the career totals */}
           <StatRow prefix="season" p={p} label="This Season (updates career totals automatically)" color="#347ebf"
             onChange={(key, val) => update(idx, key, val)} />
-          {/* Career totals -- read only display + manual override */}
+          {/* Career totals — read only display + manual override */}
           <div style={{ background: "#191740", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#f59e0b", letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Career Totals (auto-calculated · edit to override)</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -758,8 +784,8 @@ function AdminGallery({ items, onSave }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once -- they go straight to cloud storage.</div>
-      {albums.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No albums yet -- tap "+ New Album" to get started.</div>}
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once — they go straight to cloud storage.</div>
+      {albums.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No albums yet — tap "+ New Album" to get started.</div>}
       {albums.map((a, idx) => (
         <div key={a.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
           {/* Album header */}
@@ -778,7 +804,7 @@ function AdminGallery({ items, onSave }) {
           {expanded === idx && (
             <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
               <div style={S.row}>
-                <div style={{ flex: 2 }}><label style={S.label}>Album Name</label><input style={S.input} value={a.name} onChange={e => updateAlbum(idx, "name", e.target.value)} placeholder="e.g. vs Frickley Athletic -- 3 Aug" /></div>
+                <div style={{ flex: 2 }}><label style={S.label}>Album Name</label><input style={S.input} value={a.name} onChange={e => updateAlbum(idx, "name", e.target.value)} placeholder="e.g. vs Frickley Athletic — 3 Aug" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Date</label><input style={S.input} value={a.date} onChange={e => updateAlbum(idx, "date", e.target.value)} placeholder="3 Aug 2026" /></div>
               </div>
               {/* Upload */}
@@ -884,7 +910,7 @@ function AdminDraw({ drawData, onSave }) {
 
       {/* Stripe link */}
       <div style={{ marginBottom: 16 }}>
-        <label style={S.label}>Join The Draw -- Stripe Payment Link</label>
+        <label style={S.label}>Join The Draw — Stripe Payment Link</label>
         <input style={S.input} value={stripeLink} onChange={e => setStripeLink(e.target.value)} placeholder="https://buy.stripe.com/..." />
       </div>      {/* Members grid */}
       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Draw Members (1–59)</div>
@@ -904,7 +930,7 @@ function AdminDraw({ drawData, onSave }) {
 
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Help The Wells"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -914,7 +940,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
           <div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 1 }}>HEMSWORTH MINERS WELFARE FC</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#10b981", fontWeight: 700 }}>● LIVE -- SAVES TO FIREBASE</div>
+          <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#10b981", fontWeight: 700 }}>● LIVE — SAVES TO FIREBASE</div>
           <button style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", border: "1px solid #ffffff15", marginRight: 6 }} onClick={() => signOut(auth).then(onClose)}>Sign out</button>
 <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }} onClick={onClose}>✕ Exit Admin</button>
         </div>
@@ -931,7 +957,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Squad" && <AdminSquad items={data.squad} onSave={v => onUpdate("squad", v)} />}
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
-        {section === "Help The Wells" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
+        {section === "Fundraising" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
       </div>
     </div>
   );
@@ -993,6 +1019,7 @@ export default function App() {
   const [squadSearch, setSquadSearch] = useState("");
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
+  const [navGroup, setNavGroup] = useState(null);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -1190,9 +1217,37 @@ export default function App() {
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#347ebf", letterSpacing: 1 }}>THE WELLS</div>
             </div>
             <div style={{ flex: 1, paddingTop: 8 }}>
-              {NAV_ITEMS.map(n => (
-                <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => { setActive(n); setMenuOpen(false); }}>{n}</button>
-              ))}
+              {NAV_ITEMS.map(n => {
+                if (n === "First Team") {
+                  const isGroupActive = FIRST_TEAM_ITEMS.includes(active);
+                  return (
+                    <div key={n}>
+                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "firstteam" ? null : "firstteam")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>First Team</span>
+                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "firstteam" ? "▲" : "▼"}</span>
+                      </button>
+                      {(navGroup === "firstteam" || isGroupActive) && FIRST_TEAM_ITEMS.map(sub => (
+                        <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
+                      ))}
+                    </div>
+                  );
+                }
+                if (n === "Help The Wells") {
+                  const isGroupActive = HELP_WELLS_ITEMS.includes(active) || active === "Help The Wells";
+                  return (
+                    <div key={n}>
+                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "helpwells" ? null : "helpwells")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Help The Wells</span>
+                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "helpwells" ? "▲" : "▼"}</span>
+                      </button>
+                      {(navGroup === "helpwells" || isGroupActive) && (
+                        <button className={`nav-btn ${active === "Help The Wells" ? "active" : ""}`} onClick={() => { setActive("Help The Wells"); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>Fundraising</button>
+                      )}
+                    </div>
+                  );
+                }
+                return <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => { setActive(n); setMenuOpen(false); }}>{n}</button>;
+              })}
             </div>
             <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
               <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ ADMIN PANEL</button>
@@ -1331,7 +1386,7 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ color: "#8899bb", fontSize: 14 }}>No news yet -- add some in the admin panel.</div>
+                  <div style={{ color: "#8899bb", fontSize: 14 }}>No news yet — add some in the admin panel.</div>
                 )}
                 {/* Other recent articles */}
                 {data.news.length > 1 && (
@@ -1399,7 +1454,7 @@ export default function App() {
                       <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
                         {/* Badges + Score */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-                          {/* Home badge -- fixed height name prevents misalignment */}
+                          {/* Home badge — fixed height name prevents misalignment */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge)
                               ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
@@ -1423,7 +1478,7 @@ export default function App() {
                         {/* Venue */}
                         <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
                       </div>
-                      {/* Scorers -- split home/away with badge */}
+                      {/* Scorers — split home/away with badge */}
                       {(latestResult.homeScorers || latestResult.awayScorers || latestResult.scorers) && (
                         <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
                           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -1792,7 +1847,7 @@ export default function App() {
                 <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px #00000088", margin: "auto" }} onClick={e => e.stopPropagation()}>
                   {/* Side photo + stats layout */}
                   <div style={{ display: "flex", minHeight: 260 }}>
-                    {/* Left -- photo with right-fade and bottom-fade */}
+                    {/* Left — photo with right-fade and bottom-fade */}
                     <div style={{ width: 160, flexShrink: 0, position: "relative", background: "linear-gradient(160deg,#0d0c22,#191740)", overflow: "hidden" }}>
                       {selectedPlayer.photo
                         ? <img src={selectedPlayer.photo} alt={selectedPlayer.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
@@ -1804,7 +1859,7 @@ export default function App() {
                       {/* Bottom gradient fade */}
                       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to bottom, transparent, #191740)" }} />
                     </div>
-                    {/* Right -- name, pos badge, stats */}
+                    {/* Right — name, pos badge, stats */}
                     <div style={{ flex: 1, padding: "18px 18px 18px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
                       <div>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, lineHeight: 1.1, marginBottom: 6 }}>{selectedPlayer.name}</div>
@@ -1989,7 +2044,7 @@ export default function App() {
                           })}
                         </div>
                         <div style={{ fontSize: 11, color: "#8899bb", marginTop: 8 }}>
-                          <span style={{ color: "#f59e0b" }}>●</span> Low stock &nbsp; <span style={{ color: "#8899bb55" }}>--</span> Sold out
+                          <span style={{ color: "#f59e0b" }}>●</span> Low stock &nbsp; <span style={{ color: "#8899bb55" }}>—</span> Sold out
                         </div>
                       </div>
                     )}
@@ -2007,7 +2062,7 @@ export default function App() {
                       ? <div style={{ background: "#ef444422", border: "1px solid #ef444444", borderRadius: 10, padding: "13px 0", textAlign: "center", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1 }}>Sold Out</div>
                       : selectedMerch.stripeLink
                         ? <a href={`${selectedMerch.stripeLink}?quantity=${qty}${selectedSize ? `&metadata[size]=${selectedSize}` : ""}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none", opacity: selectedMerch.isClothing && !selectedSize ? 0.4 : 1, pointerEvents: selectedMerch.isClothing && !selectedSize ? "none" : "auto" }}>
-                            {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now -- ${selectedMerch.price}`}
+                            {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now — ${selectedMerch.price}`}
                           </a>
                         : <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>}
                     <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
@@ -2056,7 +2111,7 @@ export default function App() {
               <div>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Photo Gallery</div>
                 {(data.gallery || []).length === 0
-                  ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No albums yet -- check back soon!</div>
+                  ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No albums yet — check back soon!</div>
                   : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
                       {(data.gallery || []).map(a => (
                         <div key={a.id} className="card" onClick={() => setSelectedAlbum(a)} style={{ cursor: "pointer", overflow: "hidden" }}>
@@ -2091,7 +2146,7 @@ export default function App() {
 
               {/* Monthly Draw collapsible card */}
               <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, marginBottom: 16, overflow: "hidden" }}>
-                    {/* Header row -- always visible */}
+                    {/* Header row — always visible */}
                     <div onClick={() => setDrawOpen(o => !o)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 6 }}>Monthly Draw</div>
@@ -2104,11 +2159,11 @@ export default function App() {
                       <div style={{ fontSize: 18, color: "#347ebf", transition: "transform 0.3s", transform: drawOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</div>
                     </div>
 
-                    {/* Join button -- always visible */}
+                    {/* Join button — always visible */}
                     {draw.stripeLink && (
                       <div style={{ padding: "0 20px 16px" }}>
                         <a href={draw.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>
-                          🎟️ Join The Draw -- £10/month
+                          🎟️ Join The Draw — £10/month
                         </a>
                       </div>
                     )}
@@ -2167,7 +2222,7 @@ export default function App() {
         {active === "Download" && (
           <div style={{ maxWidth: 520, margin: "0 auto" }}>
             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>Download the App</div>
-            <div style={{ fontSize: 14, color: "#8899bb", marginBottom: 28, lineHeight: 1.6 }}>The Wells app works on any phone -- no App Store needed. Follow the steps for your device below.</div>
+            <div style={{ fontSize: 14, color: "#8899bb", marginBottom: 28, lineHeight: 1.6 }}>The Wells app works on any phone — no App Store needed. Follow the steps for your device below.</div>
 
             {/* iOS */}
             <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
@@ -2254,7 +2309,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Scroll to top -- Squad page only */}
+      {/* Scroll to top — Squad page only */}
       {active === "Squad" && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
