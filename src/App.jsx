@@ -483,27 +483,28 @@ function AdminSquad({ items, onSave, scrollRef }) {
   const uploadPhoto = (player, file) => {
     if (!file) return;
     const idx = list.indexOf(player);
-    const photoId = Date.now();
-    const path = `squad/${player.id || photoId}/${photoId}_${file.name}`;
-    const sRef = storageRef(storage, path);
-    const task = uploadBytesResumable(sRef, file);
     setPhotoUploading(u => ({ ...u, [player.id]: true }));
-    task.then(() => {
-      getDownloadURL(sRef).then(url => {
-        if (player.photo && player.photo.includes("firebasestorage")) {
-          try { deleteObject(storageRef(storage, player.storagePath || "")); } catch(e) {}
-        }
-        update(idx, "photo", url);
-        update(idx, "storagePath", path);
-        setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
-      }).catch(err => {
-        alert(`Failed to get download URL: ${err.message}`);
-        setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
-      });
-    }).catch(err => {
-      alert(`Upload failed: ${err.code} — ${err.message}`);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 400;
+      const ratio = Math.min(MAX / img.width, MAX / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      URL.revokeObjectURL(url);
+      update(idx, "photo", compressed);
       setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
-    });
+    };
+    img.onerror = () => {
+      alert('Failed to load image');
+      URL.revokeObjectURL(url);
+      setPhotoUploading(u => { const n = { ...u }; delete n[player.id]; return n; });
+    };
+    img.src = url;
   };
   const save = () => onSave(list);
   return (
