@@ -31,9 +31,9 @@ const markViewed = (id) => localStorage.setItem(`viewed_${id}`, "true");
 
 const DEFAULT_DATA = {
   news: [
-    { id: 1, date: "16 May 2026", tag: "Match Report", title: "Victory at Riverside — 3-1", body: "A commanding performance saw us take all three points. Goals from Williams, Okafor, and a late Hadley strike sealed the win.", emoji: "⚽" },
+    { id: 1, date: "16 May 2026", tag: "Match Report", title: "Victory at Riverside -- 3-1", body: "A commanding performance saw us take all three points. Goals from Williams, Okafor, and a late Hadley strike sealed the win.", emoji: "⚽" },
     { id: 2, date: "12 May 2026", tag: "Transfer News", title: "Club Signs Midfielder Jack Brennan", body: "We're delighted to announce the signing of Jack Brennan on a two-year deal.", emoji: "📢" },
-    { id: 3, date: "8 May 2026", tag: "Community", title: "Junior Academy Open Day — June 14th", body: "Opening our doors to young players aged 6–16. Come along and bring your boots!", emoji: "🏆" },
+    { id: 3, date: "8 May 2026", tag: "Community", title: "Junior Academy Open Day -- June 14th", body: "Opening our doors to young players aged 6–16. Come along and bring your boots!", emoji: "🏆" },
   ],
   table: [
     { pos: 1, team: "Hemsworth Miners Welfare FC", p: 32, w: 22, d: 6, l: 4, gd: "+38", pts: 72, highlight: true, badge: "" },
@@ -69,7 +69,7 @@ const DEFAULT_DATA = {
   ],
   gallery: [],
   draw: {
-    description: "<p>Join our <strong>Monthly Draw</strong> for just <strong>£10/month</strong>. The prize pot is half the total entry money. 59 numbers available — enter now for your chance to win!</p>",
+    description: "<p>Join our <strong>Monthly Draw</strong> for just <strong>£10/month</strong>. The prize pot is half the total entry money. 59 numbers available -- enter now for your chance to win!</p>",
     winnerMonth: "June",
     winnerNumber: 0,
     stripeLink: "",
@@ -78,9 +78,11 @@ const DEFAULT_DATA = {
   },
 };
 
-const NAV_ITEMS = ["Home", "News", "First Team", "Merch", "Gallery", "Help The Wells", "Download"];
+const NAV_ITEMS = ["Home", "News", "First Team", "Merch", "Gallery", "Help The Wells", "Fan Zone", "Download"];
+const FAN_ZONE_ITEMS = ["Wells Season Pass", "The Clubhouse"];
 const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
 const HELP_WELLS_ITEMS = ["Fundraising"];
+const ADMIN_EMAIL = process.env.REACT_APP_ADMIN_EMAIL;
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -283,7 +285,7 @@ function AdminTable({ items, onSave }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here — it will appear on the homepage result card and anywhere else badges are shown.</div>
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here -- it will appear on the homepage result card and anywhere else badges are shown.</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead><tr>{["Badge","Pos","Team","Stadium","P","W","D","L","GD","Pts","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
@@ -348,7 +350,7 @@ function AdminFixtures({ items, tableData, onSave }) {
         <button style={{ ...S.btn, background: "#347ebf", color: "#fff" }} onClick={addNew}>+ Add Fixture</button>
       </div>
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Tick Friendly or Cup to tag the match type. Upload opponent badges directly on the fixture for games against teams not in the league table.</div>
-      {list.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No fixtures yet — tap "+ Add Fixture" to get started.</div>}
+      {list.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No fixtures yet -- tap "+ Add Fixture" to get started.</div>}
       {list.map((f, idx) => (
         <div key={f.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: editing === idx ? 12 : 0 }}>
@@ -521,7 +523,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
         <input value={adminSquadSearch} onChange={e => setAdminSquadSearch(e.target.value)} placeholder="🔍 Search players..." style={{ width: "100%", background: "#191740", border: "1px solid #ffffff15", borderRadius: 8, padding: "9px 14px", color: "#fff", fontSize: 13, fontFamily: "Barlow, sans-serif", outline: "none" }} />
       </div>
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>
-        Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses — career totals update automatically.
+        Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses -- career totals update automatically.
         Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
       </div>
       {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p) => {
@@ -553,10 +555,10 @@ function AdminSquad({ items, onSave, scrollRef }) {
             </label>
             {p.photo && !photoUploading[p.id] && <button onClick={() => update(idx, "photo", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "2px 8px", fontSize: 10, marginLeft: 6 }}>Remove</button>}
           </div>
-          {/* Season stats — these drive the career totals */}
+          {/* Season stats -- these drive the career totals */}
           <StatRow prefix="season" p={p} label="This Season (updates career totals automatically)" color="#347ebf"
             onChange={(key, val) => update(idx, key, val)} />
-          {/* Career totals — read only display + manual override */}
+          {/* Career totals -- read only display + manual override */}
           <div style={{ background: "#191740", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#f59e0b", letterSpacing: 1, marginBottom: 8, textTransform: "uppercase" }}>Career Totals (auto-calculated · edit to override)</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -811,8 +813,8 @@ function AdminGallery({ items, onSave }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once — they go straight to cloud storage.</div>
-      {albums.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No albums yet — tap "+ New Album" to get started.</div>}
+      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Create albums for matchdays, events, pre-season etc. Upload multiple photos at once -- they go straight to cloud storage.</div>
+      {albums.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0" }}>No albums yet -- tap "+ New Album" to get started.</div>}
       {albums.map((a, idx) => (
         <div key={a.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
           {/* Album header */}
@@ -831,7 +833,7 @@ function AdminGallery({ items, onSave }) {
           {expanded === idx && (
             <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
               <div style={S.row}>
-                <div style={{ flex: 2 }}><label style={S.label}>Album Name</label><input style={S.input} value={a.name} onChange={e => updateAlbum(idx, "name", e.target.value)} placeholder="e.g. vs Frickley Athletic — 3 Aug" /></div>
+                <div style={{ flex: 2 }}><label style={S.label}>Album Name</label><input style={S.input} value={a.name} onChange={e => updateAlbum(idx, "name", e.target.value)} placeholder="e.g. vs Frickley Athletic -- 3 Aug" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Date</label><input style={S.input} value={a.date} onChange={e => updateAlbum(idx, "date", e.target.value)} placeholder="3 Aug 2026" /></div>
               </div>
               {/* Upload */}
@@ -937,7 +939,7 @@ function AdminDraw({ drawData, onSave }) {
 
       {/* Stripe link */}
       <div style={{ marginBottom: 16 }}>
-        <label style={S.label}>Join The Draw — Stripe Payment Link</label>
+        <label style={S.label}>Join The Draw -- Stripe Payment Link</label>
         <input style={S.input} value={stripeLink} onChange={e => setStripeLink(e.target.value)} placeholder="https://buy.stripe.com/..." />
       </div>      {/* Members grid */}
       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>Draw Members (1–59)</div>
@@ -955,10 +957,218 @@ function AdminDraw({ drawData, onSave }) {
   );
 }
 
+
+function AdminSeasonPass({ spData, onSave }) {
+  const defaultTrophies = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true }));
+  const [season, setSeason] = useState(spData?.season || "2026/27");
+  const [description, setDescription] = useState(spData?.description || "");
+  const [trophies, setTrophies] = useState(spData?.trophies || defaultTrophies);
+  const [users, setUsers] = useState([]);
+  const [tab, setTab] = useState("settings");
+  const [userSearch, setUserSearch] = useState("");
+  const [generatingCodes, setGeneratingCodes] = useState(false);
+  const [passCodes, setPassCodes] = useState({});
+
+  useEffect(() => {
+    if (spData) {
+      setSeason(spData.season || "2026/27");
+      setDescription(spData.description || "");
+      setTrophies(spData.trophies || defaultTrophies);
+    }
+  }, [spData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const unsub = onValue(ref(db, "users"), (snap) => {
+      if (snap.exists()) setUsers(Object.entries(snap.val()).map(([uid, data]) => ({ uid, ...data })));
+      else setUsers([]);
+    });
+    const unsub2 = onValue(ref(db, "hmwfc/passCodes"), (snap) => {
+      if (snap.exists()) setPassCodes(snap.val());
+      else setPassCodes({});
+    });
+    return () => { unsub(); unsub2(); };
+  }, []);
+
+  const saveTrophy = (idx, field, val) => setTrophies(trophies.map((t, i) => i === idx ? { ...t, [field]: val } : t));
+
+  const uploadTrophyImage = (idx, file) => {
+    if (!file) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 300;
+      const ratio = Math.min(MAX / img.width, MAX / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      saveTrophy(idx, "image", canvas.toDataURL('image/png', 0.85));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
+  const save = () => onSave({ season, description, trophies });
+
+  const generateCodes = (count) => {
+    setGeneratingCodes(true);
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const newCodes = {};
+    for (let i = 0; i < count; i++) {
+      let code = "";
+      for (let j = 0; j < 8; j++) code += chars[Math.floor(Math.random() * chars.length)];
+      newCodes[code] = { used: false, createdAt: new Date().toISOString() };
+    }
+    update(ref(db), Object.fromEntries(Object.entries(newCodes).map(([k, v]) => [`hmwfc/passCodes/${k}`, v]))).then(() => setGeneratingCodes(false));
+  };
+
+  const grantTrophy = (uid, trophyId) => {
+    update(ref(db, `users/${uid}/trophies`), { [trophyId]: true });
+  };
+
+  const revokeTrophy = (uid, trophyId) => {
+    set(ref(db, `users/${uid}/trophies/${trophyId}`), null);
+  };
+
+  const unusedCodes = Object.entries(passCodes).filter(([, v]) => !v.used);
+  const usedCodes = Object.entries(passCodes).filter(([, v]) => v.used);
+  const filteredUsers = users.filter(u => !userSearch.trim() || u.displayName?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()));
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Wells Season Pass</div>
+        <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save Settings</button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid #ffffff0f" }}>
+        {[["settings", "⚙️ Settings"], ["trophies", "🏆 Trophies"], ["codes", "🎟️ Pass Codes"], ["users", "👥 Users"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} style={{ ...S.btn, borderRadius: 0, borderBottom: tab === k ? "2px solid #347ebf" : "2px solid transparent", color: tab === k ? "#347ebf" : "#8899bb", background: "none", padding: "10px 14px", fontSize: 12 }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Settings tab */}
+      {tab === "settings" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div><label style={S.label}>Season Name</label><input style={S.input} value={season} onChange={e => setSeason(e.target.value)} placeholder="2026/27 Season" /></div>
+          <div><label style={S.label}>Public Description (shown on the Season Pass page)</label><textarea style={{ ...S.input, height: 80, resize: "vertical" }} value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the season pass and what fans can unlock..." /></div>
+          <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={save}>Save</button>
+        </div>
+      )}
+
+      {/* Trophies tab */}
+      {tab === "trophies" && (
+        <div>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Set up to 10 trophies. Each has a unique check-in code fans enter to unlock. Upload your own trophy artwork.</div>
+          {trophies.map((t, idx) => (
+            <div key={t.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                {t.image
+                  ? <img src={t.image} alt="" style={{ width: 48, height: 48, objectFit: "contain", borderRadius: 8, flexShrink: 0 }} />
+                  : <div style={{ width: 48, height: 48, background: "#191740", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>{t.emoji || "🏆"}</div>}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>Trophy {idx + 1}{t.name ? ` -- ${t.name}` : ""}</div>
+                  <div style={{ fontSize: 11, color: t.active ? "#10b981" : "#8899bb" }}>{t.active ? "Active" : "Hidden"}</div>
+                </div>
+                <input type="checkbox" checked={!!t.active} onChange={e => saveTrophy(idx, "active", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} title="Active" />
+              </div>
+              <div style={S.row}>
+                <div style={{ flex: 0.3, minWidth: 50 }}><label style={S.label}>Icon</label><input style={S.input} value={t.emoji} onChange={e => saveTrophy(idx, "emoji", e.target.value)} /></div>
+                <div style={{ flex: 2 }}><label style={S.label}>Trophy Name</label><input style={S.input} value={t.name} onChange={e => saveTrophy(idx, "name", e.target.value)} placeholder="Away Day Hero" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Check-In Code</label><input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={t.checkInCode} onChange={e => saveTrophy(idx, "checkInCode", e.target.value.toUpperCase())} placeholder="FRICKLEY26" /></div>
+              </div>
+              <div style={{ marginTop: 8 }}><label style={S.label}>Description</label><input style={S.input} value={t.description} onChange={e => saveTrophy(idx, "description", e.target.value)} placeholder="Attended an away game at Frickley Athletic" /></div>
+              <div style={{ marginTop: 8 }}>
+                <label style={S.label}>Trophy Image</label>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 10, cursor: "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: "8px 12px" }}>
+                  {t.image ? <img src={t.image} alt="" style={{ height: 40, borderRadius: 4 }} /> : <span style={{ fontSize: 20 }}>🖼️</span>}
+                  <span style={{ fontSize: 12, color: "#aabbcc" }}>{t.image ? "Change image" : "Upload trophy art"}</span>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadTrophyImage(idx, e.target.files[0])} />
+                </label>
+                {t.image && <button onClick={() => saveTrophy(idx, "image", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginLeft: 8 }}>Remove</button>}
+              </div>
+            </div>
+          ))}
+          <button style={{ ...S.btn, background: "#10b981", color: "#fff", marginTop: 8 }} onClick={save}>Save All Trophies</button>
+        </div>
+      )}
+
+      {/* Pass Codes tab */}
+      {tab === "codes" && (
+        <div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{ background: "#191740", borderRadius: 10, padding: "12px 18px", flex: 1, minWidth: 100 }}>
+              <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>UNUSED</div>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: "#10b981" }}>{unusedCodes.length}</div>
+            </div>
+            <div style={{ background: "#191740", borderRadius: 10, padding: "12px 18px", flex: 1, minWidth: 100 }}>
+              <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1 }}>USED</div>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: "#347ebf" }}>{usedCodes.length}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            {[10, 25, 50].map(n => (
+              <button key={n} style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} disabled={generatingCodes} onClick={() => generateCodes(n)}>
+                {generatingCodes ? "Generating..." : `+ Generate ${n} codes`}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>Unused codes (give these to fans when they purchase):</div>
+          <div style={{ background: "#0d0c22", borderRadius: 10, padding: 14, fontFamily: "monospace", fontSize: 13, lineHeight: 2, maxHeight: 300, overflowY: "auto", border: "1px solid #ffffff0f" }}>
+            {unusedCodes.length === 0 ? <span style={{ color: "#8899bb" }}>No unused codes -- generate some above.</span> : unusedCodes.map(([code]) => <div key={code} style={{ color: "#10b981", letterSpacing: 2 }}>{code}</div>)}
+          </div>
+          <button style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", marginTop: 10, fontSize: 12 }} onClick={() => navigator.clipboard.writeText(unusedCodes.map(([c]) => c).join("
+"))}>📋 Copy all unused codes</button>
+        </div>
+      )}
+
+      {/* Users tab */}
+      {tab === "users" && (
+        <div>
+          <input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="🔍 Search by name or email..." style={{ ...S.input, marginBottom: 14 }} />
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{users.length} registered fan{users.length !== 1 ? "s" : ""}</div>
+          {filteredUsers.map(u => {
+            const unlockedTrophies = Object.keys(u.trophies || {}).filter(k => u.trophies[k]);
+            return (
+              <div key={u.uid} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{u.displayName || "(no name)"}</div>
+                    <div style={{ fontSize: 11, color: "#8899bb" }}>{u.email}</div>
+                    <div style={{ fontSize: 11, marginTop: 4 }}>
+                      <span style={{ background: u.passUnlocked ? "#10b98122" : "#ffffff0f", color: u.passUnlocked ? "#10b981" : "#8899bb", padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>{u.passUnlocked ? "✓ Pass Active" : "No Pass"}</span>
+                      <span style={{ marginLeft: 8, color: "#8899bb" }}>{unlockedTrophies.length} / {trophies.filter(t => t.active).length} trophies</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {trophies.filter(t => t.active && t.name).map(t => {
+                    const has = !!(u.trophies || {})[t.id];
+                    return (
+                      <button key={t.id} onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
+                        style={{ ...S.btn, background: has ? "#10b98122" : "#ffffff08", color: has ? "#10b981" : "#8899bb", border: `1px solid ${has ? "#10b98144" : "#ffffff15"}`, padding: "4px 10px", fontSize: 11 }}
+                        title={has ? "Click to revoke" : "Click to grant"}>
+                        {t.emoji} {t.name} {has ? "✓" : "+"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {filteredUsers.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: 20, textAlign: "center" }}>No fans registered yet.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
   const adminScrollRef = useRef(null);
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -968,7 +1178,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
           <div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 1 }}>HEMSWORTH MINERS WELFARE FC</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#10b981", fontWeight: 700 }}>● LIVE — SAVES TO FIREBASE</div>
+          <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#10b981", fontWeight: 700 }}>● LIVE -- SAVES TO FIREBASE</div>
           <button style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", border: "1px solid #ffffff15", marginRight: 6 }} onClick={() => signOut(auth).then(onClose)}>Sign out</button>
 <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }} onClick={onClose}>✕ Exit Admin</button>
         </div>
@@ -986,6 +1196,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Merch" && <AdminMerch items={data.merch} onSave={v => onUpdate("merch", v)} />}
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
         {section === "Fundraising" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
+        {section === "Season Pass" && <AdminSeasonPass spData={data.seasonPass || {}} onSave={v => onUpdate("seasonPass", v)} />}
       </div>
     </div>
   );
@@ -1028,6 +1239,33 @@ function AdminLogin({ onSuccess, onClose }) {
 }
 
 
+
+function FanLogin({ onClose }) {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const handleGoogle = async () => {
+    setLoading(true); setErr("");
+    try { await signInWithPopup(auth, googleProvider); onClose(); }
+    catch(e) { setErr("Sign-in failed. Please try again."); }
+    setLoading(false);
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 99, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "#191740", border: "1px solid #347ebf44", borderRadius: 16, padding: 32, width: 320, textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🎟️</div>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Fan Zone</div>
+        <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 24, lineHeight: 1.6 }}>Sign in with Google to access your Season Pass, track your trophies, and appear on The Clubhouse leaderboard.</div>
+        {err && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 12 }}>{err}</div>}
+        <button onClick={handleGoogle} disabled={loading} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", background: "#fff", border: "none", borderRadius: 8, padding: "11px 0", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14, color: "#222", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, marginBottom: 10 }}>
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          {loading ? "Signing in..." : "Sign in with Google"}
+        </button>
+        <button style={{ background: "none", border: "none", color: "#8899bb", fontSize: 12, cursor: "pointer" }} onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -1054,6 +1292,7 @@ export default function App() {
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [showFanLogin, setShowFanLogin] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [squadView, setSquadView] = useState("current");
@@ -1067,6 +1306,9 @@ export default function App() {
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
   const [views, setViews] = useState({});
+  const [fanUser, setFanUser] = useState(null);
+  const [fanProfile, setFanProfile] = useState(null);
+  const [seasonPassData, setSeasonPassData] = useState(null);
   const [pullY, setPullY] = useState(0);
   const [pulling, setPulling] = useState(false);
   const touchStartY = useRef(0);
@@ -1130,20 +1372,34 @@ export default function App() {
   }, []);
   
   useEffect(() => {
-  const ALLOWED_EMAILS = [process.env.REACT_APP_ADMIN_EMAIL];
-  const unsub = onAuthStateChanged(auth, (user) => {
-    if (user && ALLOWED_EMAILS.includes(user.email)) {
-      setShowLogin(false);
-      setAdminOpen(true);
-    } else if (user) {
-      signOut(auth);
-      alert("Access denied. You are not authorised to access this area.");
-    } else {
-      signOut(auth);
-    }
-  });
-  return () => unsub();
-}, []);
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setFanUser(null);
+        setFanProfile(null);
+        return;
+      }
+      // Admin check -- only opens admin panel for the admin email
+      if (user.email === process.env.REACT_APP_ADMIN_EMAIL) {
+        setShowLogin(false);
+        setAdminOpen(true);
+        return;
+      }
+      // Fan account -- store user, load their profile
+      setFanUser(user);
+      const profileRef = ref(db, `users/${user.uid}`);
+      onValue(profileRef, (snap) => {
+        if (snap.exists()) {
+          setFanProfile(snap.val());
+        } else {
+          // Create profile on first login
+          const newProfile = { displayName: user.displayName || "", email: user.email, passUnlocked: false, trophies: {} };
+          set(profileRef, newProfile);
+          setFanProfile(newProfile);
+        }
+      }, { onlyOnce: false });
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const likesRef = ref(db, "hmwfc/likes");
@@ -1157,6 +1413,14 @@ export default function App() {
     const viewsRef = ref(db, "hmwfc/views");
     const unsub = onValue(viewsRef, (snapshot) => {
       if (snapshot.exists()) setViews(snapshot.val());
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const spRef = ref(db, "hmwfc/seasonPass");
+    const unsub = onValue(spRef, (snap) => {
+      setSeasonPassData(snap.exists() ? snap.val() : null);
     });
     return () => unsub();
   }, []);
@@ -1236,6 +1500,7 @@ export default function App() {
       `}</style>
 
       {showLogin && <AdminLogin onSuccess={() => { setShowLogin(false); setAdminOpen(true); }} onClose={() => setShowLogin(false)} />}
+      {showFanLogin && <FanLogin onClose={() => setShowFanLogin(false)} />}
       {adminOpen && <AdminPanel data={data} onUpdate={updateSection} onClose={() => setAdminOpen(false)} />}
 
       {menuOpen && (
@@ -1276,6 +1541,20 @@ export default function App() {
                     </div>
                   );
                 }
+                if (n === "Fan Zone") {
+                  const isGroupActive = FAN_ZONE_ITEMS.includes(active);
+                  return (
+                    <div key={n}>
+                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "fanzone" ? null : "fanzone")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Fan Zone</span>
+                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "fanzone" ? "▲" : "▼"}</span>
+                      </button>
+                      {(navGroup === "fanzone" || isGroupActive) && FAN_ZONE_ITEMS.map(sub => (
+                        <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
+                      ))}
+                    </div>
+                  );
+                }
                 return <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => { setActive(n); setMenuOpen(false); }}>{n}</button>;
               })}
             </div>
@@ -1297,7 +1576,14 @@ export default function App() {
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(13px, 3.8vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
             </div>
-            <button onClick={() => setShowLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap", flexShrink: 0 }}>⚙</button>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+  {fanUser
+    ? <button onClick={() => setActive("Wells Season Pass")} style={{ background: "#347ebf22", border: "1px solid #347ebf44", borderRadius: 8, color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap" }}>🎟️ My Pass</button>
+    : <button onClick={() => setShowFanLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#aabbcc", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap" }}>Sign In</button>
+  }
+  <button onClick={() => setShowLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap" }}>⚙</button>
+</div>
+
           </div>
         </div>
       </div>
@@ -1416,7 +1702,7 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ color: "#8899bb", fontSize: 14 }}>No news yet — add some in the admin panel.</div>
+                  <div style={{ color: "#8899bb", fontSize: 14 }}>No news yet -- add some in the admin panel.</div>
                 )}
                 {/* Other recent articles */}
                 {data.news.length > 1 && (
@@ -1484,7 +1770,7 @@ export default function App() {
                       <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
                         {/* Badges + Score */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-                          {/* Home badge — fixed height name prevents misalignment */}
+                          {/* Home badge -- fixed height name prevents misalignment */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge)
                               ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
@@ -1508,7 +1794,7 @@ export default function App() {
                         {/* Venue */}
                         <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
                       </div>
-                      {/* Scorers — split home/away with badge */}
+                      {/* Scorers -- split home/away with badge */}
                       {(latestResult.homeScorers || latestResult.awayScorers || latestResult.scorers) && (
                         <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
                           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -1879,7 +2165,7 @@ export default function App() {
                 <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px #00000088", margin: "auto" }} onClick={e => e.stopPropagation()}>
                   {/* Side photo + stats layout */}
                   <div style={{ display: "flex", minHeight: 260 }}>
-                    {/* Left — photo with right-fade and bottom-fade */}
+                    {/* Left -- photo with right-fade and bottom-fade */}
                     <div style={{ width: 160, flexShrink: 0, position: "relative", background: "linear-gradient(160deg,#0d0c22,#191740)", overflow: "hidden" }}>
                       {selectedPlayer.photo
                         ? <img src={selectedPlayer.photo} alt={selectedPlayer.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
@@ -1891,7 +2177,7 @@ export default function App() {
                       {/* Bottom gradient fade */}
                       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to bottom, transparent, #191740)" }} />
                     </div>
-                    {/* Right — name, pos badge, stats */}
+                    {/* Right -- name, pos badge, stats */}
                     <div style={{ flex: 1, padding: "18px 18px 18px 12px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
                       <div>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, lineHeight: 1.1, marginBottom: 6 }}>{selectedPlayer.name}</div>
@@ -2095,7 +2381,7 @@ export default function App() {
                           })}
                         </div>
                         <div style={{ fontSize: 11, color: "#8899bb", marginTop: 8 }}>
-                          <span style={{ color: "#f59e0b" }}>●</span> Low stock &nbsp; <span style={{ color: "#8899bb55" }}>—</span> Sold out
+                          <span style={{ color: "#f59e0b" }}>●</span> Low stock &nbsp; <span style={{ color: "#8899bb55" }}>--</span> Sold out
                         </div>
                       </div>
                     )}
@@ -2113,7 +2399,7 @@ export default function App() {
                       ? <div style={{ background: "#ef444422", border: "1px solid #ef444444", borderRadius: 10, padding: "13px 0", textAlign: "center", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1 }}>Sold Out</div>
                       : selectedMerch.stripeLink
                         ? <a href={`${selectedMerch.stripeLink}?quantity=${qty}${selectedSize ? `&metadata[size]=${selectedSize}` : ""}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none", opacity: selectedMerch.isClothing && !selectedSize ? 0.4 : 1, pointerEvents: selectedMerch.isClothing && !selectedSize ? "none" : "auto" }}>
-                            {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now — ${selectedMerch.price}`}
+                            {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now -- ${selectedMerch.price}`}
                           </a>
                         : <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>}
                     <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
@@ -2162,7 +2448,7 @@ export default function App() {
               <div>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 20 }}>Photo Gallery</div>
                 {(data.gallery || []).length === 0
-                  ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No albums yet — check back soon!</div>
+                  ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No albums yet -- check back soon!</div>
                   : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
                       {(data.gallery || []).map(a => (
                         <div key={a.id} className="card" onClick={() => setSelectedAlbum(a)} style={{ cursor: "pointer", overflow: "hidden" }}>
@@ -2197,7 +2483,7 @@ export default function App() {
 
               {/* Monthly Draw collapsible card */}
               <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, marginBottom: 16, overflow: "hidden" }}>
-                    {/* Header row — always visible */}
+                    {/* Header row -- always visible */}
                     <div onClick={() => setDrawOpen(o => !o)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 6 }}>Monthly Draw</div>
@@ -2210,11 +2496,11 @@ export default function App() {
                       <div style={{ fontSize: 18, color: "#347ebf", transition: "transform 0.3s", transform: drawOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▼</div>
                     </div>
 
-                    {/* Join button — always visible */}
+                    {/* Join button -- always visible */}
                     {draw.stripeLink && (
                       <div style={{ padding: "0 20px 16px" }}>
                         <a href={draw.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>
-                          🎟️ Join The Draw — £10/month
+                          🎟️ Join The Draw -- £10/month
                         </a>
                       </div>
                     )}
@@ -2270,10 +2556,211 @@ export default function App() {
           );
         })()}
 
+
+        {active === "Wells Season Pass" && (() => {
+          const sp = seasonPassData || {};
+          const trophies = (sp.trophies || []).filter(t => t.active && t.name);
+          const unlockedTrophies = fanProfile ? (fanProfile.trophies || {}) : {};
+          const unlockedCount = Object.values(unlockedTrophies).filter(Boolean).length;
+
+          // Check-in code entry
+          const [codeInput, setCodeInput] = useState("");
+          const [codeMsg, setCodeMsg] = useState("");
+          const [passInput, setPassInput] = useState("");
+          const [passMsg, setPassMsg] = useState("");
+
+          const enterCheckInCode = () => {
+            if (!fanUser || !fanProfile?.passUnlocked) return;
+            const code = codeInput.trim().toUpperCase();
+            const trophy = trophies.find(t => t.checkInCode === code);
+            if (!trophy) { setCodeMsg("Invalid code. Please try again."); return; }
+            if (unlockedTrophies[trophy.id]) { setCodeMsg("You already have this trophy!"); return; }
+            update(ref(db, `users/${fanUser.uid}/trophies`), { [trophy.id]: true });
+            setCodeMsg(`🏆 ${trophy.name} unlocked!`);
+            setCodeInput("");
+          };
+
+          const enterPassCode = () => {
+            const code = passInput.trim().toUpperCase();
+            const codeRef = ref(db, `hmwfc/passCodes/${code}`);
+            onValue(codeRef, (snap) => {
+              if (!snap.exists()) { setPassMsg("Invalid code. Please check and try again."); return; }
+              const codeData = snap.val();
+              if (codeData.used) { setPassMsg("This code has already been used."); return; }
+              // Mark code as used and unlock pass
+              update(ref(db), {
+                [`hmwfc/passCodes/${code}/used`]: true,
+                [`hmwfc/passCodes/${code}/usedBy`]: fanUser.uid,
+                [`hmwfc/passCodes/${code}/usedAt`]: new Date().toISOString(),
+                [`users/${fanUser.uid}/passUnlocked`]: true,
+                [`users/${fanUser.uid}/passCode`]: code,
+              });
+              setPassMsg("✅ Season Pass activated! Welcome to the Fan Zone.");
+              setPassInput("");
+            }, { onlyOnce: true });
+          };
+
+          const updateDisplayName = (name) => {
+            if (!fanUser) return;
+            update(ref(db, `users/${fanUser.uid}`), { displayName: name });
+            setFanProfile(prev => ({ ...prev, displayName: name }));
+          };
+
+          return (
+            <div style={{ padding: "0 0 40px" }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>Wells Season Pass 🎟️</div>
+              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 24 }}>{sp.season || "2026/27 Season"}</div>
+
+              {!fanUser ? (
+                /* Not signed in */
+                <div>
+                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 20, textAlign: "center" }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Unlock Your Season</div>
+                    <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{sp.description || "Purchase a Season Pass and unlock exclusive trophies throughout the season. Visit away grounds, attend events, and complete challenges to earn your badges."}</div>
+                    <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontSize: 15, padding: "12px 28px" }}>Sign in with Google to get started</button>
+                  </div>
+                  {/* Trophy preview */}
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>This Season's Trophies</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12 }}>
+                    {trophies.map(t => (
+                      <div key={t.id} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 14, textAlign: "center", filter: "blur(2px)", opacity: 0.5 }}>
+                        <div style={{ fontSize: 36, marginBottom: 8 }}>{t.emoji}</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700 }}>???</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : !fanProfile?.passUnlocked ? (
+                /* Signed in, no pass */
+                <div>
+                  <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 14, padding: 20, marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 4 }}>SIGNED IN AS</div>
+                    <div style={{ fontWeight: 700 }}>{fanUser.email}</div>
+                    <button onClick={() => signOut(auth)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", fontSize: 11, padding: "4px 10px", marginTop: 8 }}>Sign out</button>
+                  </div>
+                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center" }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🎟️</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Enter Your Season Pass Code</div>
+                    <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 20 }}>Purchase a Season Pass from the club to get your unique code.</div>
+                    <div style={{ display: "flex", gap: 8, maxWidth: 360, margin: "0 auto" }}>
+                      <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="XXXXXXXX" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1 }} />
+                      <button onClick={enterPassCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Activate</button>
+                    </div>
+                    {passMsg && <div style={{ marginTop: 12, fontSize: 13, color: passMsg.includes("✅") ? "#10b981" : "#ef4444" }}>{passMsg}</div>}
+                  </div>
+                </div>
+              ) : (
+                /* Signed in with pass -- show trophy progress */
+                <div>
+                  {/* Profile bar */}
+                  <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 150 }}>
+                      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 4 }}>YOUR DISPLAY NAME</div>
+                      <input value={fanProfile?.displayName || ""} onChange={e => updateDisplayName(e.target.value)} style={{ ...S.input, fontWeight: 700, fontSize: 15 }} placeholder="Enter your display name" />
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, color: "#f59e0b" }}>{unlockedCount}</div>
+                      <div style={{ fontSize: 11, color: "#8899bb" }}>of {trophies.length} trophies</div>
+                    </div>
+                    <button onClick={() => signOut(auth)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", fontSize: 11 }}>Sign out</button>
+                  </div>
+
+                  {/* Check-in code */}
+                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>🔓 Enter a Check-In Code</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="e.g. FRICKLEY26" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, flex: 1 }} />
+                      <button onClick={enterCheckInCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Unlock</button>
+                    </div>
+                    {codeMsg && <div style={{ marginTop: 10, fontSize: 13, color: codeMsg.includes("🏆") ? "#f59e0b" : codeMsg.includes("already") ? "#8899bb" : "#ef4444" }}>{codeMsg}</div>}
+                  </div>
+
+                  {/* Trophy grid */}
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Your Trophies</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
+                    {trophies.map(t => {
+                      const unlocked = !!unlockedTrophies[t.id];
+                      return (
+                        <div key={t.id} style={{ background: unlocked ? "linear-gradient(135deg,#f59e0b11,#d9770608)" : "#191740", border: `1px solid ${unlocked ? "#f59e0b44" : "#ffffff0f"}`, borderRadius: 12, padding: 16, textAlign: "center", transition: "all 0.3s", opacity: unlocked ? 1 : 0.5 }}>
+                          {t.image
+                            ? <img src={t.image} alt="" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : "grayscale(100%)" }} />
+                            : <div style={{ fontSize: 40, marginBottom: 8 }}>{unlocked ? t.emoji : "🔒"}</div>}
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: unlocked ? "#f59e0b" : "#8899bb", marginBottom: 4 }}>{t.name}</div>
+                          <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.4 }}>{unlocked ? t.description : "???"}</div>
+                          {unlocked && <div style={{ fontSize: 10, color: "#f59e0b", fontWeight: 900, marginTop: 6, letterSpacing: 1 }}>UNLOCKED</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+
+        {active === "The Clubhouse" && (() => {
+          const [leaderboard, setLeaderboard] = useState([]);
+          useEffect(() => {
+            const unsub = onValue(ref(db, "users"), (snap) => {
+              if (!snap.exists()) { setLeaderboard([]); return; }
+              const sp = seasonPassData || {};
+              const trophies = (sp.trophies || []).filter(t => t.active);
+              const entries = Object.values(snap.val())
+                .filter(u => u.passUnlocked && u.displayName)
+                .map(u => ({ name: u.displayName, count: Object.values(u.trophies || {}).filter(Boolean).length, total: trophies.length }))
+                .sort((a, b) => b.count - a.count);
+              setLeaderboard(entries);
+            });
+            return () => unsub();
+          }, [seasonPassData]);
+
+          return (
+            <div style={{ padding: "0 0 40px" }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>The Clubhouse 🏠</div>
+              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 24 }}>Home of The Wells fan community</div>
+
+              {/* Leaderboard */}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Season Pass Leaderboard 🏆</div>
+              {leaderboard.length === 0 ? (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14 }}>No season pass holders yet -- be the first!</div>
+              ) : (
+                <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                  {leaderboard.map((entry, idx) => {
+                    const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`;
+                    return (
+                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: idx < leaderboard.length - 1 ? "1px solid #ffffff07" : "none", background: idx === 0 ? "#f59e0b0a" : "transparent" }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, width: 32, textAlign: "center", color: idx < 3 ? "#f59e0b" : "#8899bb" }}>{medal}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15 }}>{entry.name}</div>
+                          <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} of {entry.total} trophies</div>
+                        </div>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          {Array.from({ length: entry.total }).map((_, i) => (
+                            <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: i < entry.count ? "#f59e0b" : "#ffffff15" }} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!fanUser && (
+                <div style={{ marginTop: 20, background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: 20, textAlign: "center" }}>
+                  <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 14 }}>Sign in and get a Season Pass to appear on the leaderboard</div>
+                  <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign in with Google</button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {active === "Download" && (
           <div style={{ maxWidth: 520, margin: "0 auto" }}>
             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>Download the App</div>
-            <div style={{ fontSize: 14, color: "#8899bb", marginBottom: 28, lineHeight: 1.6 }}>The Wells app works on any phone — no App Store needed. Follow the steps for your device below.</div>
+            <div style={{ fontSize: 14, color: "#8899bb", marginBottom: 28, lineHeight: 1.6 }}>The Wells app works on any phone -- no App Store needed. Follow the steps for your device below.</div>
 
             {/* iOS */}
             <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
@@ -2360,7 +2847,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Scroll to top — Squad page only */}
+      {/* Scroll to top -- Squad page only */}
       {active === "Squad" && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -2370,7 +2857,7 @@ export default function App() {
         </button>
       )}
 
-      {/* Admin scroll to top — fixed bottom left */}
+      {/* Admin scroll to top -- fixed bottom left */}
       {adminOpen && (
         <button
           onClick={() => { const el = document.querySelector('[data-admin-scroll]'); if (el) el.scrollTo({ top: 0, behavior: "smooth" }); }}
