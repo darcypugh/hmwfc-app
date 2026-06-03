@@ -1119,8 +1119,7 @@ function AdminSeasonPass({ spData, onSave }) {
           <div style={{ background: "#0d0c22", borderRadius: 10, padding: 14, fontFamily: "monospace", fontSize: 13, lineHeight: 2, maxHeight: 300, overflowY: "auto", border: "1px solid #ffffff0f" }}>
             {unusedCodes.length === 0 ? <span style={{ color: "#8899bb" }}>No unused codes -- generate some above.</span> : unusedCodes.map(([code]) => <div key={code} style={{ color: "#10b981", letterSpacing: 2 }}>{code}</div>)}
           </div>
-          <button style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", marginTop: 10, fontSize: 12 }} onClick={() => navigator.clipboard.writeText(unusedCodes.map(([c]) => c).join("
-"))}>📋 Copy all unused codes</button>
+          <button style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", marginTop: 10, fontSize: 12 }} onClick={() => navigator.clipboard.writeText(unusedCodes.map(([c]) => c).join("\n"))}>📋 Copy all unused codes</button>
         </div>
       )}
 
