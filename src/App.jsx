@@ -1308,6 +1308,10 @@ export default function App() {
   const [fanUser, setFanUser] = useState(null);
   const [fanProfile, setFanProfile] = useState(null);
   const [seasonPassData, setSeasonPassData] = useState(null);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeMsg, setCodeMsg] = useState("");
+  const [passInput, setPassInput] = useState("");
+  const [passMsg, setPassMsg] = useState("");
   const [pullY, setPullY] = useState(0);
   const [pulling, setPulling] = useState(false);
   const touchStartY = useRef(0);
@@ -1424,6 +1428,19 @@ export default function App() {
     return () => unsub();
   }, []);
 
+useEffect(() => {
+  const unsub = onValue(ref(db, "users"), (snap) => {
+    if (!snap.exists()) { setLeaderboard([]); return; }
+    const sp = seasonPassData || {};
+    const trophies = (sp.trophies || []).filter(t => t.active);
+    const entries = Object.values(snap.val())
+      .filter(u => u.passUnlocked && u.displayName)
+      .map(u => ({ name: u.displayName, count: Object.values(u.trophies || {}).filter(Boolean).length, total: trophies.length }))
+      .sort((a, b) => b.count - a.count);
+    setLeaderboard(entries);
+  });
+  return () => unsub();
+}, [seasonPassData]);
 
 
 
@@ -2563,10 +2580,6 @@ export default function App() {
           const unlockedCount = Object.values(unlockedTrophies).filter(Boolean).length;
 
           // Check-in code entry
-          const [codeInput, setCodeInput] = useState("");
-          const [codeMsg, setCodeMsg] = useState("");
-          const [passInput, setPassInput] = useState("");
-          const [passMsg, setPassMsg] = useState("");
 
           const enterCheckInCode = () => {
             if (!fanUser || !fanProfile?.passUnlocked) return;
@@ -2701,19 +2714,7 @@ export default function App() {
 
         {active === "The Clubhouse" && (() => {
           const [leaderboard, setLeaderboard] = useState([]);
-          useEffect(() => {
-            const unsub = onValue(ref(db, "users"), (snap) => {
-              if (!snap.exists()) { setLeaderboard([]); return; }
-              const sp = seasonPassData || {};
-              const trophies = (sp.trophies || []).filter(t => t.active);
-              const entries = Object.values(snap.val())
-                .filter(u => u.passUnlocked && u.displayName)
-                .map(u => ({ name: u.displayName, count: Object.values(u.trophies || {}).filter(Boolean).length, total: trophies.length }))
-                .sort((a, b) => b.count - a.count);
-              setLeaderboard(entries);
-            });
-            return () => unsub();
-          }, [seasonPassData]);
+          
 
           return (
             <div style={{ padding: "0 0 40px" }}>
