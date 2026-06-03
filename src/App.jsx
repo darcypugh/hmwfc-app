@@ -491,7 +491,7 @@ function AdminSquad({ items, onSave }) {
         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900 }}>Squad</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button style={{ ...S.btn, background: "#ffffff11", color: "#fff" }} onClick={() => { setList(l => { const next = [...l, { id: Date.now(), name: "", pos: "CM", no: 0, playing: true, photo: "", about: "", apps: 0, goals: 0, cleanSheets: 0, yellowCards: 0, redCards: 0, motm: 0, baseApps: 0, baseGoals: 0, baseCleanSheets: 0, baseYellowCards: 0, baseRedCards: 0, baseMotm: 0, seasonApps: 0, seasonGoals: 0, seasonCleanSheets: 0, seasonYellowCards: 0, seasonRedCards: 0, seasonMotm: 0 }]; return next; }); setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }), 50); }}>+ Player</button>
-          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Back to top">↑ Top</button>
+          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })} title="Jump to bottom">↓ Bottom</button>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
@@ -2314,6 +2314,16 @@ export default function App() {
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           style={{ position: "fixed", bottom: 24, right: 20, width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", boxShadow: "0 4px 20px #00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, transition: "transform 0.2s" }}
+          aria-label="Scroll to top">
+          ↑
+        </button>
+      )}
+
+      {/* Admin scroll to top — fixed bottom left */}
+      {adminOpen && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          style={{ position: "fixed", bottom: 24, left: 20, width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", boxShadow: "0 4px 20px #00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}
           aria-label="Scroll to top">
           ↑
         </button>
