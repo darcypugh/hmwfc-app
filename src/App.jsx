@@ -1057,7 +1057,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [squadView, setSquadView] = useState("current");
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("goals");
   const [squadDisplayMode, setSquadDisplayMode] = useState("tiles");
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedMerch, setSelectedMerch] = useState(null);
@@ -1962,6 +1962,11 @@ export default function App() {
                   placeholder="Search player name..."
                   style={{ width: "100%", background: "#191740", border: "1px solid #347ebf44", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, fontFamily: "Barlow, sans-serif", outline: "none" }}
                 />
+              </div>
+            )}
+            {(squadView === "past" || squadView === "all") && (
+              <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 14, padding: "8px 12px", background: "#191740", borderRadius: 8, border: "1px solid #ffffff0f" }}>
+                📊 Stats shown cover appearances from 2017 to present day
               </div>
             )}
             {squadDisplayMode === "tiles" && (
