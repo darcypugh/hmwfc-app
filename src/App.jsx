@@ -2759,24 +2759,20 @@ useEffect(() => {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
                     {trophies.map(t => {
                       const unlocked = !!unlockedTrophies[t.id];
+                      const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+                      const isHidden = t.category === "hidden";
                       return (
-                        {(() => {
-                          const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
-                          const isHidden = t.category === "hidden";
-                          return (
-                            <div key={t.id} style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `1px solid ${unlocked ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 16, textAlign: "center", transition: "all 0.3s", opacity: unlocked ? 1 : (isHidden && !unlocked ? 0.3 : 0.5) }}>
-                              {t.image
-                                ? <img src={t.image} alt="" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : "grayscale(100%)" }} />
-                                : <div style={{ fontSize: 40, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
-                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 4 }}>{unlocked || !isHidden ? t.name : "???"}</div>
-                              <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.4 }}>{unlocked ? t.description : "???"}</div>
-                              <div style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                                <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, letterSpacing: 1, background: cat.color + "22", padding: "2px 6px", borderRadius: 4 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
-                              </div>
-                              {unlocked && <div style={{ fontSize: 9, color: cat.color, fontWeight: 900, marginTop: 4, letterSpacing: 1 }}>UNLOCKED</div>}
-                            </div>
-                          );
-                        })()}
+                        <div key={t.id} style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `1px solid ${unlocked ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 16, textAlign: "center", transition: "all 0.3s", opacity: unlocked ? 1 : (isHidden && !unlocked ? 0.3 : 0.5) }}>
+                          {t.image
+                            ? <img src={t.image} alt="" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : "grayscale(100%)" }} />
+                            : <div style={{ fontSize: 40, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 4 }}>{unlocked || !isHidden ? t.name : "???"}</div>
+                          <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.4 }}>{unlocked ? t.description : "???"}</div>
+                          <div style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                            <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, letterSpacing: 1, background: cat.color + "22", padding: "2px 6px", borderRadius: 4 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
+                          </div>
+                          {unlocked && <div style={{ fontSize: 9, color: cat.color, fontWeight: 900, marginTop: 4, letterSpacing: 1 }}>UNLOCKED</div>}
+                        </div>
                       );
                     })}
                   </div>
