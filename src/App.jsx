@@ -957,6 +957,14 @@ function AdminDraw({ drawData, onSave }) {
 }
 
 
+const TROPHY_CATEGORIES = [
+  { key: "bronze", label: "Bronze", color: "#cd7f32", points: 10 },
+  { key: "silver", label: "Silver", color: "#aaaaaa", points: 30 },
+  { key: "gold",   label: "Gold",   color: "#f59e0b", points: 50 },
+  { key: "hidden", label: "Hidden", color: "#8b5cf6", points: 30 },
+];
+const CATEGORY_POINTS = { bronze: 10, silver: 30, gold: 50, hidden: 30 };
+
 function AdminSeasonPass({ spData, onSave }) {
   const defaultTrophies = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true }));
   const [season, setSeason] = useState(spData?.season || "2026/27");
@@ -1104,6 +1112,11 @@ function AdminSeasonPass({ spData, onSave }) {
               <div style={S.row}>
                 <div style={{ flex: 0.3, minWidth: 50 }}><label style={S.label}>Icon</label><input style={S.input} value={t.emoji} onChange={e => saveTrophy(idx, "emoji", e.target.value)} /></div>
                 <div style={{ flex: 2 }}><label style={S.label}>Trophy Name</label><input style={S.input} value={t.name} onChange={e => saveTrophy(idx, "name", e.target.value)} placeholder="Away Day Hero" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Category</label>
+                  <select style={{ ...S.input, color: TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze"))?.color || "#cd7f32" }} value={t.category || "bronze"} onChange={e => saveTrophy(idx, "category", e.target.value)}>
+                    {TROPHY_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} ({c.points}pts)</option>)}
+                  </select>
+                </div>
                 <div style={{ flex: 1 }}><label style={S.label}>Check-In Code</label><input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={t.checkInCode} onChange={e => saveTrophy(idx, "checkInCode", e.target.value.toUpperCase())} placeholder="FRICKLEY26" /></div>
               </div>
               <div style={{ marginTop: 8 }}><label style={S.label}>Description</label><input style={S.input} value={t.description} onChange={e => saveTrophy(idx, "description", e.target.value)} placeholder="Attended an away game at Frickley Athletic" /></div>
@@ -2665,8 +2678,8 @@ useEffect(() => {
             <div style={{ padding: "0 0 40px" }}>
               {/* Banner */}
               {sp.bannerImage && (
-                <div style={{ margin: "-28px -20px 24px", height: 220, overflow: "hidden" }}>
-                  <img src={sp.bannerImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{ margin: "-28px -20px 24px", marginBottom: 24, overflow: "hidden" }}>
+                  <img src={sp.bannerImage} alt="" style={{ width: "100%", display: "block", objectFit: "cover" }} />
                 </div>
               )}
 
@@ -2719,8 +2732,14 @@ useEffect(() => {
                       <input value={fanProfile?.displayName || ""} onChange={e => updateDisplayName(e.target.value)} style={{ ...S.input, fontWeight: 700, fontSize: 15 }} placeholder="Enter your display name" />
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, color: "#f59e0b" }}>{unlockedCount}</div>
-                      <div style={{ fontSize: 11, color: "#8899bb" }}>of {trophies.length} trophies</div>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, color: "#f59e0b" }}>{(() => {
+                        const ids = Object.keys(unlockedTrophies).filter(k => unlockedTrophies[k]);
+                        return ids.reduce((sum, id) => {
+                          const t = trophies.find(t => String(t.id) === String(id));
+                          return sum + CATEGORY_POINTS[t?.category || "bronze"];
+                        }, 0);
+                      })()}<span style={{ fontSize: 14, color: "#8899bb", fontWeight: 400 }}>pts</span></div>
+                      <div style={{ fontSize: 11, color: "#8899bb" }}>{unlockedCount} of {trophies.length} trophies</div>
                     </div>
                     <button onClick={() => signOut(auth)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", fontSize: 11 }}>Sign out</button>
                   </div>
@@ -2741,14 +2760,23 @@ useEffect(() => {
                     {trophies.map(t => {
                       const unlocked = !!unlockedTrophies[t.id];
                       return (
-                        <div key={t.id} style={{ background: unlocked ? "linear-gradient(135deg,#f59e0b11,#d9770608)" : "#191740", border: `1px solid ${unlocked ? "#f59e0b44" : "#ffffff0f"}`, borderRadius: 12, padding: 16, textAlign: "center", transition: "all 0.3s", opacity: unlocked ? 1 : 0.5 }}>
-                          {t.image
-                            ? <img src={t.image} alt="" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : "grayscale(100%)" }} />
-                            : <div style={{ fontSize: 40, marginBottom: 8 }}>{unlocked ? t.emoji : "🔒"}</div>}
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: unlocked ? "#f59e0b" : "#8899bb", marginBottom: 4 }}>{t.name}</div>
-                          <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.4 }}>{unlocked ? t.description : "???"}</div>
-                          {unlocked && <div style={{ fontSize: 10, color: "#f59e0b", fontWeight: 900, marginTop: 6, letterSpacing: 1 }}>UNLOCKED</div>}
-                        </div>
+                        {(() => {
+                          const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+                          const isHidden = t.category === "hidden";
+                          return (
+                            <div key={t.id} style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `1px solid ${unlocked ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 16, textAlign: "center", transition: "all 0.3s", opacity: unlocked ? 1 : (isHidden && !unlocked ? 0.3 : 0.5) }}>
+                              {t.image
+                                ? <img src={t.image} alt="" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : "grayscale(100%)" }} />
+                                : <div style={{ fontSize: 40, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 4 }}>{unlocked || !isHidden ? t.name : "???"}</div>
+                              <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.4 }}>{unlocked ? t.description : "???"}</div>
+                              <div style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                                <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, letterSpacing: 1, background: cat.color + "22", padding: "2px 6px", borderRadius: 4 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
+                              </div>
+                              {unlocked && <div style={{ fontSize: 9, color: cat.color, fontWeight: 900, marginTop: 4, letterSpacing: 1 }}>UNLOCKED</div>}
+                            </div>
+                          );
+                        })()}
                       );
                     })}
                   </div>
@@ -2779,7 +2807,7 @@ useEffect(() => {
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, width: 32, textAlign: "center", color: idx < 3 ? "#f59e0b" : "#8899bb" }}>{medal}</div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: 15 }}>{entry.name}</div>
-                          <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} of {entry.total} trophies</div>
+                          <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} trophies · {entry.score}pts</div>
                         </div>
                         <div style={{ display: "flex", gap: 4 }}>
                           {Array.from({ length: entry.total }).map((_, i) => (
