@@ -1051,7 +1051,35 @@ function AdminSeasonPass({ spData, onSave }) {
       {/* Settings tab */}
       {tab === "settings" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div><label style={S.label}>Season Name</label><input style={S.input} value={season} onChange={e => setSeason(e.target.value)} placeholder="2026/27 Season" /></div>
+          <div>
+            <label style={S.label}>Banner Image (full width at top of Season Pass page)</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12 }}>
+              {spData?.bannerImage
+                ? <img src={spData.bannerImage} alt="" style={{ height: 80, borderRadius: 6, objectFit: "cover", maxWidth: 200 }} />
+                : <div style={{ fontSize: 28 }}>🖼️</div>}
+              <div><div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 2 }}>{spData?.bannerImage ? "Tap to change banner" : "Upload a banner image"}</div><div style={{ fontSize: 11, color: "#8899bb" }}>Recommended: wide image, e.g. 1280×400px</div></div>
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                  const MAX_W = 1280;
+                  const ratio = Math.min(MAX_W / img.width, 1);
+                  canvas.width = img.width * ratio;
+                  canvas.height = img.height * ratio;
+                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  const bannerImage = canvas.toDataURL("image/jpeg", 0.8);
+                  URL.revokeObjectURL(url);
+                  onSave({ ...spData, description, trophies, bannerImage });
+                };
+                img.src = url;
+              }} />
+            </label>
+            {spData?.bannerImage && <button onClick={() => onSave({ ...spData, description, trophies, bannerImage: "" })} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove banner</button>}
+          </div>
           <div><label style={S.label}>Public Description (shown on the Season Pass page)</label><textarea style={{ ...S.input, height: 80, resize: "vertical" }} value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the season pass and what fans can unlock..." /></div>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={save}>Save</button>
         </div>
@@ -1522,7 +1550,7 @@ useEffect(() => {
 
       {menuOpen && (
         <>
-          <div className="menu-overlay" onClick={() => setMenuOpen(false)} />
+          <div className="menu-overlay" onClick={() => { setMenuOpen(false); setProfileMenuOpen(false); }} />
           <div className="menu-sidebar">
             <div style={{ padding: "20px 20px 10px", borderBottom: "1px solid #ffffff0f", display: "flex", alignItems: "center", gap: 12 }}>
               <img src={"/logo.png"} alt="HMWFC" style={{ height: 36, filter: "drop-shadow(0 0 8px #347ebf66)" }} />
@@ -1593,13 +1621,26 @@ useEffect(() => {
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(13px, 3.8vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
             </div>
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-  {fanUser
-    ? <button onClick={() => setActive("Wells Season Pass")} style={{ background: "#347ebf22", border: "1px solid #347ebf44", borderRadius: 8, color: "#347ebf", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap" }}>🎟️ My Pass</button>
-    : <button onClick={() => setShowFanLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#aabbcc", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap" }}>Sign In</button>
-  }
-  <button onClick={() => setShowLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap" }}>⚙</button>
-</div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center", position: "relative" }}>
+              {fanUser ? (
+                <div style={{ position: "relative" }}>
+                  <button onClick={() => setProfileMenuOpen(o => !o)} style={{ width: 36, height: 36, borderRadius: "50%", border: "2px solid #347ebf44", background: "#191740", cursor: "pointer", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {fanProfile?.photo
+                      ? <img src={fanProfile.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span style={{ fontSize: 18 }}>👤</span>}
+                  </button>
+                  {profileMenuOpen && (
+                    <div style={{ position: "absolute", top: 44, right: 0, background: "#191740", border: "1px solid #347ebf33", borderRadius: 10, overflow: "hidden", zIndex: 400, minWidth: 160, boxShadow: "0 8px 30px #00000066" }}>
+                      <button onClick={() => { setActive("My Account"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>👤 My Account</button>
+                      {fanProfile?.passUnlocked && <button onClick={() => { setActive("Wells Season Pass"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>🎟️ My Season Pass</button>}
+                      <button onClick={() => { signOut(auth); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>Sign out</button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button onClick={() => setShowFanLogin(true)} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#aabbcc", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "6px 12px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", whiteSpace: "nowrap", flexShrink: 0 }}>Sign In</button>
+              )}
+            </div>
 
           </div>
         </div>
@@ -2621,8 +2662,12 @@ useEffect(() => {
 
           return (
             <div style={{ padding: "0 0 40px" }}>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>Wells Season Pass 🎟️</div>
-              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 24 }}>{sp.season || "2026/27 Season"}</div>
+              {/* Banner */}
+              {sp.bannerImage && (
+                <div style={{ margin: "-28px -20px 24px", height: 220, overflow: "hidden" }}>
+                  <img src={sp.bannerImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              )}
 
               {!fanUser ? (
                 /* Not signed in */
@@ -2645,14 +2690,14 @@ useEffect(() => {
                   </div>
                 </div>
               ) : !fanProfile?.passUnlocked ? (
-                /* Signed in, no pass */
+                /* Signed in, no pass — show description + code entry */
                 <div>
-                  <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 14, padding: 20, marginBottom: 20 }}>
-                    <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 4 }}>SIGNED IN AS</div>
-                    <div style={{ fontWeight: 700 }}>{fanUser.email}</div>
-                    <button onClick={() => signOut(auth)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", fontSize: 11, padding: "4px 10px", marginTop: 8 }}>Sign out</button>
+                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 20, textAlign: "center" }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Unlock Your Season</div>
+                    <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{sp.description || "Purchase a Season Pass and unlock exclusive trophies throughout the season. Visit away grounds, attend events, and complete challenges to earn your badges."}</div>
                   </div>
-                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center" }}>
+                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center" }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🎟️</div>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Enter Your Season Pass Code</div>
                     <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 20 }}>Purchase a Season Pass from the club to get your unique code.</div>
@@ -2752,6 +2797,71 @@ useEffect(() => {
                   <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign in with Google</button>
                 </div>
               )}
+            </div>
+          );
+        })()}
+
+
+        {active === "My Account" && (() => {
+          if (!fanUser) { setActive("Home"); return null; }
+          const updateDisplayName = (name) => {
+            update(ref(db, `users/${fanUser.uid}`), { displayName: name });
+            setFanProfile(prev => ({ ...prev, displayName: name }));
+          };
+          const uploadAvatar = (file) => {
+            if (!file) return;
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+              const SIZE = 200;
+              const ratio = Math.min(SIZE / img.width, SIZE / img.height);
+              canvas.width = img.width * ratio;
+              canvas.height = img.height * ratio;
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              const photo = canvas.toDataURL("image/jpeg", 0.8);
+              URL.revokeObjectURL(url);
+              update(ref(db, `users/${fanUser.uid}`), { photo });
+              setFanProfile(prev => ({ ...prev, photo }));
+            };
+            img.src = url;
+          };
+          return (
+            <div style={{ maxWidth: 480, padding: "0 0 40px" }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 24 }}>My Account</div>
+
+              {/* Avatar */}
+              <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
+                <label style={{ cursor: "pointer", position: "relative", flexShrink: 0 }}>
+                  <div style={{ width: 80, height: 80, borderRadius: "50%", overflow: "hidden", border: "2px solid #347ebf44", background: "#191740", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {fanProfile?.photo
+                      ? <img src={fanProfile.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span style={{ fontSize: 36 }}>👤</span>}
+                  </div>
+                  <div style={{ position: "absolute", bottom: 0, right: 0, width: 24, height: 24, background: "#347ebf", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>📷</div>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadAvatar(e.target.files[0])} />
+                </label>
+                <div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900 }}>{fanProfile?.displayName || "Set your name"}</div>
+                  <div style={{ fontSize: 12, color: "#8899bb", marginTop: 4 }}>{fanUser.email}</div>
+                  {fanProfile?.passUnlocked && <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginTop: 6 }}>✓ Season Pass Active</div>}
+                </div>
+              </div>
+
+              {/* Display name */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={S.label}>Display Name (shown on leaderboard)</label>
+                <input
+                  style={S.input}
+                  value={fanProfile?.displayName || ""}
+                  onChange={e => updateDisplayName(e.target.value)}
+                  placeholder="Enter your display name"
+                />
+              </div>
+
+              {/* Sign out */}
+              <button onClick={() => { signOut(auth); setActive("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
             </div>
           );
         })()}
