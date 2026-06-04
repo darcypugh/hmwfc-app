@@ -1008,7 +1008,7 @@ function AdminSeasonPass({ spData, onSave }) {
     img.src = url;
   };
 
-  const save = () => onSave({ season, description, trophies });
+  const save = () => onSave({ ...(spData || {}), season, description, trophies });
 
   const generateCodes = (count) => {
     setGeneratingCodes(true);
