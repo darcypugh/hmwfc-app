@@ -1314,6 +1314,7 @@ export default function App() {
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [navGroup, setNavGroup] = useState(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
