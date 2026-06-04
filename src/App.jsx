@@ -1073,12 +1073,12 @@ function AdminSeasonPass({ spData, onSave }) {
                   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                   const bannerImage = canvas.toDataURL("image/jpeg", 0.8);
                   URL.revokeObjectURL(url);
-                  onSave({ ...spData, description, trophies, bannerImage });
+                  update(ref(db), { "hmwfc/seasonPass/bannerImage": bannerImage });
                 };
                 img.src = url;
               }} />
             </label>
-            {spData?.bannerImage && <button onClick={() => onSave({ ...spData, description, trophies, bannerImage: "" })} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove banner</button>}
+            {spData?.bannerImage && <button onClick={() => update(ref(db), { "hmwfc/seasonPass/bannerImage": "" })} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove banner</button>}
           </div>
           <div><label style={S.label}>Public Description (shown on the Season Pass page)</label><textarea style={{ ...S.input, height: 80, resize: "vertical" }} value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the season pass and what fans can unlock..." /></div>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={save}>Save</button>
@@ -1314,7 +1314,6 @@ export default function App() {
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [navGroup, setNavGroup] = useState(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
