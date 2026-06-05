@@ -2883,27 +2883,23 @@ export default function App() {
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Unlock Your Season</div>
                     <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{sp.description || "Purchase a Season Pass and unlock exclusive trophies throughout the season. Visit away grounds, attend events, and complete challenges to earn your badges."}</div>
-                    {sp.stripeLink && (
-                      <a href={sp.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 32px", borderRadius: 10, textDecoration: "none", marginBottom: 8 }}>
-                        🎟️ Buy Your Season Pass
-                      </a>
-                    )}
-                  </div>
-                  <NonPassTrophyGrid trophies={trophies} />
-                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginTop: 4 }}>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 6 }}>🔑 Already have a code?</div>
-                    <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 16 }}>Enter your unique Season Pass code below to activate your pass.</div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="XXXXXXXX" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1, minWidth: 140 }} />
-                      <button onClick={enterPassCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Activate</button>
+                    <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                       {sp.stripeLink && (
-                        <a href={sp.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14, letterSpacing: 1, padding: "8px 18px", borderRadius: 7, textDecoration: "none", flexShrink: 0 }}>
-                          🎟️ Buy Pass
+                        <a href={sp.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 28px", borderRadius: 10, textDecoration: "none" }}>
+                          🎟️ Buy Your Season Pass
                         </a>
                       )}
+                      <button onClick={() => { const el = document.getElementById("sp-code-input"); if (el) { el.scrollIntoView({ behavior: "smooth" }); el.focus(); } }} style={{ ...S.btn, background: "#ffffff11", border: "1px solid #ffffff22", color: "#aabbcc", fontSize: 15, padding: "13px 24px" }}>🔑 Already have a code?</button>
                     </div>
-                    {passMsg && <div style={{ marginTop: 12, fontSize: 13, color: passMsg.includes("✅") ? "#10b981" : "#ef4444" }}>{passMsg}</div>}
+                    <div id="sp-code-input" style={{ marginTop: 20 }}>
+                      <div style={{ display: "flex", gap: 8, maxWidth: 360, margin: "0 auto" }}>
+                        <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="Enter code here" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1 }} />
+                        <button onClick={enterPassCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Activate</button>
+                      </div>
+                      {passMsg && <div style={{ marginTop: 10, fontSize: 13, color: passMsg.includes("✅") ? "#10b981" : "#ef4444" }}>{passMsg}</div>}
+                    </div>
                   </div>
+                  <NonPassTrophyGrid trophies={trophies} />
                 </div>
               ) : (
                 /* Signed in with pass -- show trophy progress */
