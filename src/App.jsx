@@ -966,7 +966,7 @@ const TROPHY_CATEGORIES = [
 const CATEGORY_POINTS = { bronze: 10, silver: 30, gold: 50, hidden: 30 };
 
 function AdminSeasonPass({ spData, onSave }) {
-  const defaultTrophies = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true }));
+  const defaultTrophies = [];
   const [season, setSeason] = useState(spData?.season || "2026/27");
   const [description, setDescription] = useState(spData?.description || "");
   const [spStripeLink, setSpStripeLink] = useState(spData?.stripeLink || "");
@@ -1120,7 +1120,7 @@ function AdminSeasonPass({ spData, onSave }) {
                     {TROPHY_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label} ({c.points}pts)</option>)}
                   </select>
                 </div>
-                <div style={{ flex: 1 }}><label style={S.label}>Check-In Code</label><input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={t.checkInCode} onChange={e => saveTrophy(idx, "checkInCode", e.target.value.toUpperCase())} placeholder="FRICKLEY26" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Check-In Code</label><input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={t.checkInCode} onChange={e => saveTrophy(idx, "checkInCode", e.target.value.toUpperCase())} placeholder="Enter check-in code" /></div>
               </div>
               <div style={{ marginTop: 8 }}><label style={S.label}>Description</label><input style={S.input} value={t.description} onChange={e => saveTrophy(idx, "description", e.target.value)} placeholder="Attended an away game at Frickley Athletic" /></div>
               <div style={{ marginTop: 8 }}>
@@ -1134,7 +1134,10 @@ function AdminSeasonPass({ spData, onSave }) {
               </div>
             </div>
           ))}
-          <button style={{ ...S.btn, background: "#10b981", color: "#fff", marginTop: 8 }} onClick={save}>Save All Trophies</button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => setTrophies(prev => [...prev, { id: Date.now(), name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true, category: "bronze" }])}>+ Add Trophy</button>
+            <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All Trophies</button>
+          </div>
         </div>
       )}
 
@@ -1534,7 +1537,7 @@ useEffect(() => {
     const sp = seasonPassData || {};
     const trophies = (sp.trophies || []).filter(t => t.active);
     const entries = Object.values(snap.val())
-      .filter(u => u.passUnlocked && u.displayName)
+      .filter(u => u.passUnlocked)
       .map(u => ({ name: u.displayName, count: Object.values(u.trophies || {}).filter(Boolean).length, total: trophies.length }))
       .sort((a, b) => b.count - a.count);
     setLeaderboard(entries);
@@ -2792,7 +2795,7 @@ useEffect(() => {
                           const t = trophies.find(t => String(t.id) === String(id));
                           return sum + CATEGORY_POINTS[t?.category || "bronze"];
                         }, 0);
-                      })()}<span style={{ fontSize: 14, color: "#8899bb", fontWeight: 400 }}>pts</span></div>
+                      })()}<span style={{ fontSize: 14, color: "#8899bb", fontWeight: 400, marginLeft: 4 }}>pts</span></div>
                       <div style={{ fontSize: 11, color: "#8899bb" }}>{unlockedCount} of {trophies.length} trophies</div>
                     </div>
                     <button onClick={() => signOut(auth)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", fontSize: 11 }}>Sign out</button>
@@ -2802,7 +2805,7 @@ useEffect(() => {
                   <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>🔓 Enter a Check-In Code</div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="e.g. FRICKLEY26" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, flex: 1 }} />
+                      <input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="Enter your code here" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, flex: 1 }} />
                       <button onClick={enterCheckInCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Unlock</button>
                     </div>
                     {codeMsg && <div style={{ marginTop: 10, fontSize: 13, color: codeMsg.includes("🏆") ? "#f59e0b" : codeMsg.includes("already") ? "#8899bb" : "#ef4444" }}>{codeMsg}</div>}
