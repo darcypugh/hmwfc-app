@@ -1123,6 +1123,19 @@ function AdminSeasonPass({ spData, onSave }) {
                 <div style={{ flex: 1 }}><label style={S.label}>Check-In Code</label><input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={t.checkInCode} onChange={e => saveTrophy(idx, "checkInCode", e.target.value.toUpperCase())} placeholder="Enter check-in code" /></div>
               </div>
               <div style={{ marginTop: 8 }}><label style={S.label}>Description</label><input style={S.input} value={t.description} onChange={e => saveTrophy(idx, "description", e.target.value)} placeholder="Attended an away game at Frickley Athletic" /></div>
+              <div style={{ marginTop: 8, display: "flex", gap: 10 }}>
+                <div style={{ flex: 1 }}><label style={S.label}>Type</label>
+                  <select style={S.input} value={t.type || "code"} onChange={e => saveTrophy(idx, "type", e.target.value)}>
+                    <option value="code">Code — fan enters a check-in code</option>
+                    <option value="evidence">Evidence — fan submits photo proof</option>
+                  </select>
+                </div>
+                {(t.type || "code") === "evidence" && (
+                  <div style={{ flex: 0.5, minWidth: 80 }}><label style={S.label}>Required (times)</label>
+                    <input style={S.input} type="number" min="1" value={t.threshold || 1} onChange={e => saveTrophy(idx, "threshold", +e.target.value)} />
+                  </div>
+                )}
+              </div>
               <div style={{ marginTop: 8 }}>
                 <label style={S.label}>Trophy Image</label>
                 <label style={{ display: "inline-flex", alignItems: "center", gap: 10, cursor: "pointer", background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: "8px 12px" }}>
@@ -1135,7 +1148,7 @@ function AdminSeasonPass({ spData, onSave }) {
             </div>
           ))}
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => setTrophies(prev => [...prev, { id: Date.now(), name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true, category: "bronze" }])}>+ Add Trophy</button>
+            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={() => setTrophies(prev => [...prev, { id: Date.now(), name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true, category: "bronze", type: "code", threshold: 1 }])}>+ Add Trophy</button>
             <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All Trophies</button>
           </div>
         </div>
@@ -1175,28 +1188,75 @@ function AdminSeasonPass({ spData, onSave }) {
           <input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="🔍 Search by name or email..." style={{ ...S.input, marginBottom: 14 }} />
           <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{users.length} registered fan{users.length !== 1 ? "s" : ""}</div>
           {filteredUsers.map(u => {
-            const unlockedTrophies = Object.keys(u.trophies || {}).filter(k => u.trophies[k]);
+            const unlockedTrophyIds = Object.keys(u.trophies || {}).filter(k => u.trophies[k]);
+            const submissions = u.submissions || {};
+            const pendingCount = Object.values(submissions).reduce((n, s) => n + (s.photos || []).filter(p => !p.reviewed).length, 0);
             return (
-              <div key={u.uid} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+              <div key={u.uid} style={{ background: "#0d0c22", border: `1px solid ${pendingCount > 0 ? "#f59e0b44" : "#ffffff0f"}`, borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                {/* Header */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{u.displayName || "(no name)"}</div>
                     <div style={{ fontSize: 11, color: "#8899bb" }}>{u.email}</div>
-                    <div style={{ fontSize: 11, marginTop: 4 }}>
+                    <div style={{ fontSize: 11, marginTop: 4, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <span style={{ background: u.passUnlocked ? "#10b98122" : "#ffffff0f", color: u.passUnlocked ? "#10b981" : "#8899bb", padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>{u.passUnlocked ? "✓ Pass Active" : "No Pass"}</span>
-                      <span style={{ marginLeft: 8, color: "#8899bb" }}>{unlockedTrophies.length} / {trophies.filter(t => t.active).length} trophies</span>
+                      <span style={{ color: "#8899bb" }}>{unlockedTrophyIds.length} / {trophies.filter(t => t.active).length} trophies</span>
+                      {pendingCount > 0 && <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>⏳ {pendingCount} pending submission{pendingCount !== 1 ? "s" : ""}</span>}
                     </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+
+                {/* Trophy rows — grant/revoke + evidence counter */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {trophies.filter(t => t.active && t.name).map(t => {
                     const has = !!(u.trophies || {})[t.id];
+                    const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+                    const isEvidence = (t.type || "code") === "evidence";
+                    const tSubs = (submissions[t.id] || {});
+                    const progress = tSubs.count || 0;
+                    const threshold = t.threshold || 1;
+                    const trophyPhotos = (tSubs.photos || []).filter(p => !p.reviewed);
                     return (
-                      <button key={t.id} onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
-                        style={{ ...S.btn, background: has ? "#10b98122" : "#ffffff08", color: has ? "#10b981" : "#8899bb", border: `1px solid ${has ? "#10b98144" : "#ffffff15"}`, padding: "4px 10px", fontSize: 11 }}
-                        title={has ? "Click to revoke" : "Click to grant"}>
-                        {t.emoji} {t.name} {has ? "✓" : "+"}
-                      </button>
+                      <div key={t.id} style={{ background: "#191740", borderRadius: 8, padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 18 }}>{t.emoji}</span>
+                          <div style={{ flex: 1, minWidth: 100 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: has ? cat.color : "#fff" }}>{t.name}</div>
+                            <div style={{ fontSize: 10, color: "#8899bb" }}>{cat.label} · {cat.points}pts · {isEvidence ? `Evidence (${progress}/${threshold})` : "Code"}</div>
+                          </div>
+                          {isEvidence && !has && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <button onClick={() => { const newCount = Math.max(0, progress - 1); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
+                              <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
+                              <button onClick={() => { const newCount = progress + 1; update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
+                            </div>
+                          )}
+                          <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
+                            style={{ ...S.btn, background: has ? "#10b98122" : "#ffffff08", color: has ? "#10b981" : "#8899bb", border: `1px solid ${has ? "#10b98144" : "#ffffff15"}`, padding: "4px 10px", fontSize: 11 }}
+                            title={has ? "Click to revoke" : "Click to grant"}>
+                            {has ? "✓ Granted" : "Grant"}
+                          </button>
+                        </div>
+                        {/* Pending photo submissions */}
+                        {trophyPhotos.length > 0 && (
+                          <div style={{ marginTop: 10, borderTop: "1px solid #ffffff0f", paddingTop: 10 }}>
+                            <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginBottom: 8 }}>📸 {trophyPhotos.length} pending photo{trophyPhotos.length !== 1 ? "s" : ""}</div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {trophyPhotos.map((photo, pi) => (
+                                <div key={pi} style={{ position: "relative" }}>
+                                  <img src={photo.url} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, border: "1px solid #f59e0b44" }} />
+                                  {photo.comment && <div style={{ fontSize: 9, color: "#8899bb", marginTop: 3, maxWidth: 80, wordBreak: "break-word" }}>{photo.comment}</div>}
+                                  <button onClick={() => {
+                                    const updated = [...(tSubs.photos || [])];
+                                    updated[updated.findIndex(p => p.url === photo.url && !p.reviewed)].reviewed = true;
+                                    update(ref(db, `users/${u.uid}/submissions/${t.id}`), { photos: updated });
+                                  }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "2px 6px", fontSize: 9, marginTop: 3, width: "100%" }}>Delete</button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1384,6 +1444,7 @@ export default function App() {
   const [drawOpen, setDrawOpen] = useState(false);
   const [navGroup, setNavGroup] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
   const [trophyTab, setTrophyTab] = useState("todo");
   const [trophyCodeInput, setTrophyCodeInput] = useState("");
@@ -1529,21 +1590,28 @@ export default function App() {
     return () => unsub();
   }, []);
 
-const [leaderboard, setLeaderboard] = useState([]);
+  useEffect(() => {
+    const unsub = onValue(ref(db, "users"), (snap) => {
+      if (!snap.exists()) { setLeaderboard([]); return; }
+      const sp = seasonPassData || {};
+      const activeTrophies = (sp.trophies || []).filter(t => t.active);
+      const entries = Object.values(snap.val())
+        .filter(u => u.passUnlocked)
+        .map(u => {
+          const unlockedIds = Object.keys(u.trophies || {}).filter(k => u.trophies[k]);
+          const score = unlockedIds.reduce((sum, id) => {
+            const trophy = activeTrophies.find(t => String(t.id) === String(id));
+            return sum + (CATEGORY_POINTS[trophy?.category || "bronze"] || 0);
+          }, 0);
+          return { name: u.displayName || u.email || "Fan", count: unlockedIds.length, total: activeTrophies.length, score };
+        })
+        .sort((a, b) => b.score - a.score || b.count - a.count);
+      setLeaderboard(entries);
+    });
+    return () => unsub();
+  }, [seasonPassData]);
 
-useEffect(() => {
-  const unsub = onValue(ref(db, "users"), (snap) => {
-    if (!snap.exists()) { setLeaderboard([]); return; }
-    const sp = seasonPassData || {};
-    const trophies = (sp.trophies || []).filter(t => t.active);
-    const entries = Object.values(snap.val())
-      .filter(u => u.passUnlocked)
-      .map(u => ({ name: u.displayName, count: Object.values(u.trophies || {}).filter(Boolean).length, total: trophies.length }))
-      .sort((a, b) => b.count - a.count);
-    setLeaderboard(entries);
-  });
-  return () => unsub();
-}, [seasonPassData]);
+
 
 
 
@@ -2700,8 +2768,9 @@ useEffect(() => {
           const enterCheckInCode = () => {
             if (!fanUser || !fanProfile?.passUnlocked) return;
             const code = codeInput.trim().toUpperCase();
-            const trophy = trophies.find(t => t.checkInCode === code);
-            if (!trophy) { setCodeMsg("Invalid code. Please try again."); return; }
+            if (!code) { setCodeMsg("Please enter a code first."); return; }
+            const trophy = trophies.find(t => t.checkInCode && t.checkInCode.trim().toUpperCase() === code);
+            if (!trophy) { setCodeMsg("Invalid code — please check and try again."); return; }
             if (unlockedTrophies[trophy.id]) { setCodeMsg("You already have this trophy!"); return; }
             update(ref(db, `users/${fanUser.uid}/trophies`), { [trophy.id]: true });
             setCodeMsg(`🏆 ${trophy.name} unlocked!`);
@@ -2830,6 +2899,55 @@ useEffect(() => {
                             <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{t.description}</div>
                             {isUnlocked ? (
                               <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14 }}>✅ Completed!</div>
+                            ) : (t.type || "code") === "evidence" ? (
+                              <div>
+                                <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 6, lineHeight: 1.6 }}>Upload a photo as proof of completing this challenge. The club will review your submission and update your progress.</div>
+                                {(() => {
+                                  const myProgress = (fanProfile?.submissions || {})[t.id]?.count || 0;
+                                  const threshold = t.threshold || 1;
+                                  return (
+                                    <div style={{ background: "#0d0c22", borderRadius: 8, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 2 }}>YOUR PROGRESS</div>
+                                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: myProgress >= threshold ? "#10b981" : "#fff" }}>{myProgress} <span style={{ fontSize: 13, color: "#8899bb", fontWeight: 400 }}>/ {threshold}</span></div>
+                                      </div>
+                                      <div style={{ width: 48, height: 48, borderRadius: "50%", background: `conic-gradient(${cat.color} ${Math.min(myProgress/threshold,1)*360}deg, #ffffff0f 0deg)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: cat.color }}>{Math.round(Math.min(myProgress/threshold,1)*100)}%</div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12, cursor: "pointer", marginBottom: 8 }}>
+                                  <span style={{ fontSize: 20 }}>📸</span>
+                                  <div><div style={{ fontSize: 13, color: "#aabbcc" }}>Tap to upload a photo</div><div style={{ fontSize: 11, color: "#8899bb" }}>JPG or PNG</div></div>
+                                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    const canvas = document.createElement("canvas");
+                                    const ctx = canvas.getContext("2d");
+                                    const img = new Image();
+                                    const url = URL.createObjectURL(file);
+                                    img.onload = () => {
+                                      const MAX = 800;
+                                      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+                                      canvas.width = img.width * ratio;
+                                      canvas.height = img.height * ratio;
+                                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                      const photoUrl = canvas.toDataURL("image/jpeg", 0.7);
+                                      URL.revokeObjectURL(url);
+                                      const existing = (fanProfile?.submissions || {})[t.id]?.photos || [];
+                                      const comment = trophyCodeInput.trim();
+                                      const newPhoto = { url: photoUrl, comment, submittedAt: new Date().toISOString(), reviewed: false };
+                                      update(ref(db, `users/${fanUser.uid}/submissions/${t.id}`), { photos: [...existing, newPhoto] });
+                                      setTrophyCodeMsg("📸 Photo submitted! The club will review it soon.");
+                                      setTrophyCodeInput("");
+                                    };
+                                    img.src = url;
+                                  }} />
+                                </label>
+                                <input value={trophyCodeInput} onChange={e => setTrophyCodeInput(e.target.value)} placeholder="Add a comment (optional)..." style={{ ...S.input, marginBottom: 8 }} />
+                                {trophyCodeMsg && <div style={{ fontSize: 13, color: trophyCodeMsg.includes("📸") ? "#10b981" : "#ef4444" }}>{trophyCodeMsg}</div>}
+                              </div>
                             ) : (
                               <div>
                                 <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 10 }}>Enter the check-in code to mark this trophy as complete:</div>
@@ -2837,7 +2955,8 @@ useEffect(() => {
                                   <input value={trophyCodeInput} onChange={e => setTrophyCodeInput(e.target.value.toUpperCase())} placeholder="Enter code..." style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, flex: 1 }} />
                                   <button onClick={() => {
                                     const code = trophyCodeInput.trim().toUpperCase();
-                                    if (code !== t.checkInCode) { setTrophyCodeMsg("Wrong code — try again."); return; }
+                                    if (!code) { setTrophyCodeMsg("Please enter a code."); return; }
+                                    if (!t.checkInCode || t.checkInCode.trim().toUpperCase() !== code) { setTrophyCodeMsg("Wrong code — try again."); return; }
                                     update(ref(db, `users/${fanUser.uid}/trophies`), { [t.id]: true });
                                     setTrophyCodeMsg("🏆 Trophy unlocked!");
                                     setTrophyCodeInput("");
