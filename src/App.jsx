@@ -598,7 +598,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
   );
 }
 
-const SIZES = ["XS","S","M","L","XL","XXL","3XL"];
+const SIZES = ["XXS","XS","S","M","L","XL","XXL","3XL"];
 const SIZE_STATUS = ["available","low","sold_out"];
 const SIZE_LABELS = { available: "In Stock", low: "Low Stock", sold_out: "Sold Out" };
 const SIZE_COLORS = { available: "#10b981", low: "#f59e0b", sold_out: "#ef4444" };
@@ -2631,7 +2631,7 @@ export default function App() {
                       <div style={{ marginBottom: 16 }}>
                         <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SELECT SIZE</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {["XS","S","M","L","XL","XXL","3XL"].map(sz => {
+                          {["XXS","XS","S","M","L","XL","XXL","3XL"].filter(sz => ((selectedMerch.sizes || {})[sz] || "available") !== "sold_out").map(sz => {
                             const status = (selectedMerch.sizes || {})[sz] || "available";
                             const soldOut = status === "sold_out";
                             const low = status === "low";
