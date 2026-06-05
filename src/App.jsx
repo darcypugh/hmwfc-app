@@ -969,6 +969,7 @@ function AdminSeasonPass({ spData, onSave }) {
   const defaultTrophies = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: "", emoji: "🏆", description: "", checkInCode: "", image: "", active: true }));
   const [season, setSeason] = useState(spData?.season || "2026/27");
   const [description, setDescription] = useState(spData?.description || "");
+  const [spStripeLink, setSpStripeLink] = useState(spData?.stripeLink || "");
   const [trophies, setTrophies] = useState(spData?.trophies || defaultTrophies);
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState("settings");
@@ -980,6 +981,7 @@ function AdminSeasonPass({ spData, onSave }) {
     if (spData) {
       setSeason(spData.season || "2026/27");
       setDescription(spData.description || "");
+      setSpStripeLink(spData.stripeLink || "");
       setTrophies(spData.trophies || defaultTrophies);
     }
   }, [spData]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1016,7 +1018,7 @@ function AdminSeasonPass({ spData, onSave }) {
     img.src = url;
   };
 
-  const save = () => onSave({ ...(spData || {}), season, description, trophies });
+  const save = () => onSave({ ...(spData || {}), season, description, stripeLink: spStripeLink, trophies });
 
   const generateCodes = (count) => {
     setGeneratingCodes(true);
@@ -1089,6 +1091,7 @@ function AdminSeasonPass({ spData, onSave }) {
             {spData?.bannerImage && <button onClick={() => update(ref(db), { "hmwfc/seasonPass/bannerImage": "" })} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove banner</button>}
           </div>
           <div><label style={S.label}>Public Description (shown on the Season Pass page)</label><textarea style={{ ...S.input, height: 80, resize: "vertical" }} value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the season pass and what fans can unlock..." /></div>
+          <div><label style={S.label}>Purchase Link (Stripe or other payment link)</label><input style={S.input} value={spStripeLink} onChange={e => setSpStripeLink(e.target.value)} placeholder="https://buy.stripe.com/..." /></div>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={save}>Save</button>
         </div>
       )}
@@ -2686,35 +2689,108 @@ useEffect(() => {
               {!fanUser ? (
                 /* Not signed in */
                 <div>
-                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 20, textAlign: "center" }}>
+                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 24, textAlign: "center" }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Unlock Your Season</div>
                     <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{sp.description || "Purchase a Season Pass and unlock exclusive trophies throughout the season. Visit away grounds, attend events, and complete challenges to earn your badges."}</div>
                     <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontSize: 15, padding: "12px 28px" }}>Sign in with Google to get started</button>
                   </div>
-                  {/* Trophy preview */}
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>This Season's Trophies</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12 }}>
-                    {trophies.map(t => (
-                      <div key={t.id} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 14, textAlign: "center", filter: "blur(2px)", opacity: 0.5 }}>
-                        <div style={{ fontSize: 36, marginBottom: 8 }}>{t.emoji}</div>
-                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700 }}>???</div>
-                      </div>
-                    ))}
+                  {/* Feature description + example trophies — shown to all non-pass-holders */}
+              {(() => {
+                const examplesByCategory = ["bronze","silver","gold","hidden"].map(catKey => {
+                  const cat = TROPHY_CATEGORIES.find(c => c.key === catKey);
+                  const example = trophies.find(t => (t.category || "bronze") === catKey && t.name);
+                  return { cat, example };
+                });
+                return (
+                  <div>
+                    {/* Feature highlights */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
+                      {[
+                        { icon: "🏆", title: "Earn Trophies", desc: "Complete challenges throughout the season — visit away grounds, attend events and more to unlock your collection." },
+                        { icon: "📊", title: "Leaderboard", desc: "Compete against fellow fans on The Clubhouse leaderboard. Bronze, Silver and Gold trophies each earn different points." },
+                        { icon: "❓", title: "Hidden Trophies", desc: "Secret challenges you won't know about until you unlock them. Can you find them all?" },
+                        { icon: "🎁", title: "End of Season Prizes", desc: "Top fans on the leaderboard at the end of the season will be rewarded. Watch this space." },
+                      ].map(f => (
+                        <div key={f.title} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 16 }}>
+                          <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 6 }}>{f.title}</div>
+                          <div style={{ fontSize: 12, color: "#8899bb", lineHeight: 1.6 }}>{f.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Example trophies — one per category */}
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>Trophy Categories</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+                      {examplesByCategory.map(({ cat, example }) => (
+                        <div key={cat.key} style={{ background: "#191740", border: `1px solid ${cat.color}44`, borderRadius: 12, padding: 16, textAlign: "center", opacity: 0.8 }}>
+                          <div style={{ fontSize: 36, marginBottom: 8, filter: "grayscale(40%)" }}>{example ? example.emoji : (cat.key === "hidden" ? "❓" : "🏆")}</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: cat.color, marginBottom: 4 }}>{cat.label.toUpperCase()}</div>
+                          <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 8 }}>{example ? example.name : "???"}</div>
+                          <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>{cat.points} pts</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                );
+              })()}
                 </div>
               ) : !fanProfile?.passUnlocked ? (
-                /* Signed in, no pass — show description + code entry */
+                /* Signed in, no pass — show description + purchase + code entry */
                 <div>
-                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 20, textAlign: "center" }}>
+                  <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 24, textAlign: "center" }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Unlock Your Season</div>
                     <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{sp.description || "Purchase a Season Pass and unlock exclusive trophies throughout the season. Visit away grounds, attend events, and complete challenges to earn your badges."}</div>
+                    {sp.stripeLink && (
+                      <a href={sp.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 32px", borderRadius: 10, textDecoration: "none", marginBottom: 8 }}>
+                        🎟️ Buy Your Season Pass
+                      </a>
+                    )}
                   </div>
-                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center" }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>🎟️</div>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Enter Your Season Pass Code</div>
-                    <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 20 }}>Purchase a Season Pass from the club to get your unique code.</div>
+                  {/* Feature description + example trophies — shown to all non-pass-holders */}
+              {(() => {
+                const examplesByCategory = ["bronze","silver","gold","hidden"].map(catKey => {
+                  const cat = TROPHY_CATEGORIES.find(c => c.key === catKey);
+                  const example = trophies.find(t => (t.category || "bronze") === catKey && t.name);
+                  return { cat, example };
+                });
+                return (
+                  <div>
+                    {/* Feature highlights */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
+                      {[
+                        { icon: "🏆", title: "Earn Trophies", desc: "Complete challenges throughout the season — visit away grounds, attend events and more to unlock your collection." },
+                        { icon: "📊", title: "Leaderboard", desc: "Compete against fellow fans on The Clubhouse leaderboard. Bronze, Silver and Gold trophies each earn different points." },
+                        { icon: "❓", title: "Hidden Trophies", desc: "Secret challenges you won't know about until you unlock them. Can you find them all?" },
+                        { icon: "🎁", title: "End of Season Prizes", desc: "Top fans on the leaderboard at the end of the season will be rewarded. Watch this space." },
+                      ].map(f => (
+                        <div key={f.title} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 16 }}>
+                          <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 6 }}>{f.title}</div>
+                          <div style={{ fontSize: 12, color: "#8899bb", lineHeight: 1.6 }}>{f.desc}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Example trophies — one per category */}
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>Trophy Categories</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+                      {examplesByCategory.map(({ cat, example }) => (
+                        <div key={cat.key} style={{ background: "#191740", border: `1px solid ${cat.color}44`, borderRadius: 12, padding: 16, textAlign: "center", opacity: 0.8 }}>
+                          <div style={{ fontSize: 36, marginBottom: 8, filter: "grayscale(40%)" }}>{example ? example.emoji : (cat.key === "hidden" ? "❓" : "🏆")}</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: cat.color, marginBottom: 4 }}>{cat.label.toUpperCase()}</div>
+                          <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 8 }}>{example ? example.name : "???"}</div>
+                          <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>{cat.points} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center", marginTop: 4 }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🔑</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Already have a code?</div>
+                    <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 20 }}>Enter your unique Season Pass code below to activate your pass.</div>
                     <div style={{ display: "flex", gap: 8, maxWidth: 360, margin: "0 auto" }}>
                       <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="XXXXXXXX" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1 }} />
                       <button onClick={enterPassCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Activate</button>
