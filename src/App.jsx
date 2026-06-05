@@ -1469,9 +1469,9 @@ function NonPassTrophyGrid({ trophies }) {
           const isHidden = t.category === "hidden";
           return (
             <div key={t.id} style={{ background: "#191740", border: `1px solid ${isExample ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 14, textAlign: "center", filter: isExample ? "none" : "blur(3px)", opacity: isExample ? 1 : 0.55, order: isExample ? -1 : 0 }}>
-              {t.image
+              {isExample && t.image
                 ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8 }} />
-                : <div style={{ fontSize: 36, marginBottom: 8 }}>{isHidden ? "❓" : (isExample ? t.emoji : "🔒")}</div>}
+                : <div style={{ fontSize: 36, marginBottom: 8 }}>{isExample ? (isHidden ? "❓" : t.emoji) : (isHidden ? "❓" : "🔒")}</div>}
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: isExample ? cat.color : "#8899bb", marginBottom: 3 }}>{t.name || "???"}</div>
               <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
               <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 6px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
