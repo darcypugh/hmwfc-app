@@ -78,10 +78,10 @@ const DEFAULT_DATA = {
   },
 };
 
-const NAV_ITEMS = ["Home", "News", "First Team", "Merch", "Gallery", "Help The Wells", "Fan Zone", "Download"];
+const NAV_ITEMS = ["Home", "Fan Zone", "News", "First Team", "Help The Wells", "Gallery", "Download"];
 const FAN_ZONE_ITEMS = ["Wells Season Pass", "The Clubhouse"];
 const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
-const HELP_WELLS_ITEMS = ["Fundraising"];
+const HELP_WELLS_ITEMS = ["Fundraising", "Merch"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -1768,16 +1768,16 @@ export default function App() {
                   );
                 }
                 if (n === "Help The Wells") {
-                  const isGroupActive = HELP_WELLS_ITEMS.includes(active) || active === "Help The Wells";
+                  const isGroupActive = HELP_WELLS_ITEMS.includes(active) || active === "Help The Wells" || active === "Merch";
                   return (
                     <div key={n}>
                       <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "helpwells" ? null : "helpwells")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span>Help The Wells</span>
                         <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "helpwells" ? "▲" : "▼"}</span>
                       </button>
-                      {(navGroup === "helpwells" || isGroupActive) && (
-                        <button className={`nav-btn ${active === "Help The Wells" ? "active" : ""}`} onClick={() => { setActive("Help The Wells"); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>Fundraising</button>
-                      )}
+                      {(navGroup === "helpwells" || isGroupActive) && HELP_WELLS_ITEMS.map(sub => (
+                        <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`} onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
+                      ))}
                     </div>
                   );
                 }
@@ -2890,13 +2890,17 @@ export default function App() {
                     )}
                   </div>
                   <NonPassTrophyGrid trophies={trophies} />
-                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center", marginTop: 4 }}>
-                    <div style={{ fontSize: 48, marginBottom: 12 }}>🔑</div>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Already have a code?</div>
-                    <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 20 }}>Enter your unique Season Pass code below to activate your pass.</div>
-                    <div style={{ display: "flex", gap: 8, maxWidth: 360, margin: "0 auto" }}>
-                      <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="XXXXXXXX" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1 }} />
+                  <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginTop: 4 }}>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 6 }}>🔑 Already have a code?</div>
+                    <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 16 }}>Enter your unique Season Pass code below to activate your pass.</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="XXXXXXXX" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1, minWidth: 140 }} />
                       <button onClick={enterPassCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Activate</button>
+                      {sp.stripeLink && (
+                        <a href={sp.stripeLink} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14, letterSpacing: 1, padding: "8px 18px", borderRadius: 7, textDecoration: "none", flexShrink: 0 }}>
+                          🎟️ Buy Pass
+                        </a>
+                      )}
                     </div>
                     {passMsg && <div style={{ marginTop: 12, fontSize: 13, color: passMsg.includes("✅") ? "#10b981" : "#ef4444" }}>{passMsg}</div>}
                   </div>
