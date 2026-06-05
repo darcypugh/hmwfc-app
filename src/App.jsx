@@ -975,6 +975,8 @@ function AdminSeasonPass({ spData, onSave }) {
   const [tab, setTab] = useState("settings");
   const [userSearch, setUserSearch] = useState("");
   const [generatingCodes, setGeneratingCodes] = useState(false);
+  const [expandedUser, setExpandedUser] = useState(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState(null);
   const [passCodes, setPassCodes] = useState({});
 
   useEffect(() => {
@@ -1033,11 +1035,24 @@ function AdminSeasonPass({ spData, onSave }) {
   };
 
   const grantTrophy = (uid, trophyId) => {
+    // Write to a grants queue that server rules allow admin to write
+    // and fan's profile listener picks up
+    update(ref(db, `hmwfc/adminGrants`), { [`${uid}_${trophyId}`]: { uid, trophyId, granted: true, at: new Date().toISOString() } });
+    // Also write directly — works if Firebase rules allow auth != null on users
     update(ref(db, `users/${uid}/trophies`), { [trophyId]: true });
+    // Force local state update so UI reflects immediately
+    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
   };
 
   const revokeTrophy = (uid, trophyId) => {
+    update(ref(db, `hmwfc/adminGrants`), { [`${uid}_${trophyId}`]: null });
     set(ref(db, `users/${uid}/trophies/${trophyId}`), null);
+    setUsers(prev => prev.map(u => {
+      if (u.uid !== uid) return u;
+      const trophies = { ...(u.trophies || {}) };
+      delete trophies[trophyId];
+      return { ...u, trophies };
+    }));
   };
 
   const unusedCodes = Object.entries(passCodes).filter(([, v]) => !v.used);
@@ -1185,81 +1200,108 @@ function AdminSeasonPass({ spData, onSave }) {
       {/* Users tab */}
       {tab === "users" && (
         <div>
+          {/* Photo lightbox */}
+          {lightboxPhoto && (
+            <div style={{ position: "fixed", inset: 0, background: "#000000ee", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setLightboxPhoto(null)}>
+              <div style={{ maxWidth: 600, width: "100%", background: "#191740", borderRadius: 12, overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+                <img src={lightboxPhoto.url} alt="" style={{ width: "100%", maxHeight: "70vh", objectFit: "contain", background: "#0d0c22" }} />
+                {lightboxPhoto.comment && <div style={{ padding: "12px 16px", fontSize: 13, color: "#aabbcc" }}>💬 {lightboxPhoto.comment}</div>}
+                <div style={{ padding: "0 16px 16px", display: "flex", gap: 8 }}>
+                  <button onClick={() => {
+                    const { uid, trophyId, allPhotos, photoUrl } = lightboxPhoto;
+                    const updated = allPhotos.map(p => p.url === photoUrl ? { ...p, reviewed: true } : p);
+                    update(ref(db, `users/${uid}/submissions/${trophyId}`), { photos: updated });
+                    setUsers(prev => prev.map(u => {
+                      if (u.uid !== uid) return u;
+                      const subs = { ...(u.submissions || {}) };
+                      subs[trophyId] = { ...(subs[trophyId] || {}), photos: updated };
+                      return { ...u, submissions: subs };
+                    }));
+                    setLightboxPhoto(null);
+                  }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", flex: 1 }}>✕ Delete photo</button>
+                  <button onClick={() => setLightboxPhoto(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", flex: 1 }}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="🔍 Search by name or email..." style={{ ...S.input, marginBottom: 14 }} />
           <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{users.length} registered fan{users.length !== 1 ? "s" : ""}</div>
           {filteredUsers.map(u => {
             const unlockedTrophyIds = Object.keys(u.trophies || {}).filter(k => u.trophies[k]);
             const submissions = u.submissions || {};
             const pendingCount = Object.values(submissions).reduce((n, s) => n + (s.photos || []).filter(p => !p.reviewed).length, 0);
+            const isExpanded = expandedUser === u.uid;
             return (
-              <div key={u.uid} style={{ background: "#0d0c22", border: `1px solid ${pendingCount > 0 ? "#f59e0b44" : "#ffffff0f"}`, borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                {/* Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                  <div>
+              <div key={u.uid} style={{ background: "#0d0c22", border: `1px solid ${pendingCount > 0 ? "#f59e0b44" : "#ffffff0f"}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+                {/* Collapsed header — always visible */}
+                <div onClick={() => setExpandedUser(isExpanded ? null : u.uid)} style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, cursor: "pointer" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#191740", border: "1px solid #ffffff15", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {u.photo ? <img src={u.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>👤</span>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{u.displayName || "(no name)"}</div>
-                    <div style={{ fontSize: 11, color: "#8899bb" }}>{u.email}</div>
-                    <div style={{ fontSize: 11, marginTop: 4, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ background: u.passUnlocked ? "#10b98122" : "#ffffff0f", color: u.passUnlocked ? "#10b981" : "#8899bb", padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>{u.passUnlocked ? "✓ Pass Active" : "No Pass"}</span>
-                      <span style={{ color: "#8899bb" }}>{unlockedTrophyIds.length} / {trophies.filter(t => t.active).length} trophies</span>
-                      {pendingCount > 0 && <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>⏳ {pendingCount} pending submission{pendingCount !== 1 ? "s" : ""}</span>}
+                    <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                      <span style={{ background: u.passUnlocked ? "#10b98122" : "#ffffff0f", color: u.passUnlocked ? "#10b981" : "#8899bb", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>{u.passUnlocked ? "✓ Pass" : "No Pass"}</span>
+                      <span>{unlockedTrophyIds.length}/{trophies.filter(t => t.active).length} trophies</span>
+                      {pendingCount > 0 && <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>⏳ {pendingCount} pending</span>}
                     </div>
                   </div>
+                  <span style={{ color: "#8899bb", fontSize: 12 }}>{isExpanded ? "▲" : "▼"}</span>
                 </div>
 
-                {/* Trophy rows — grant/revoke + evidence counter */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {trophies.filter(t => t.active && t.name).map(t => {
-                    const has = !!(u.trophies || {})[t.id];
-                    const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
-                    const isEvidence = (t.type || "code") === "evidence";
-                    const tSubs = (submissions[t.id] || {});
-                    const progress = tSubs.count || 0;
-                    const threshold = t.threshold || 1;
-                    const trophyPhotos = (tSubs.photos || []).filter(p => !p.reviewed);
-                    return (
-                      <div key={t.id} style={{ background: "#191740", borderRadius: 8, padding: "10px 12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 18 }}>{t.emoji}</span>
-                          <div style={{ flex: 1, minWidth: 100 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: has ? cat.color : "#fff" }}>{t.name}</div>
-                            <div style={{ fontSize: 10, color: "#8899bb" }}>{cat.label} · {cat.points}pts · {isEvidence ? `Evidence (${progress}/${threshold})` : "Code"}</div>
-                          </div>
-                          {isEvidence && !has && (
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <button onClick={() => { const newCount = Math.max(0, progress - 1); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
-                              <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
-                              <button onClick={() => { const newCount = progress + 1; update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
-                            </div>
-                          )}
-                          <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
-                            style={{ ...S.btn, background: has ? "#10b98122" : "#ffffff08", color: has ? "#10b981" : "#8899bb", border: `1px solid ${has ? "#10b98144" : "#ffffff15"}`, padding: "4px 10px", fontSize: 11 }}
-                            title={has ? "Click to revoke" : "Click to grant"}>
-                            {has ? "✓ Granted" : "Grant"}
-                          </button>
-                        </div>
-                        {/* Pending photo submissions */}
-                        {trophyPhotos.length > 0 && (
-                          <div style={{ marginTop: 10, borderTop: "1px solid #ffffff0f", paddingTop: 10 }}>
-                            <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginBottom: 8 }}>📸 {trophyPhotos.length} pending photo{trophyPhotos.length !== 1 ? "s" : ""}</div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              {trophyPhotos.map((photo, pi) => (
-                                <div key={pi} style={{ position: "relative" }}>
-                                  <img src={photo.url} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, border: "1px solid #f59e0b44" }} />
-                                  {photo.comment && <div style={{ fontSize: 9, color: "#8899bb", marginTop: 3, maxWidth: 80, wordBreak: "break-word" }}>{photo.comment}</div>}
-                                  <button onClick={() => {
-                                    const updated = [...(tSubs.photos || [])];
-                                    updated[updated.findIndex(p => p.url === photo.url && !p.reviewed)].reviewed = true;
-                                    update(ref(db, `users/${u.uid}/submissions/${t.id}`), { photos: updated });
-                                  }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "2px 6px", fontSize: 9, marginTop: 3, width: "100%" }}>Delete</button>
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
+                    <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{u.email}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {trophies.filter(t => t.active && t.name).map(t => {
+                        const has = !!(u.trophies || {})[t.id];
+                        const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+                        const isEvidence = (t.type || "code") === "evidence";
+                        const tSubs = (submissions[t.id] || {});
+                        const progress = tSubs.count || 0;
+                        const threshold = t.threshold || 1;
+                        const trophyPhotos = (tSubs.photos || []).filter(p => !p.reviewed);
+                        return (
+                          <div key={t.id} style={{ background: "#191740", borderRadius: 8, padding: "10px 12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 18 }}>{t.emoji}</span>
+                              <div style={{ flex: 1, minWidth: 100 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: has ? cat.color : "#fff" }}>{t.name}</div>
+                                <div style={{ fontSize: 10, color: "#8899bb" }}>{cat.label} · {cat.points}pts · {isEvidence ? `Evidence (${progress}/${threshold})` : "Code"}</div>
+                              </div>
+                              {isEvidence && !has && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  <button onClick={() => { const newCount = Math.max(0, progress - 1); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
+                                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
+                                  <button onClick={() => { const newCount = progress + 1; update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
                                 </div>
-                              ))}
+                              )}
+                              <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
+                                style={{ ...S.btn, background: has ? "#10b98122" : "#ffffff08", color: has ? "#10b981" : "#8899bb", border: `1px solid ${has ? "#10b98144" : "#ffffff15"}`, padding: "4px 10px", fontSize: 11 }}>
+                                {has ? "✓ Granted" : "Grant"}
+                              </button>
                             </div>
+                            {trophyPhotos.length > 0 && (
+                              <div style={{ marginTop: 10, borderTop: "1px solid #ffffff0f", paddingTop: 10 }}>
+                                <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginBottom: 8 }}>📸 {trophyPhotos.length} pending photo{trophyPhotos.length !== 1 ? "s" : ""}</div>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  {trophyPhotos.map((photo, pi) => (
+                                    <div key={pi} style={{ position: "relative" }}>
+                                      <img src={photo.url} alt="" onClick={() => setLightboxPhoto({ url: photo.url, comment: photo.comment, uid: u.uid, trophyId: t.id, allPhotos: tSubs.photos || [], photoUrl: photo.url })} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6, border: "1px solid #f59e0b44", cursor: "pointer" }} />
+                                      {photo.comment && <div style={{ fontSize: 9, color: "#8899bb", marginTop: 2, maxWidth: 72, wordBreak: "break-word" }}>{photo.comment.slice(0,40)}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1603,7 +1645,7 @@ export default function App() {
             const trophy = activeTrophies.find(t => String(t.id) === String(id));
             return sum + (CATEGORY_POINTS[trophy?.category || "bronze"] || 0);
           }, 0);
-          return { name: u.displayName || u.email || "Fan", count: unlockedIds.length, total: activeTrophies.length, score };
+          return { name: u.displayName || u.email || "Fan", photo: u.photo || null, count: unlockedIds.length, total: activeTrophies.length, score };
         })
         .sort((a, b) => b.score - a.score || b.count - a.count);
       setLeaderboard(entries);
@@ -3052,18 +3094,24 @@ export default function App() {
               ) : (
                 <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                   {leaderboard.map((entry, idx) => {
-                    const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}.`;
+                    const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
                     return (
                       <div key={idx} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: idx < leaderboard.length - 1 ? "1px solid #ffffff07" : "none", background: idx === 0 ? "#f59e0b0a" : "transparent" }}>
-                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, width: 32, textAlign: "center", color: idx < 3 ? "#f59e0b" : "#8899bb" }}>{medal}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 15 }}>{entry.name}</div>
-                          <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} trophies · {entry.score}pts</div>
+                        {/* Position */}
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: medal ? 22 : 15, fontWeight: 900, width: 28, textAlign: "center", color: idx < 3 ? "#f59e0b" : "#8899bb", flexShrink: 0 }}>{medal || `${idx + 1}`}</div>
+                        {/* Avatar */}
+                        <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", border: `2px solid ${idx === 0 ? "#f59e0b44" : "#ffffff15"}`, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {entry.photo ? <img src={entry.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
                         </div>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          {Array.from({ length: entry.total }).map((_, i) => (
-                            <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: i < entry.count ? "#f59e0b" : "#ffffff15" }} />
-                          ))}
+                        {/* Name + trophy count */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</div>
+                          <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} {entry.count === 1 ? "trophy" : "trophies"}</div>
+                        </div>
+                        {/* Points */}
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#aaaaaa" : idx === 2 ? "#cd7f32" : "#fff", lineHeight: 1 }}>{entry.score}</div>
+                          <div style={{ fontSize: 10, color: "#8899bb", letterSpacing: 1 }}>PTS</div>
                         </div>
                       </div>
                     );
