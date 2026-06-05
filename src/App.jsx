@@ -621,7 +621,7 @@ function AdminMerch({ items, onSave }) {
     setList(l);
     onSave(l);
   };
-  const addItem = () => { const l = [...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "", image: "", isClothing: false, soldOut: false, stripeLink: "", sizes: {} }]; setList(l); setExpanded(l.length - 1); };
+  const addItem = () => { const l = [...list, { id: Date.now(), name: "", price: "£", emoji: "👕", tag: "", image: "", isClothing: false, soldOut: false, stripeLink: "", sizes: {}, sizeLinks: {} }]; setList(l); setExpanded(l.length - 1); };
   const save = () => onSave(list);
   const uploadImage = (idx, file) => {
     if (!file) return;
@@ -649,7 +649,7 @@ function AdminMerch({ items, onSave }) {
             {m.image ? <img src={m.image} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} /> : <div style={{ width: 44, height: 44, background: "#191740", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>{m.emoji}</div>}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name || "(unnamed)"}</div>
-              <div style={{ fontSize: 12, color: "#8899bb" }}>{m.price}{m.isClothing ? " · Clothing" : ""}{m.stripeLink ? " · ✓ Payment link" : " · No payment link"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{m.price}{m.isClothing ? " · Clothing" : ""}{m.isClothing ? (Object.values(m.sizeLinks || {}).some(l => l) ? " · ✓ Size links" : " · No size links") : (m.stripeLink ? " · ✓ Payment link" : " · No payment link")}</div>
             </div>
             <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setExpanded(expanded === idx ? null : idx)}>{expanded === idx ? "Close" : "Edit"}</button>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -677,8 +677,8 @@ function AdminMerch({ items, onSave }) {
                 </label>
                 {m.image && <button onClick={() => update(idx, "image", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove image</button>}
               </div>
-              {/* Stripe link */}
-              <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update(idx, "stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>
+              {/* Stripe link — for non-clothing items */}
+              {!m.isClothing && <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update(idx, "stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>}
               {/* Clothing toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
                 <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update(idx, "isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
@@ -692,16 +692,27 @@ function AdminMerch({ items, onSave }) {
               {/* Size stock manager */}
               {m.isClothing && (
                 <div>
-                  <label style={S.label}>Size Stock</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <label style={S.label}>Sizes — Stock &amp; Stripe Links</label>
+                  <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>Set stock status and a separate Stripe payment link for each size.</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {SIZES.map(sz => {
                       const status = (m.sizes || {})[sz] || "available";
+                      const sizeLink = (m.sizeLinks || {})[sz] || "";
                       return (
-                        <div key={sz} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: SIZE_COLORS[status] }}>{sz}</div>
-                          <select value={status} onChange={e => updateSize(idx, sz, e.target.value)} style={{ ...S.input, width: 90, fontSize: 11, padding: "4px 6px", color: SIZE_COLORS[status], borderColor: SIZE_COLORS[status] + "44" }}>
+                        <div key={sz} style={{ display: "flex", alignItems: "center", gap: 8, background: "#0d0c22", borderRadius: 8, padding: "8px 10px", flexWrap: "wrap" }}>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: SIZE_COLORS[status], width: 32, flexShrink: 0 }}>{sz}</div>
+                          <select value={status} onChange={e => updateSize(idx, sz, e.target.value)} style={{ ...S.input, width: 100, fontSize: 11, padding: "4px 6px", color: SIZE_COLORS[status], borderColor: SIZE_COLORS[status] + "44", flexShrink: 0 }}>
                             {SIZE_STATUS.map(s => <option key={s} value={s}>{SIZE_LABELS[s]}</option>)}
                           </select>
+                          <input
+                            value={sizeLink}
+                            onChange={e => {
+                              const sizeLinks = { ...(list[idx].sizeLinks || {}), [sz]: e.target.value };
+                              update(idx, "sizeLinks", sizeLinks);
+                            }}
+                            placeholder="https://buy.stripe.com/..."
+                            style={{ ...S.input, flex: 1, minWidth: 160, fontSize: 11, padding: "4px 8px", opacity: status === "sold_out" ? 0.4 : 1 }}
+                          />
                         </div>
                       );
                     })}
@@ -2650,11 +2661,15 @@ export default function App() {
                     {/* Buy button */}
                     {selectedMerch.soldOut
                       ? <div style={{ background: "#ef444422", border: "1px solid #ef444444", borderRadius: 10, padding: "13px 0", textAlign: "center", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1 }}>Sold Out</div>
-                      : selectedMerch.stripeLink
-                        ? <a href={`${selectedMerch.stripeLink}?quantity=${qty}${selectedSize ? `&metadata[size]=${selectedSize}` : ""}`} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none", opacity: selectedMerch.isClothing && !selectedSize ? 0.4 : 1, pointerEvents: selectedMerch.isClothing && !selectedSize ? "none" : "auto" }}>
-                            {selectedMerch.isClothing && !selectedSize ? "Select a size to continue" : `Buy Now -- ${selectedMerch.price}`}
-                          </a>
-                        : <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>}
+                      : (() => {
+                          const sizeLink = selectedMerch.isClothing && selectedSize ? (selectedMerch.sizeLinks || {})[selectedSize] : null;
+                          const link = sizeLink || selectedMerch.stripeLink;
+                          const noSize = selectedMerch.isClothing && !selectedSize;
+                          const noLink = !noSize && !link;
+                          if (noSize) return <div style={{ background: "#ffffff0f", border: "1px solid #ffffff22", borderRadius: 10, padding: "13px 0", textAlign: "center", color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14 }}>Select a size to continue</div>;
+                          if (noLink) return <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>;
+                          return <a href={link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>Buy Now — {selectedMerch.price}</a>;
+                        })()}
                     <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
                   </div>
                 </div>
