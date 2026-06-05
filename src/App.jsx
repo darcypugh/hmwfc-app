@@ -2901,7 +2901,7 @@ export default function App() {
                               <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14 }}>✅ Completed!</div>
                             ) : (t.type || "code") === "evidence" ? (
                               <div>
-                                <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 6, lineHeight: 1.6 }}>Upload a photo as proof of completing this challenge. The club will review your submission and update your progress.</div>
+                                <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 10, lineHeight: 1.6 }}>Upload a photo as proof. The club will review it and update your progress.</div>
                                 {(() => {
                                   const myProgress = (fanProfile?.submissions || {})[t.id]?.count || 0;
                                   const threshold = t.threshold || 1;
@@ -2917,36 +2917,52 @@ export default function App() {
                                     </div>
                                   );
                                 })()}
-                                <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 12, cursor: "pointer", marginBottom: 8 }}>
-                                  <span style={{ fontSize: 20 }}>📸</span>
-                                  <div><div style={{ fontSize: 13, color: "#aabbcc" }}>Tap to upload a photo</div><div style={{ fontSize: 11, color: "#8899bb" }}>JPG or PNG</div></div>
-                                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
-                                    const file = e.target.files[0];
-                                    if (!file) return;
-                                    const canvas = document.createElement("canvas");
-                                    const ctx = canvas.getContext("2d");
-                                    const img = new Image();
-                                    const url = URL.createObjectURL(file);
-                                    img.onload = () => {
-                                      const MAX = 800;
-                                      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-                                      canvas.width = img.width * ratio;
-                                      canvas.height = img.height * ratio;
-                                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                      const photoUrl = canvas.toDataURL("image/jpeg", 0.7);
-                                      URL.revokeObjectURL(url);
-                                      const existing = (fanProfile?.submissions || {})[t.id]?.photos || [];
-                                      const comment = trophyCodeInput.trim();
-                                      const newPhoto = { url: photoUrl, comment, submittedAt: new Date().toISOString(), reviewed: false };
-                                      update(ref(db, `users/${fanUser.uid}/submissions/${t.id}`), { photos: [...existing, newPhoto] });
-                                      setTrophyCodeMsg("📸 Photo submitted! The club will review it soon.");
-                                      setTrophyCodeInput("");
-                                    };
-                                    img.src = url;
-                                  }} />
-                                </label>
-                                <input value={trophyCodeInput} onChange={e => setTrophyCodeInput(e.target.value)} placeholder="Add a comment (optional)..." style={{ ...S.input, marginBottom: 8 }} />
-                                {trophyCodeMsg && <div style={{ fontSize: 13, color: trophyCodeMsg.includes("📸") ? "#10b981" : "#ef4444" }}>{trophyCodeMsg}</div>}
+                                {trophyCodeMsg === "submitted" ? (
+                                  <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
+                                    <div style={{ fontSize: 24, marginBottom: 6 }}>📸</div>
+                                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#10b981", marginBottom: 4 }}>Photo Submitted!</div>
+                                    <div style={{ fontSize: 12, color: "#8899bb" }}>The club will review your submission and update your progress shortly.</div>
+                                  </div>
+                                ) : trophyCodeInput ? (
+                                  <div>
+                                    <img src={trophyCodeInput} alt="Preview" style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 8, marginBottom: 8, border: "1px solid #347ebf44" }} />
+                                    <textarea value={trophyCodeMsg} onChange={e => setTrophyCodeMsg(e.target.value)} placeholder="Add a comment (optional)..." style={{ ...S.input, height: 60, resize: "none", marginBottom: 10 }} />
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                      <button onClick={() => { setTrophyCodeInput(""); setTrophyCodeMsg(""); }} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", flex: 1 }}>Change photo</button>
+                                      <button onClick={() => {
+                                        const existing = (fanProfile?.submissions || {})[t.id]?.photos || [];
+                                        const newPhoto = { url: trophyCodeInput, comment: trophyCodeMsg.trim(), submittedAt: new Date().toISOString(), reviewed: false };
+                                        update(ref(db, `users/${fanUser.uid}/submissions/${t.id}`), { photos: [...existing, newPhoto] });
+                                        setTrophyCodeMsg("submitted");
+                                        setTrophyCodeInput("");
+                                      }} style={{ ...S.btn, background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", flex: 1 }}>Submit →</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", border: "1px dashed #347ebf44", borderRadius: 8, padding: 14, cursor: "pointer" }}>
+                                    <span style={{ fontSize: 24 }}>📸</span>
+                                    <div><div style={{ fontSize: 13, color: "#aabbcc", fontWeight: 600 }}>Tap to choose a photo</div><div style={{ fontSize: 11, color: "#8899bb" }}>JPG or PNG · submit button unlocks once chosen</div></div>
+                                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                                      const file = e.target.files[0];
+                                      if (!file) return;
+                                      const canvas = document.createElement("canvas");
+                                      const ctx = canvas.getContext("2d");
+                                      const img = new Image();
+                                      const url = URL.createObjectURL(file);
+                                      img.onload = () => {
+                                        const MAX = 800;
+                                        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+                                        canvas.width = img.width * ratio;
+                                        canvas.height = img.height * ratio;
+                                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                        setTrophyCodeInput(canvas.toDataURL("image/jpeg", 0.7));
+                                        setTrophyCodeMsg("");
+                                        URL.revokeObjectURL(url);
+                                      };
+                                      img.src = url;
+                                    }} />
+                                  </label>
+                                )}
                               </div>
                             ) : (
                               <div>
