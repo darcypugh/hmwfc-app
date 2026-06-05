@@ -1308,6 +1308,56 @@ function FanLogin({ onClose }) {
   );
 }
 
+
+function NonPassTrophyGrid({ trophies }) {
+  const categoryOrder = ["bronze","silver","gold","hidden"];
+  const sorted = [...trophies].sort((a, b) => categoryOrder.indexOf(a.category || "bronze") - categoryOrder.indexOf(b.category || "bronze"));
+  // First trophy per category is the example (unblurred)
+  const firstPerCategory = {};
+  categoryOrder.forEach(k => {
+    const first = sorted.find(t => (t.category || "bronze") === k);
+    if (first) firstPerCategory[k] = first.id;
+  });
+  return (
+    <div>
+      {/* Feature highlights */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
+        {[
+          { icon: "🏆", title: "Earn Trophies", desc: "Complete challenges throughout the season — visit away grounds, attend events and more to unlock your collection." },
+          { icon: "📊", title: "Leaderboard", desc: "Compete against fellow fans on The Clubhouse leaderboard. Bronze, Silver and Gold trophies each earn different points." },
+          { icon: "❓", title: "Hidden Trophies", desc: "Secret challenges you won't know about until you unlock them. Can you find them all?" },
+          { icon: "🎁", title: "End of Season Prizes", desc: "Top fans on the leaderboard at the end of the season will be rewarded. Watch this space." },
+        ].map(f => (
+          <div key={f.title} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 16 }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 6 }}>{f.title}</div>
+            <div style={{ fontSize: 12, color: "#8899bb", lineHeight: 1.6 }}>{f.desc}</div>
+          </div>
+        ))}
+      </div>
+      {/* All trophies — first per category unblurred, rest blurred */}
+      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>This Season's Trophies</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12, marginBottom: 28 }}>
+        {sorted.map(t => {
+          const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+          const isExample = firstPerCategory[t.category || "bronze"] === t.id;
+          const isHidden = t.category === "hidden";
+          return (
+            <div key={t.id} style={{ background: "#191740", border: `1px solid ${isExample ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 14, textAlign: "center", filter: isExample ? "none" : "blur(3px)", opacity: isExample ? 1 : 0.55, order: isExample ? -1 : 0 }}>
+              {t.image
+                ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8 }} />
+                : <div style={{ fontSize: 36, marginBottom: 8 }}>{isHidden && !isExample ? "❓" : t.emoji}</div>}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: isExample ? cat.color : "#8899bb", marginBottom: 3 }}>{isExample || !isHidden ? t.name : "???"}</div>
+              <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
+              <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 6px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -1331,6 +1381,10 @@ export default function App() {
   const [drawOpen, setDrawOpen] = useState(false);
   const [navGroup, setNavGroup] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [selectedTrophy, setSelectedTrophy] = useState(null);
+  const [trophyTab, setTrophyTab] = useState("todo");
+  const [trophyCodeInput, setTrophyCodeInput] = useState("");
+  const [trophyCodeMsg, setTrophyCodeMsg] = useState("");
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -2695,48 +2749,10 @@ useEffect(() => {
                     <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{sp.description || "Purchase a Season Pass and unlock exclusive trophies throughout the season. Visit away grounds, attend events, and complete challenges to earn your badges."}</div>
                     <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontSize: 15, padding: "12px 28px" }}>Sign in with Google to get started</button>
                   </div>
-                  {/* Feature description + example trophies — shown to all non-pass-holders */}
-              {(() => {
-                const examplesByCategory = ["bronze","silver","gold","hidden"].map(catKey => {
-                  const cat = TROPHY_CATEGORIES.find(c => c.key === catKey);
-                  const example = trophies.find(t => (t.category || "bronze") === catKey && t.name);
-                  return { cat, example };
-                });
-                return (
-                  <div>
-                    {/* Feature highlights */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
-                      {[
-                        { icon: "🏆", title: "Earn Trophies", desc: "Complete challenges throughout the season — visit away grounds, attend events and more to unlock your collection." },
-                        { icon: "📊", title: "Leaderboard", desc: "Compete against fellow fans on The Clubhouse leaderboard. Bronze, Silver and Gold trophies each earn different points." },
-                        { icon: "❓", title: "Hidden Trophies", desc: "Secret challenges you won't know about until you unlock them. Can you find them all?" },
-                        { icon: "🎁", title: "End of Season Prizes", desc: "Top fans on the leaderboard at the end of the season will be rewarded. Watch this space." },
-                      ].map(f => (
-                        <div key={f.title} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 16 }}>
-                          <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 6 }}>{f.title}</div>
-                          <div style={{ fontSize: 12, color: "#8899bb", lineHeight: 1.6 }}>{f.desc}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Example trophies — one per category */}
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>Trophy Categories</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
-                      {examplesByCategory.map(({ cat, example }) => (
-                        <div key={cat.key} style={{ background: "#191740", border: `1px solid ${cat.color}44`, borderRadius: 12, padding: 16, textAlign: "center", opacity: 0.8 }}>
-                          <div style={{ fontSize: 36, marginBottom: 8, filter: "grayscale(40%)" }}>{example ? example.emoji : (cat.key === "hidden" ? "❓" : "🏆")}</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: cat.color, marginBottom: 4 }}>{cat.label.toUpperCase()}</div>
-                          <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 8 }}>{example ? example.name : "???"}</div>
-                          <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>{cat.points} pts</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
+                  <NonPassTrophyGrid trophies={trophies} />
                 </div>
               ) : !fanProfile?.passUnlocked ? (
-                /* Signed in, no pass — show description + purchase + code entry */
+                /* Signed in, no pass */
                 <div>
                   <div style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, marginBottom: 24, textAlign: "center" }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
@@ -2748,45 +2764,7 @@ useEffect(() => {
                       </a>
                     )}
                   </div>
-                  {/* Feature description + example trophies — shown to all non-pass-holders */}
-              {(() => {
-                const examplesByCategory = ["bronze","silver","gold","hidden"].map(catKey => {
-                  const cat = TROPHY_CATEGORIES.find(c => c.key === catKey);
-                  const example = trophies.find(t => (t.category || "bronze") === catKey && t.name);
-                  return { cat, example };
-                });
-                return (
-                  <div>
-                    {/* Feature highlights */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 28 }}>
-                      {[
-                        { icon: "🏆", title: "Earn Trophies", desc: "Complete challenges throughout the season — visit away grounds, attend events and more to unlock your collection." },
-                        { icon: "📊", title: "Leaderboard", desc: "Compete against fellow fans on The Clubhouse leaderboard. Bronze, Silver and Gold trophies each earn different points." },
-                        { icon: "❓", title: "Hidden Trophies", desc: "Secret challenges you won't know about until you unlock them. Can you find them all?" },
-                        { icon: "🎁", title: "End of Season Prizes", desc: "Top fans on the leaderboard at the end of the season will be rewarded. Watch this space." },
-                      ].map(f => (
-                        <div key={f.title} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 16 }}>
-                          <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 6 }}>{f.title}</div>
-                          <div style={{ fontSize: 12, color: "#8899bb", lineHeight: 1.6 }}>{f.desc}</div>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Example trophies — one per category */}
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 14 }}>Trophy Categories</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
-                      {examplesByCategory.map(({ cat, example }) => (
-                        <div key={cat.key} style={{ background: "#191740", border: `1px solid ${cat.color}44`, borderRadius: 12, padding: 16, textAlign: "center", opacity: 0.8 }}>
-                          <div style={{ fontSize: 36, marginBottom: 8, filter: "grayscale(40%)" }}>{example ? example.emoji : (cat.key === "hidden" ? "❓" : "🏆")}</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: cat.color, marginBottom: 4 }}>{cat.label.toUpperCase()}</div>
-                          <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 8 }}>{example ? example.name : "???"}</div>
-                          <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>{cat.points} pts</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
+                  <NonPassTrophyGrid trophies={trophies} />
                   <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 14, padding: 24, textAlign: "center", marginTop: 4 }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🔑</div>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 10 }}>Already have a code?</div>
@@ -2830,28 +2808,91 @@ useEffect(() => {
                     {codeMsg && <div style={{ marginTop: 10, fontSize: 13, color: codeMsg.includes("🏆") ? "#f59e0b" : codeMsg.includes("already") ? "#8899bb" : "#ef4444" }}>{codeMsg}</div>}
                   </div>
 
-                  {/* Trophy grid */}
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Your Trophies</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
-                    {trophies.map(t => {
-                      const unlocked = !!unlockedTrophies[t.id];
-                      const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
-                      const isHidden = t.category === "hidden";
-                      return (
-                        <div key={t.id} style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `1px solid ${unlocked ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 16, textAlign: "center", transition: "all 0.3s", opacity: unlocked ? 1 : (isHidden && !unlocked ? 0.3 : 0.5) }}>
-                          {t.image
-                            ? <img src={t.image} alt="" style={{ width: 64, height: 64, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : "grayscale(100%)" }} />
-                            : <div style={{ fontSize: 40, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 4 }}>{unlocked || !isHidden ? t.name : "???"}</div>
-                          <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.4 }}>{unlocked ? t.description : "???"}</div>
-                          <div style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                            <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, letterSpacing: 1, background: cat.color + "22", padding: "2px 6px", borderRadius: 4 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
+                  {/* Trophy modal */}
+                  {selectedTrophy && (() => {
+                    const t = selectedTrophy;
+                    const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+                    const isUnlocked = !!unlockedTrophies[t.id];
+                    return (
+                      <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedTrophy(null); setTrophyCodeMsg(""); setTrophyCodeInput(""); }}>
+                        <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 400, overflow: "hidden", border: `1px solid ${cat.color}44` }} onClick={e => e.stopPropagation()}>
+                          <div style={{ background: isUnlocked ? `${cat.color}18` : "#0d0c22", padding: 24, textAlign: "center" }}>
+                            {t.image
+                              ? <img src={t.image} alt="" style={{ width: 80, height: 80, objectFit: "contain", marginBottom: 12 }} />
+                              : <div style={{ fontSize: 56, marginBottom: 12 }}>{t.emoji}</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: cat.color, marginBottom: 6 }}>{t.name}</div>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "3px 10px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
                           </div>
-                          {unlocked && <div style={{ fontSize: 9, color: cat.color, fontWeight: 900, marginTop: 4, letterSpacing: 1 }}>UNLOCKED</div>}
+                          <div style={{ padding: "20px 24px 24px" }}>
+                            <div style={{ fontSize: 14, color: "#aabbcc", lineHeight: 1.7, marginBottom: 20 }}>{t.description}</div>
+                            {isUnlocked ? (
+                              <div style={{ background: "#10b98122", border: "1px solid #10b98144", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 14 }}>✅ Completed!</div>
+                            ) : (
+                              <div>
+                                <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 10 }}>Enter the check-in code to mark this trophy as complete:</div>
+                                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                                  <input value={trophyCodeInput} onChange={e => setTrophyCodeInput(e.target.value.toUpperCase())} placeholder="Enter code..." style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, flex: 1 }} />
+                                  <button onClick={() => {
+                                    const code = trophyCodeInput.trim().toUpperCase();
+                                    if (code !== t.checkInCode) { setTrophyCodeMsg("Wrong code — try again."); return; }
+                                    update(ref(db, `users/${fanUser.uid}/trophies`), { [t.id]: true });
+                                    setTrophyCodeMsg("🏆 Trophy unlocked!");
+                                    setTrophyCodeInput("");
+                                    setTimeout(() => { setSelectedTrophy(null); setTrophyCodeMsg(""); }, 1200);
+                                  }} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Unlock</button>
+                                </div>
+                                {trophyCodeMsg && <div style={{ fontSize: 13, color: trophyCodeMsg.includes("🏆") ? "#10b981" : "#ef4444" }}>{trophyCodeMsg}</div>}
+                              </div>
+                            )}
+                            <button onClick={() => { setSelectedTrophy(null); setTrophyCodeMsg(""); setTrophyCodeInput(""); }} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", width: "100%", marginTop: 14, fontSize: 12 }}>Close</button>
+                          </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Tabs */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+                    <button className={`tab-btn ${trophyTab === "todo" ? "active" : ""}`} onClick={() => setTrophyTab("todo")}>To Do</button>
+                    <button className={`tab-btn ${trophyTab === "complete" ? "active" : ""}`} onClick={() => setTrophyTab("complete")}>
+                      Complete {Object.values(unlockedTrophies).filter(Boolean).length > 0 && `(${Object.values(unlockedTrophies).filter(Boolean).length})`}
+                    </button>
                   </div>
+
+                  {/* Trophy grid — sorted by category, filtered by tab */}
+                  {(() => {
+                    const categoryOrder = ["bronze","silver","gold","hidden"];
+                    const sorted = [...trophies].sort((a, b) => categoryOrder.indexOf(a.category || "bronze") - categoryOrder.indexOf(b.category || "bronze"));
+                    const filtered = trophyTab === "todo"
+                      ? sorted.filter(t => !unlockedTrophies[t.id])
+                      : sorted.filter(t => !!unlockedTrophies[t.id]);
+                    if (filtered.length === 0) return (
+                      <div style={{ color: "#8899bb", fontSize: 14, padding: 24, textAlign: "center", background: "#191740", borderRadius: 12 }}>
+                        {trophyTab === "todo" ? "All trophies complete! 🏆" : "No trophies completed yet — get out there!"}
+                      </div>
+                    );
+                    return (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
+                        {filtered.map(t => {
+                          const unlocked = !!unlockedTrophies[t.id];
+                          const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
+                          const isHidden = t.category === "hidden";
+                          return (
+                            <div key={t.id} onClick={() => { setSelectedTrophy(t); setTrophyCodeInput(""); setTrophyCodeMsg(""); }}
+                              style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `2px solid ${unlocked ? cat.color : "#ffffff0f"}`, borderRadius: 12, padding: 14, textAlign: "center", cursor: "pointer", transition: "all 0.2s" }}>
+                              {t.image
+                                ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : (isHidden ? "grayscale(100%) brightness(0.4)" : "grayscale(100%)") }} />
+                                : <div style={{ fontSize: 36, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 3 }}>{unlocked || !isHidden ? t.name : "???"}</div>
+                              <div style={{ fontSize: 10, color: "#8899bb66", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
+                              <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 6px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
+                              {unlocked && <div style={{ fontSize: 9, color: "#10b981", fontWeight: 900, marginTop: 5, letterSpacing: 1 }}>✅ COMPLETE</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
