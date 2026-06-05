@@ -2644,9 +2644,7 @@ export default function App() {
                             );
                           })}
                         </div>
-                        <div style={{ fontSize: 11, color: "#8899bb", marginTop: 8 }}>
-                          <span style={{ color: "#f59e0b" }}>●</span> Low stock &nbsp; <span style={{ color: "#8899bb55" }}>--</span> Sold out
-                        </div>
+
                       </div>
                     )}
                     {/* Quantity */}
