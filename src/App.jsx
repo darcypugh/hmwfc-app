@@ -970,6 +970,7 @@ function AdminSeasonPass({ spData, onSave }) {
   const [season, setSeason] = useState(spData?.season || "2026/27");
   const [description, setDescription] = useState(spData?.description || "");
   const [spStripeLink, setSpStripeLink] = useState(spData?.stripeLink || "");
+  const [seasonLocked, setSeasonLocked] = useState(spData?.locked !== false);
   const [trophies, setTrophies] = useState(spData?.trophies || defaultTrophies);
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState("settings");
@@ -984,6 +985,7 @@ function AdminSeasonPass({ spData, onSave }) {
       setSeason(spData.season || "2026/27");
       setDescription(spData.description || "");
       setSpStripeLink(spData.stripeLink || "");
+      setSeasonLocked(spData.locked !== false);
       setTrophies(spData.trophies || defaultTrophies);
     }
   }, [spData]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1020,7 +1022,7 @@ function AdminSeasonPass({ spData, onSave }) {
     img.src = url;
   };
 
-  const save = () => onSave({ ...(spData || {}), season, description, stripeLink: spStripeLink, trophies });
+  const save = () => onSave({ ...(spData || {}), season, description, stripeLink: spStripeLink, locked: seasonLocked, trophies });
 
   const generateCodes = (count) => {
     setGeneratingCodes(true);
@@ -1107,6 +1109,13 @@ function AdminSeasonPass({ spData, onSave }) {
           </div>
           <div><label style={S.label}>Public Description (shown on the Season Pass page)</label><textarea style={{ ...S.input, height: 80, resize: "vertical" }} value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the season pass and what fans can unlock..." /></div>
           <div><label style={S.label}>Purchase Link (Stripe or other payment link)</label><input style={S.input} value={spStripeLink} onChange={e => setSpStripeLink(e.target.value)} placeholder="https://buy.stripe.com/..." /></div>
+          <div style={{ background: "#191740", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: seasonLocked ? "#ef4444" : "#10b981", marginBottom: 4 }}>{seasonLocked ? "🔒 Season Locked" : "🟢 Season Active"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{seasonLocked ? "Fans can see trophies but cannot unlock any yet. Toggle to open the season." : "Fans can unlock trophies. Toggle to lock the season."}</div>
+            </div>
+            <button onClick={() => setSeasonLocked(l => !l)} style={{ ...S.btn, background: seasonLocked ? "#ef444422" : "#10b98122", color: seasonLocked ? "#ef4444" : "#10b981", border: `1px solid ${seasonLocked ? "#ef444444" : "#10b98144"}`, flexShrink: 0 }}>{seasonLocked ? "Unlock Season" : "Lock Season"}</button>
+          </div>
           <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={save}>Save</button>
         </div>
       )}
@@ -1451,7 +1460,7 @@ function NonPassTrophyGrid({ trophies }) {
             <div key={t.id} style={{ background: "#191740", border: `1px solid ${isExample ? cat.color + "66" : "#ffffff0f"}`, borderRadius: 12, padding: 14, textAlign: "center", filter: isExample ? "none" : "blur(3px)", opacity: isExample ? 1 : 0.55, order: isExample ? -1 : 0 }}>
               {t.image
                 ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8 }} />
-                : <div style={{ fontSize: 36, marginBottom: 8 }}>{isHidden && !isExample ? "❓" : t.emoji}</div>}
+                : <div style={{ fontSize: 36, marginBottom: 8 }}>{isHidden ? "❓" : (isExample ? t.emoji : "🔒")}</div>}
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: isExample ? cat.color : "#8899bb", marginBottom: 3 }}>{isExample || !isHidden ? t.name : "???"}</div>
               <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
               <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 6px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
@@ -1687,6 +1696,8 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#0d0c22", fontFamily: "Barlow, sans-serif", color: "#fff" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;900&display=swap');
+        body { font-size: 16px; }
+        @media (max-width: 480px) { body { font-size: 17px; } td { font-size: 15px !important; } .tab-btn { font-size: 13px !important; padding: 8px 14px !important; } .nav-btn { font-size: 18px !important; } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0d0c22; } ::-webkit-scrollbar-thumb { background: #347ebf55; border-radius: 3px; }
         .nav-btn { background: none; border: none; color: #aabbcc; font-family: Barlow Condensed, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; padding: 14px 20px; transition: all 0.2s; border-left: 3px solid transparent; text-align: left; width: 100%; }
@@ -2912,7 +2923,18 @@ export default function App() {
                     <button onClick={() => signOut(auth)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", fontSize: 11 }}>Sign out</button>
                   </div>
 
-                  {/* Check-in code */}
+                  {/* Season locked banner */}
+                  {sp.locked !== false && (
+                    <div style={{ background: "#ef444411", border: "1px solid #ef444444", borderRadius: 12, padding: "16px 18px", marginBottom: 24, display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ fontSize: 28, flexShrink: 0 }}>🔒</div>
+                      <div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900, color: "#ef4444", marginBottom: 4 }}>Season Not Started Yet</div>
+                        <div style={{ fontSize: 13, color: "#aabbcc", lineHeight: 1.6 }}>Trophies will be unlockable once the season begins. Keep an eye out for the announcement!</div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Check-in code — only show when season is active */}
+                  {sp.locked === false && (
                   <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>🔓 Enter a Check-In Code</div>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -2921,6 +2943,7 @@ export default function App() {
                     </div>
                     {codeMsg && <div style={{ marginTop: 10, fontSize: 13, color: codeMsg.includes("🏆") ? "#f59e0b" : codeMsg.includes("already") ? "#8899bb" : "#ef4444" }}>{codeMsg}</div>}
                   </div>
+                  )}
 
                   {/* Trophy modal */}
                   {selectedTrophy && (() => {
@@ -2931,9 +2954,9 @@ export default function App() {
                       <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedTrophy(null); setTrophyCodeMsg(""); setTrophyCodeInput(""); }}>
                         <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 400, overflow: "hidden", border: `1px solid ${cat.color}44` }} onClick={e => e.stopPropagation()}>
                           <div style={{ background: isUnlocked ? `${cat.color}18` : "#0d0c22", padding: 24, textAlign: "center" }}>
-                            {t.image
+                            {isUnlocked && t.image
                               ? <img src={t.image} alt="" style={{ width: 80, height: 80, objectFit: "contain", marginBottom: 12 }} />
-                              : <div style={{ fontSize: 56, marginBottom: 12 }}>{t.emoji}</div>}
+                              : <div style={{ fontSize: 56, marginBottom: 12 }}>{isUnlocked ? t.emoji : (t.category === "hidden" ? "❓" : "🔒")}</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: cat.color, marginBottom: 6 }}>{t.name}</div>
                             <span style={{ fontSize: 10, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "3px 10px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
                           </div>
@@ -3058,10 +3081,10 @@ export default function App() {
                           const cat = TROPHY_CATEGORIES.find(c => c.key === (t.category || "bronze")) || TROPHY_CATEGORIES[0];
                           const isHidden = t.category === "hidden";
                           return (
-                            <div key={t.id} onClick={() => { setSelectedTrophy(t); setTrophyCodeInput(""); setTrophyCodeMsg(""); }}
-                              style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `2px solid ${unlocked ? cat.color : "#ffffff0f"}`, borderRadius: 12, padding: 14, textAlign: "center", cursor: "pointer", transition: "all 0.2s" }}>
-                              {t.image
-                                ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8, filter: unlocked ? "none" : (isHidden ? "grayscale(100%) brightness(0.4)" : "grayscale(100%)") }} />
+                            <div key={t.id} onClick={() => { if (sp.locked !== false && !unlocked) return; setSelectedTrophy(t); setTrophyCodeInput(""); setTrophyCodeMsg(""); }}
+                              style={{ background: unlocked ? `${cat.color}15` : "#191740", border: `2px solid ${unlocked ? cat.color : "#ffffff0f"}`, borderRadius: 12, padding: 14, textAlign: "center", cursor: (sp.locked !== false && !unlocked) ? "default" : "pointer", transition: "all 0.2s" }}>
+                              {unlocked && t.image
+                                ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8 }} />
                                 : <div style={{ fontSize: 36, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
                               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 3 }}>{unlocked || !isHidden ? t.name : "???"}</div>
                               <div style={{ fontSize: 10, color: "#8899bb66", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
