@@ -1461,7 +1461,7 @@ function NonPassTrophyGrid({ trophies }) {
               {t.image
                 ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8 }} />
                 : <div style={{ fontSize: 36, marginBottom: 8 }}>{isHidden ? "❓" : (isExample ? t.emoji : "🔒")}</div>}
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: isExample ? cat.color : "#8899bb", marginBottom: 3 }}>{isExample || !isHidden ? t.name : "???"}</div>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: isExample ? cat.color : "#8899bb", marginBottom: 3 }}>{t.name || "???"}</div>
               <div style={{ fontSize: 10, color: "#8899bb", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
               <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 6px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
             </div>
@@ -2889,11 +2889,11 @@ export default function App() {
                           🎟️ Buy Your Season Pass
                         </a>
                       )}
-                      <button onClick={() => { const el = document.getElementById("sp-code-input"); if (el) { el.scrollIntoView({ behavior: "smooth" }); el.focus(); } }} style={{ ...S.btn, background: "#ffffff11", border: "1px solid #ffffff22", color: "#aabbcc", fontSize: 15, padding: "13px 24px" }}>🔑 Already have a code?</button>
+                      <button onClick={() => {}} style={{ ...S.btn, background: "#ffffff11", border: "1px solid #ffffff22", color: "#aabbcc", fontSize: 15, padding: "13px 24px" }}>🔑 Already have a code?</button>
                     </div>
                     <div id="sp-code-input" style={{ marginTop: 20 }}>
                       <div style={{ display: "flex", gap: 8, maxWidth: 360, margin: "0 auto" }}>
-                        <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="Enter code here" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 3, fontSize: 16, textAlign: "center", flex: 1 }} />
+                        <input value={passInput} onChange={e => setPassInput(e.target.value.toUpperCase())} placeholder="Enter code here" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, fontSize: 13, textAlign: "center", flex: 1 }} />
                         <button onClick={enterPassCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Activate</button>
                       </div>
                       {passMsg && <div style={{ marginTop: 10, fontSize: 13, color: passMsg.includes("✅") ? "#10b981" : "#ef4444" }}>{passMsg}</div>}
@@ -3086,7 +3086,7 @@ export default function App() {
                               {unlocked && t.image
                                 ? <img src={t.image} alt="" style={{ width: 56, height: 56, objectFit: "contain", marginBottom: 8 }} />
                                 : <div style={{ fontSize: 36, marginBottom: 8 }}>{unlocked ? t.emoji : (isHidden ? "❓" : "🔒")}</div>}
-                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 3 }}>{unlocked || !isHidden ? t.name : "???"}</div>
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: unlocked ? cat.color : "#8899bb", marginBottom: 3 }}>{t.name || "???"}</div>
                               <div style={{ fontSize: 10, color: "#8899bb66", lineHeight: 1.3, marginBottom: 6 }}>{t.description}</div>
                               <span style={{ fontSize: 9, fontWeight: 900, color: cat.color, background: cat.color + "22", padding: "2px 6px", borderRadius: 4, letterSpacing: 1 }}>{cat.label.toUpperCase()} · {cat.points}pts</span>
                               {unlocked && <div style={{ fontSize: 9, color: "#10b981", fontWeight: 900, marginTop: 5, letterSpacing: 1 }}>✅ COMPLETE</div>}
