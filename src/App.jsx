@@ -78,7 +78,6 @@ const DEFAULT_DATA = {
   },
 };
 
-const NAV_ITEMS = ["Home", "Fan Zone", "News", "First Team", "Help The Wells", "Gallery", "Download"];
 const FAN_ZONE_ITEMS = ["Wells Season Pass", "The Clubhouse"];
 const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
 const HELP_WELLS_ITEMS = ["Fundraising", "Merch"];
@@ -1662,7 +1661,6 @@ export default function App() {
   const SQUAD_PAGE_SIZE = 24;
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
-  const [navGroup, setNavGroup] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
