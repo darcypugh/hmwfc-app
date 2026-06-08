@@ -1925,6 +1925,15 @@ export default function App() {
         .buy-btn { background: linear-gradient(135deg, #347ebf, #1a5f9e); border: none; color: #fff; font-family: Barlow Condensed, sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 13px; padding: 9px 22px; border-radius: 8px; cursor: pointer; width: 100%; }
         .buy-btn:hover { opacity: 0.85; }
         .squad-row:hover { background: #347ebf11 !important; }
+        .bottom-tab-bar { display: none; }
+        @media (max-width: 768px) {
+          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding: 0; safe-area-inset-bottom: env(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); }
+          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px 6px; border: none; background: none; cursor: pointer; gap: 3px; min-width: 0; }
+          .bottom-tab-icon { font-size: 20px; line-height: 1; }
+          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; }
+          .bottom-tab.active .bottom-tab-label { color: #347ebf; }
+          .main-content-pad { padding-bottom: 70px; }
+        }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
         td { padding: 11px 12px; font-size: 14px; border-bottom: 1px solid #ffffff07; }
@@ -2049,7 +2058,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
+      <div className="main-content-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
 
         {active === "Home" && (() => {
 
@@ -2077,57 +2086,94 @@ export default function App() {
           const oppName = latestResult ? (latestResult.home.includes("Hemsworth") ? latestResult.away : latestResult.home) : null;
           const oppBadge = latestResult && getBadge(oppName, latestResult);
           const weWereHome = latestResult && latestResult.home.includes("Hemsworth");
+          const oursRow = sorted.find(r => r.highlight);
+          const oursPos = oursRow?.pos;
+          const nearbyRows = sorted.filter(r => Math.abs(r.pos - oursPos) <= 2);
           return (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 24, alignItems: "start" }} className="home-grid">
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 340px; } @media(max-width:780px){ @media(max-width:780px){ .home-grid { grid-template-columns: 1fr !important; } } }`}</style>
-              {/* Latest news */}
+              {/* LEFT COLUMN */}
               <div style={{ minWidth: 0 }}>
-                {/* Help The Wells strip */}
-                {data.draw && (
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
-                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
-                    </div>
-                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      {/* Monthly Draw card */}
-                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
-                        <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
-                        <div style={{ padding: "8px 10px 10px" }}>
-                          <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>Monthly Draw</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#10b981" }}>£10/month</div>
+                {/* Latest Result — hero position */}
+                {latestResult && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest Result</div>
+                    <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
+                      <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                            {(weWereHome ? oursBadge : oppBadge) ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
+                          </div>
+                          <div style={{ textAlign: "center", flexShrink: 0 }}>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
+                            {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
+                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{latestResult.date}</div>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                            {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
+                          </div>
                         </div>
+                        <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
                       </div>
+                      {(latestResult.homeScorers || latestResult.awayScorers) && (
+                        <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
+                          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                            <div style={{ flex: 1, textAlign: "right" }}>
+                              {(latestResult.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span><span style={{ fontSize: 12 }}>⚽</span></div>)}
+                            </div>
+                            <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch" }} />
+                            <div style={{ flex: 1 }}>
+                              {(latestResult.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12 }}>⚽</span><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span></div>)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Merch strip */}
-                {data.merch && data.merch.length > 0 && (
-                  <div style={{ marginBottom: 24 }}>
+                {/* League position — compact 5-row view centred on us */}
+                {oursRow && (
+                  <div style={{ marginBottom: 20 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
-                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>League Position</div>
+                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
                     </div>
-                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      {data.merch.map(m => (
-                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
-                          {m.image
-                            ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                                <img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} />
-                              </div>
-                            : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
-                          <div style={{ padding: "8px 10px 10px" }}>
-                            {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>{m.name}</div>
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                    <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                      {nearbyRows.map(r => {
+                        const zone = getZone(r.pos);
+                        const isOurs = r.highlight;
+                        return (
+                          <div key={r.pos} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: isOurs ? "#347ebf14" : "transparent", borderBottom: "1px solid #ffffff07" }}>
+                            <div style={{ width: 3, height: 28, background: isOurs ? "#347ebf" : zoneColor[zone], borderRadius: 2, flexShrink: 0 }} />
+                            <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
+                            {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells ⭐" : r.team.split(" ").slice(0,3).join(" ")}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{r.pts}pts</div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
+
+                {/* Season Pass teaser */}
+                {seasonPassData && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div onClick={() => setActive("Wells Season Pass")} style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ fontSize: 32, flexShrink: 0 }}>🎟️</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900, marginBottom: 3 }}>Wells Season Pass</div>
+                        <div style={{ fontSize: 12, color: "#8899bb" }}>{fanProfile?.passUnlocked ? `${Object.values(fanProfile.trophies || {}).filter(Boolean).length} trophies unlocked` : "Collect trophies all season long"}</div>
+                      </div>
+                      <div style={{ color: "#347ebf", fontSize: 18 }}>→</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Latest News */}
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest News</div>
                 {latest ? (
                   <div className="card" style={{ overflow: "hidden", minWidth: 0 }}>
@@ -2186,11 +2232,50 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                {/* Merch strip */}
+                {data.merch && data.merch.length > 0 && (
+                  <div style={{ marginTop: 24, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
+                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
+                      {data.merch.map(m => (
+                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
+                          {m.image ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}><img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} /></div> : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
+                          <div style={{ padding: "8px 10px 10px" }}>
+                            {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>{m.name}</div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Help The Wells strip */}
+                {data.draw && (
+                  <div style={{ marginTop: 16, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
+                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
+                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
+                        <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
+                        <div style={{ padding: "8px 10px 10px" }}>
+                          <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>Monthly Draw</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#10b981" }}>£10/month</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Mini league table */}
+              {/* RIGHT COLUMN */}
               <div style={{ minWidth: 0 }}>
-                {/* Latest result card */}
                 {/* Upcoming fixtures */}
                 {(() => {
                   const upcoming = data.fixtures && [...data.fixtures].filter(f => f.type === "upcoming").slice(0, 3);
@@ -2332,31 +2417,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                {/* Contact the club */}
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Contact the Club</div>
-                  <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-                    <a href="mailto:HMWFC_1981@hotmail.com" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, background: "#347ebf22", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>✉️</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>EMAIL</div><div style={{ fontSize: 13, fontWeight: 600 }}>HMWFC_1981@hotmail.com</div></div>
-                    </a>
-                    <div style={{ height: 1, background: "#ffffff07" }} />
-                    <a href="https://x.com/hemsworthmwfc" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, background: "#ffffff0f", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 15, color: "#fff", flexShrink: 0 }}>𝕏</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>X / TWITTER</div><div style={{ fontSize: 13, fontWeight: 600 }}>@hemsworthmwfc</div></div>
-                    </a>
-                    <div style={{ height: 1, background: "#ffffff07" }} />
-                    <a href="https://instagram.com/hemsworthmwfc" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, background: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" }}>📷</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>INSTAGRAM</div><div style={{ fontSize: 13, fontWeight: 600 }}>@hemsworthmwfc</div></div>
-                    </a>
-                    <div style={{ height: 1, background: "#ffffff07" }} />
-                    <a href="https://facebook.com/search/top?q=Hemsworth+Miners+Welfare+FC" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, background: "#1877f222", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👥</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>FACEBOOK</div><div style={{ fontSize: 13, fontWeight: 600 }}>Hemsworth Miners Welfare FC</div></div>
-                    </a>
-                  </div>
-                </div>
+
               </div>
             </div>
           );
@@ -3679,6 +3740,34 @@ export default function App() {
           </div>
         )}
 
+      </div>
+
+      {/* Bottom tab bar — mobile only */}
+      <div className="bottom-tab-bar">
+        {[
+          { key: "Home", icon: "🏠", label: "Home" },
+          { key: "First Team", icon: "⚽", label: "First Team", sub: true },
+          { key: "News", icon: "📰", label: "News" },
+          { key: "Wells Season Pass", icon: "🎟️", label: "Fan Zone", sub: true },
+          { key: "__more__", icon: "☰", label: "More" },
+        ].map(tab => {
+          const isActive = tab.key === "First Team"
+            ? ["Table","Fixtures","Squad"].includes(active)
+            : tab.key === "Wells Season Pass"
+            ? ["Wells Season Pass","The Clubhouse"].includes(active)
+            : active === tab.key;
+          return (
+            <button key={tab.key} className={`bottom-tab ${isActive ? "active" : ""}`}
+              onClick={() => {
+                if (tab.key === "__more__") { setMenuOpen(true); }
+                else if (tab.key === "First Team") { setActive("Fixtures"); }
+                else { setActive(tab.key); }
+              }}>
+              <span className="bottom-tab-icon">{tab.icon}</span>
+              <span className="bottom-tab-label" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ borderTop: "1px solid #ffffff0f", padding: "18px 20px", textAlign: "center", color: "#8899bb", fontSize: 12, letterSpacing: 1 }}>
