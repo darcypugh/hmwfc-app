@@ -78,7 +78,6 @@ const DEFAULT_DATA = {
   },
 };
 
-const NAV_ITEMS = ["Home", "Fan Zone", "News", "First Team", "Help The Wells", "Gallery", "Download"];
 const FAN_ZONE_ITEMS = ["Wells Season Pass", "The Clubhouse"];
 const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
 const HELP_WELLS_ITEMS = ["Fundraising", "Merch"];
@@ -1332,10 +1331,133 @@ function AdminSeasonPass({ spData, onSave }) {
   );
 }
 
+
+function AdminClubhouse({ data, onUpdate }) {
+  const [matchday, setMatchday] = useState(data.clubhouse?.matchday || { locked: true, home: "Hemsworth Miners Welfare FC", away: "", homeBadge: "", awayBadge: "" });
+  const [motm, setMotm] = useState(data.clubhouse?.motm || { locked: true, players: [], winner: "" });
+  const [tab, setTab] = useState("predictions");
+
+  useEffect(() => {
+    setMatchday(data.clubhouse?.matchday || { locked: true, home: "Hemsworth Miners Welfare FC", away: "", homeBadge: "", awayBadge: "" });
+    setMotm(data.clubhouse?.motm || { locked: true, players: [], winner: "" });
+  }, [data.clubhouse]);
+
+  const saveMatchday = () => onUpdate("clubhouse", { ...(data.clubhouse || {}), matchday });
+  const saveMotm = () => onUpdate("clubhouse", { ...(data.clubhouse || {}), motm });
+
+  const addPlayer = () => setMotm(m => ({ ...m, players: [...(m.players || []), { name: "", photo: "" }] }));
+  const updatePlayer = (idx, field, val) => setMotm(m => ({ ...m, players: m.players.map((p, i) => i === idx ? { ...p, [field]: val } : p) }));
+  const removePlayer = (idx) => setMotm(m => ({ ...m, players: m.players.filter((_, i) => i !== idx) }));
+
+  return (
+    <div>
+      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>Clubhouse</div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid #ffffff0f" }}>
+        {[["predictions", "⚽ Match Predictions"], ["motm", "🏅 Man of the Match"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} style={{ ...S.btn, borderRadius: 0, borderBottom: tab === k ? "2px solid #347ebf" : "2px solid transparent", color: tab === k ? "#347ebf" : "#8899bb", background: "none", padding: "10px 14px", fontSize: 12 }}>{label}</button>
+        ))}
+      </div>
+
+      {tab === "predictions" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: "#191740", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: matchday.locked ? "#ef4444" : "#10b981", marginBottom: 4 }}>{matchday.locked ? "🔒 Predictions Locked" : "🟢 Predictions Open"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{matchday.locked ? "Fans cannot submit predictions yet." : "Fans can submit their score predictions."}</div>
+            </div>
+            <button onClick={() => setMatchday(m => ({ ...m, locked: !m.locked }))} style={{ ...S.btn, background: matchday.locked ? "#ef444422" : "#10b98122", color: matchday.locked ? "#ef4444" : "#10b981", border: `1px solid ${matchday.locked ? "#ef444444" : "#10b98144"}`, flexShrink: 0 }}>{matchday.locked ? "Open" : "Lock"}</button>
+          </div>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>Teams and badges are pulled from the league table. For friendlies or cup games, type the team name and upload a badge manually.</div>
+          <div style={S.row}>
+            {["home", "away"].map(side => {
+              const tableTeam = (data.table || []).find(r => r.team === matchday[side]);
+              const tableBadge = tableTeam?.badge ? `data:image/png;base64,${tableTeam.badge}` : null;
+              const manualBadge = matchday[side + "Badge"];
+              const badge = tableBadge || manualBadge;
+              return (
+                <div key={side} style={{ flex: 1 }}>
+                  <label style={S.label}>{side === "home" ? "Home" : "Away"} Team</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    {badge ? <img src={badge} alt="" style={{ width: 32, height: 32, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 24, flexShrink: 0 }}>🛡</span>}
+                    <select style={S.input} value={matchday[side] || ""} onChange={e => setMatchday(m => ({ ...m, [side]: e.target.value, [side + "Badge"]: "" }))}>
+                      <option value="">Select or type below...</option>
+                      {(data.table || []).sort((a,b) => a.pos - b.pos).map(t => <option key={t.team} value={t.team}>{t.team}</option>)}
+                    </select>
+                  </div>
+                  <input style={{ ...S.input, marginBottom: 6 }} value={matchday[side] || ""} onChange={e => setMatchday(m => ({ ...m, [side]: e.target.value }))} placeholder="Or type team name..." />
+                  {!tableBadge && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: "#0d0c22", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
+                      {manualBadge ? <img src={manualBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>🛡</span>}
+                      <span style={{ fontSize: 11, color: "#8899bb" }}>{manualBadge ? "Change badge" : "Upload badge (optional)"}</span>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = ev => setMatchday(m => ({ ...m, [side + "Badge"]: ev.target.result }));
+                        reader.readAsDataURL(file);
+                      }} />
+                    </label>
+                  )}
+                  {tableBadge && <div style={{ fontSize: 10, color: "#10b981" }}>✓ Badge from league table</div>}
+                </div>
+              );
+            })}
+          </div>
+          <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={saveMatchday}>Save</button>
+        </div>
+      )}
+
+      {tab === "motm" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: "#191740", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: motm.locked ? "#ef4444" : "#10b981", marginBottom: 4 }}>{motm.locked ? "🔒 Voting Locked" : "🟢 Voting Open"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{motm.locked ? "Fans see 'Waiting for match result'." : "Fans can vote for Man of the Match."}</div>
+            </div>
+            <button onClick={() => setMotm(m => ({ ...m, locked: !m.locked }))} style={{ ...S.btn, background: motm.locked ? "#ef444422" : "#10b98122", color: motm.locked ? "#ef4444" : "#10b981", border: `1px solid ${motm.locked ? "#ef444444" : "#10b98144"}`, flexShrink: 0 }}>{motm.locked ? "Open Voting" : "Lock Voting"}</button>
+          </div>
+          <div><label style={S.label}>Match Title (e.g. vs Frickley Athletic)</label><input style={S.input} value={motm.matchTitle || ""} onChange={e => setMotm(m => ({ ...m, matchTitle: e.target.value }))} placeholder="vs Frickley Athletic — 14 Aug" /></div>
+          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Players on ballot</div>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>Select from current squad — photo pulls through automatically.</div>
+          {(motm.players || []).map((p, idx) => {
+            const squadPlayer = (data.squad || []).find(s => s.name === p.name);
+            const photo = squadPlayer?.photo || p.photo || null;
+            return (
+              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0c22", borderRadius: 8, padding: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #ffffff15", flexShrink: 0 }}>
+                  {photo ? <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
+                </div>
+                <select style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => updatePlayer(idx, "name", e.target.value)}>
+                  <option value="">Select player...</option>
+                  {(data.squad || []).filter(s => s.playing).sort((a,b) => a.name.localeCompare(b.name)).map(s => (
+                    <option key={s.id} value={s.name}>{s.name} ({s.pos})</option>
+                  ))}
+                </select>
+                <button onClick={() => removePlayer(idx)} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "6px 10px", flexShrink: 0 }}>✕</button>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={addPlayer}>+ Add Player</button>
+            <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444" }} onClick={() => {
+              if (window.confirm("Clear all votes and reset Man of the Match?")) {
+                const newMotm = { locked: true, players: [], matchTitle: "" };
+                setMotm(newMotm);
+                update(ref(db), { "hmwfc/clubhouse/motmVotes": null, "hmwfc/clubhouse/motm": newMotm });
+              }
+            }}>🗑 Clear & Reset</button>
+            <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={saveMotm}>Save</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
   const adminScrollRef = useRef(null);
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -1364,6 +1486,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
         {section === "Fundraising" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
         {section === "Season Pass" && <AdminSeasonPass spData={data.seasonPass || {}} onSave={v => onUpdate("seasonPass", v)} />}
+        {section === "Clubhouse" && <AdminClubhouse data={data} onUpdate={onUpdate} />}
       </div>
     </div>
   );
@@ -1483,6 +1606,40 @@ function NonPassTrophyGrid({ trophies }) {
   );
 }
 
+
+function PredictionForm({ homeName, awayName, onSubmit }) {
+  const [homeGoals, setHomeGoals] = useState("");
+  const [awayGoals, setAwayGoals] = useState("");
+  const ready = homeGoals !== "" && awayGoals !== "" && !isNaN(homeGoals) && !isNaN(awayGoals);
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Enter your score prediction</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center", marginBottom: 16 }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 6 }}>{homeName}</div>
+          <input
+            type="number" min="0" max="20" value={homeGoals}
+            onChange={e => setHomeGoals(e.target.value)}
+            style={{ width: 64, height: 64, background: "#0d0c22", border: "2px solid #347ebf44", borderRadius: 10, color: "#fff", fontSize: 28, fontWeight: 900, textAlign: "center", fontFamily: "Barlow Condensed, sans-serif", outline: "none" }}
+          />
+        </div>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#8899bb", paddingTop: 20 }}>–</div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 6 }}>{awayName}</div>
+          <input
+            type="number" min="0" max="20" value={awayGoals}
+            onChange={e => setAwayGoals(e.target.value)}
+            style={{ width: 64, height: 64, background: "#0d0c22", border: "2px solid #347ebf44", borderRadius: 10, color: "#fff", fontSize: 28, fontWeight: 900, textAlign: "center", fontFamily: "Barlow Condensed, sans-serif", outline: "none" }}
+          />
+        </div>
+      </div>
+      <button onClick={() => ready && onSubmit(+homeGoals, +awayGoals)} style={{ ...S.btn, background: ready ? "linear-gradient(135deg,#347ebf,#1a5f9e)" : "#ffffff0f", color: ready ? "#fff" : "#8899bb55", width: "100%", fontSize: 15, padding: "12px 0", cursor: ready ? "pointer" : "not-allowed" }}>
+        {ready ? "Lock in my prediction →" : "Enter both scores to continue"}
+      </button>
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -1504,13 +1661,15 @@ export default function App() {
   const SQUAD_PAGE_SIZE = 24;
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
-  const [navGroup, setNavGroup] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
   const [trophyTab, setTrophyTab] = useState("todo");
   const [trophyCodeInput, setTrophyCodeInput] = useState("");
   const [trophyCodeMsg, setTrophyCodeMsg] = useState("");
+  const [predictions, setPredictions] = useState({});
+  const [motmVote, setMotmVote] = useState(null);
+  const [allPredictions, setAllPredictions] = useState({});
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -1652,6 +1811,42 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // Load fan's own predictions
+  useEffect(() => {
+    if (!fanUser) return;
+    const predRef = ref(db, `users/${fanUser.uid}/predictions`);
+    const unsub = onValue(predRef, (snap) => {
+      if (snap.exists()) setPredictions(snap.val());
+    });
+    return () => unsub();
+  }, [fanUser]);
+
+  // Load fan's motm vote (object with pollId, or legacy string)
+  useEffect(() => {
+    if (!fanUser) return;
+    const motmRef = ref(db, `users/${fanUser.uid}/motmVote`);
+    const unsub = onValue(motmRef, (snap) => {
+      setMotmVote(snap.exists() ? snap.val() : null);
+    });
+    return () => unsub();
+  }, [fanUser]);
+
+  // Load all fans' predictions for the leaderboard display
+  useEffect(() => {
+    const unsub = onValue(ref(db, "users"), (snap) => {
+      if (!snap.exists()) return;
+      const all = {};
+      Object.values(snap.val()).forEach(u => {
+        if (u.predictions) {
+          const name = u.displayName || u.email || "Fan";
+          all[name] = { predictions: u.predictions, photo: u.photo || null };
+        }
+      });
+      setAllPredictions(all);
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     const unsub = onValue(ref(db, "users"), (snap) => {
       if (!snap.exists()) { setLeaderboard([]); return; }
@@ -1728,6 +1923,15 @@ export default function App() {
         .buy-btn { background: linear-gradient(135deg, #347ebf, #1a5f9e); border: none; color: #fff; font-family: Barlow Condensed, sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 13px; padding: 9px 22px; border-radius: 8px; cursor: pointer; width: 100%; }
         .buy-btn:hover { opacity: 0.85; }
         .squad-row:hover { background: #347ebf11 !important; }
+        .bottom-tab-bar { display: none; }
+        @media (max-width: 768px) {
+          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding: 0; safe-area-inset-bottom: env(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); }
+          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px 6px; border: none; background: none; cursor: pointer; gap: 3px; min-width: 0; }
+          .bottom-tab-icon { font-size: 20px; line-height: 1; }
+          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; }
+          .bottom-tab.active .bottom-tab-label { color: #347ebf; }
+          .main-content-pad { padding-bottom: 70px; }
+        }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
         td { padding: 11px 12px; font-size: 14px; border-bottom: 1px solid #ffffff07; }
@@ -1762,55 +1966,46 @@ export default function App() {
               <img src={"/logo.png"} alt="HMWFC" style={{ height: 36, filter: "drop-shadow(0 0 8px #347ebf66)" }} />
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#347ebf", letterSpacing: 1 }}>THE WELLS</div>
             </div>
-            <div style={{ flex: 1, paddingTop: 8 }}>
-              {NAV_ITEMS.map(n => {
-                if (n === "First Team") {
-                  const isGroupActive = FIRST_TEAM_ITEMS.includes(active);
-                  return (
-                    <div key={n}>
-                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "firstteam" ? null : "firstteam")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>First Team</span>
-                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "firstteam" ? "▲" : "▼"}</span>
-                      </button>
-                      {(navGroup === "firstteam" || isGroupActive) && FIRST_TEAM_ITEMS.map(sub => (
-                        <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
-                      ))}
-                    </div>
-                  );
-                }
-                if (n === "Help The Wells") {
-                  const isGroupActive = HELP_WELLS_ITEMS.includes(active) || active === "Help The Wells" || active === "Merch";
-                  return (
-                    <div key={n}>
-                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "helpwells" ? null : "helpwells")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Help The Wells</span>
-                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "helpwells" ? "▲" : "▼"}</span>
-                      </button>
-                      {(navGroup === "helpwells" || isGroupActive) && HELP_WELLS_ITEMS.map(sub => (
-                        <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`} onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
-                      ))}
-                    </div>
-                  );
-                }
-                if (n === "Fan Zone") {
-                  const isGroupActive = FAN_ZONE_ITEMS.includes(active);
-                  return (
-                    <div key={n}>
-                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "fanzone" ? null : "fanzone")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Fan Zone</span>
-                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "fanzone" ? "▲" : "▼"}</span>
-                      </button>
-                      {(navGroup === "fanzone" || isGroupActive) && FAN_ZONE_ITEMS.map(sub => (
-                        <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
-                      ))}
-                    </div>
-                  );
-                }
-                return <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => { setActive(n); setMenuOpen(false); }}>{n}</button>;
-              })}
+            <div style={{ flex: 1, paddingTop: 8, overflowY: "auto" }}>
+              {/* Quick links — always visible */}
+              {[
+                { label: "🏠 Home", key: "Home" },
+                { label: "📰 News", key: "News" },
+                { label: "🖼️ Gallery", key: "Gallery" },
+                { label: "📲 Download", key: "Download" },
+              ].map(({ label, key }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}>{label}</button>
+              ))}
+
+              {/* Divider */}
+              <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
+              <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FIRST TEAM</div>
+              {FIRST_TEAM_ITEMS.map(sub => (
+                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
+                  {sub === "Table" ? "📊 Table" : sub === "Fixtures" ? "📅 Fixtures" : "👕 Squad"}
+                </button>
+              ))}
+
+              <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
+              <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FAN ZONE</div>
+              {FAN_ZONE_ITEMS.map(sub => (
+                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
+                  {sub === "Wells Season Pass" ? "🎟️ Season Pass" : "🏠 The Clubhouse"}
+                </button>
+              ))}
+
+              <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
+              <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>HELP THE WELLS</div>
+              {HELP_WELLS_ITEMS.map(sub => (
+                <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`}
+                  onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14 }}>
+                  {sub === "Fundraising" ? "🎟️ Fundraising" : "🛒 Merch"}
+                </button>
+              ))}
             </div>
             <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
-              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ ADMIN PANEL</button>
+              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ Admin Panel</button>
             </div>
           </div>
         </>
@@ -1852,7 +2047,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
+      <div className="main-content-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
 
         {active === "Home" && (() => {
 
@@ -1880,57 +2075,94 @@ export default function App() {
           const oppName = latestResult ? (latestResult.home.includes("Hemsworth") ? latestResult.away : latestResult.home) : null;
           const oppBadge = latestResult && getBadge(oppName, latestResult);
           const weWereHome = latestResult && latestResult.home.includes("Hemsworth");
+          const oursRow = sorted.find(r => r.highlight);
+          const oursPos = oursRow?.pos;
+          const nearbyRows = sorted.filter(r => Math.abs(r.pos - oursPos) <= 2);
           return (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 24, alignItems: "start" }} className="home-grid">
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 340px; } @media(max-width:780px){ @media(max-width:780px){ .home-grid { grid-template-columns: 1fr !important; } } }`}</style>
-              {/* Latest news */}
+              {/* LEFT COLUMN */}
               <div style={{ minWidth: 0 }}>
-                {/* Help The Wells strip */}
-                {data.draw && (
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
-                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
-                    </div>
-                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      {/* Monthly Draw card */}
-                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
-                        <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
-                        <div style={{ padding: "8px 10px 10px" }}>
-                          <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>Monthly Draw</div>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#10b981" }}>£10/month</div>
+                {/* Latest Result — hero position */}
+                {latestResult && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest Result</div>
+                    <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
+                      <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                            {(weWereHome ? oursBadge : oppBadge) ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
+                          </div>
+                          <div style={{ textAlign: "center", flexShrink: 0 }}>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
+                            {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
+                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{latestResult.date}</div>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+                            {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
+                          </div>
                         </div>
+                        <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
                       </div>
+                      {(latestResult.homeScorers || latestResult.awayScorers) && (
+                        <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
+                          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                            <div style={{ flex: 1, textAlign: "right" }}>
+                              {(latestResult.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span><span style={{ fontSize: 12 }}>⚽</span></div>)}
+                            </div>
+                            <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch" }} />
+                            <div style={{ flex: 1 }}>
+                              {(latestResult.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12 }}>⚽</span><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span></div>)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Merch strip */}
-                {data.merch && data.merch.length > 0 && (
-                  <div style={{ marginBottom: 24 }}>
+                {/* League position — compact 5-row view centred on us */}
+                {oursRow && (
+                  <div style={{ marginBottom: 20 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
-                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>League Position</div>
+                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
                     </div>
-                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      {data.merch.map(m => (
-                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
-                          {m.image
-                            ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                                <img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} />
-                              </div>
-                            : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
-                          <div style={{ padding: "8px 10px 10px" }}>
-                            {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>{m.name}</div>
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                    <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                      {nearbyRows.map(r => {
+                        const zone = getZone(r.pos);
+                        const isOurs = r.highlight;
+                        return (
+                          <div key={r.pos} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: isOurs ? "#347ebf14" : "transparent", borderBottom: "1px solid #ffffff07" }}>
+                            <div style={{ width: 3, height: 28, background: isOurs ? "#347ebf" : zoneColor[zone], borderRadius: 2, flexShrink: 0 }} />
+                            <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
+                            {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells ⭐" : r.team.split(" ").slice(0,3).join(" ")}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{r.pts}pts</div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
+
+                {/* Season Pass teaser */}
+                {seasonPassData && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div onClick={() => setActive("Wells Season Pass")} style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ fontSize: 32, flexShrink: 0 }}>🎟️</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900, marginBottom: 3 }}>Wells Season Pass</div>
+                        <div style={{ fontSize: 12, color: "#8899bb" }}>{fanProfile?.passUnlocked ? `${Object.values(fanProfile.trophies || {}).filter(Boolean).length} trophies unlocked` : "Collect trophies all season long"}</div>
+                      </div>
+                      <div style={{ color: "#347ebf", fontSize: 18 }}>→</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Latest News */}
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest News</div>
                 {latest ? (
                   <div className="card" style={{ overflow: "hidden", minWidth: 0 }}>
@@ -1989,177 +2221,80 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                {/* Merch strip */}
+                {data.merch && data.merch.length > 0 && (
+                  <div style={{ marginTop: 24, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
+                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
+                      {data.merch.map(m => (
+                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
+                          {m.image ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}><img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} /></div> : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
+                          <div style={{ padding: "8px 10px 10px" }}>
+                            {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>{m.name}</div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: "#347ebf" }}>{m.price}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Help The Wells strip */}
+                {data.draw && (
+                  <div style={{ marginTop: 16, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
+                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                    </div>
+                    <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
+                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
+                        <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
+                        <div style={{ padding: "8px 10px 10px" }}>
+                          <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, lineHeight: 1.2, marginBottom: 3 }}>Monthly Draw</div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#10b981" }}>£10/month</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Mini league table */}
+              {/* RIGHT COLUMN — desktop sidebar only */}
               <div style={{ minWidth: 0 }}>
-                {/* Latest result card */}
-                {/* Upcoming fixtures */}
+                {/* Next fixture */}
                 {(() => {
-                  const upcoming = data.fixtures && [...data.fixtures].filter(f => f.type === "upcoming").slice(0, 3);
-                  if (!upcoming || upcoming.length === 0) return null;
+                  const next = data.fixtures && [...data.fixtures].filter(f => f.type === "upcoming")[0];
+                  if (!next) return null;
+                  const homeBadge = getBadge(next.home, next);
+                  const awayBadge = getBadge(next.away, next);
+                  const weHome = next.home.includes("Hemsworth");
                   return (
                     <div style={{ marginBottom: 20 }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Upcoming Fixtures</div>
-                      <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
-                        {upcoming.map((f, i) => {
-                          const homeBadge = getBadge(f.home, f);
-                          const awayBadge = getBadge(f.away, f);
-                          const weHome = f.home.includes("Hemsworth");
-                          return (
-                            <div key={f.id} style={{ padding: "12px 14px", borderBottom: i < upcoming.length - 1 ? "1px solid #ffffff07" : "none" }}>
-                              <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 6, letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.date} · {f.time} · {f.venue}</div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                {homeBadge ? <img src={homeBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
-                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: weHome ? 700 : 400, color: "#fff", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{weHome ? "The Wells" : f.home}</span>
-                                <span style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, flexShrink: 0 }}>vs</span>
-                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: !weHome ? 700 : 400, color: "#fff", flex: 1, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!weHome ? "The Wells" : f.away}</span>
-                                {awayBadge ? <img src={awayBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div style={{ padding: "10px 14px", borderTop: "1px solid #ffffff0f" }}>
-                          <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL FIXTURES →</button>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Next Match</div>
+                        <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
+                      </div>
+                      <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 16px" }}>
+                        <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{next.date} · {next.time} · {next.venue}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🛡</span>}
+                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: weHome ? 700 : 400, textAlign: "center" }}>{weHome ? "The Wells" : next.home}</span>
+                          </div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#8899bb" }}>vs</div>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🛡</span>}
+                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: !weHome ? 700 : 400, textAlign: "center" }}>{!weHome ? "The Wells" : next.away}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
                 })()}
-
-                {latestResult && (
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest Result</div>
-                    <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
-                      <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
-                        {/* Badges + Score */}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-                          {/* Home badge -- fixed height name prevents misalignment */}
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                            {(weWereHome ? oursBadge : oppBadge)
-                              ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
-                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
-                          </div>
-                          {/* Score */}
-                          <div style={{ textAlign: "center", flexShrink: 0 }}>
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
-                            {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
-                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{latestResult.date}</div>
-                          </div>
-                          {/* Away badge */}
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                            {(!weWereHome ? oursBadge : oppBadge)
-                              ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
-                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
-                          </div>
-                        </div>
-                        {/* Venue */}
-                        <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
-                      </div>
-                      {/* Scorers -- split home/away with badge */}
-                      {(latestResult.homeScorers || latestResult.awayScorers || latestResult.scorers) && (
-                        <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
-                          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                            {/* Home scorers */}
-                            <div style={{ flex: 1, textAlign: "right" }}>
-                              {((latestResult.homeScorers || latestResult.scorers || "")).split(",").filter(s => s.trim() && (weWereHome ? true : !latestResult.homeScorers)).map((s,i) => {
-                                return (
-                                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}>
-                                    <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
-                                    <span style={{ fontSize: 12 }}>⚽</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {/* Divider */}
-                            <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch", flexShrink: 0 }} />
-                            {/* Away scorers */}
-                            <div style={{ flex: 1, textAlign: "left" }}>
-                              {((latestResult.awayScorers || "")).split(",").filter(s => s.trim()).map((s,i) => {
-                                return (
-                                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                                    <span style={{ fontSize: 12 }}>⚽</span>
-                                    <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>League Table</div>
-                <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid #ffffff0f" }}>
-                        <th style={{ width: 3 }}></th>
-                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}>#</th>
-                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}></th>
-                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}>Club</th>
-                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "right" }}>Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sorted.map((r, idx) => {
-                        const zone = getZone(r.pos);
-                        const isOurs = r.highlight;
-                        const prevZone = idx > 0 ? getZone(sorted[idx-1].pos) : null;
-                        const showDivider = prevZone && prevZone !== zone;
-                        return (
-                          <tr key={r.pos} style={{ background: isOurs ? "#347ebf14" : "transparent", borderTop: showDivider ? "1px solid #ffffff14" : "none" }}>
-                            <td style={{ padding: 0, width: 3 }}><div style={{ width: 3, height: 36, background: isOurs ? "#347ebf" : zoneColor[zone], opacity: 0.8 }} /></td>
-                            <td style={{ padding: "6px 4px", fontSize: 12, color: isOurs ? "#347ebf" : zoneColor[zone], fontWeight: 700 }}>{r.pos}</td>
-                            <td style={{ padding: "6px 4px", width: 24 }}>
-                              {r.badge
-                                ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", display: "block" }} />
-                                : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>🛡</div>}
-                            </td>
-                            <td style={{ padding: "6px 4px", fontSize: 12, fontWeight: isOurs ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 0, width: "100%" }}>
-                              {isOurs ? "The Wells" : r.team.split(" ").slice(0,2).join(" ")}
-                            </td>
-                            <td style={{ padding: "6px 6px", fontSize: 12, fontWeight: 700, textAlign: "right" }}>{r.pts}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <div style={{ padding: "10px 12px", borderTop: "1px solid #ffffff0f" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW FULL TABLE →</button>
-                      {data.tableUpdatedAt && <span style={{ fontSize: 10, color: "#8899bb66" }}>Updated {new Date(data.tableUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>}
-                    </div>
-                  </div>
-                </div>
-                {/* Contact the club */}
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Contact the Club</div>
-                  <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-                    <a href="mailto:HMWFC_1981@hotmail.com" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, background: "#347ebf22", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>✉️</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>EMAIL</div><div style={{ fontSize: 13, fontWeight: 600 }}>HMWFC_1981@hotmail.com</div></div>
-                    </a>
-                    <div style={{ height: 1, background: "#ffffff07" }} />
-                    <a href="https://x.com/hemsworthmwfc" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, background: "#ffffff0f", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 15, color: "#fff", flexShrink: 0 }}>𝕏</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>X / TWITTER</div><div style={{ fontSize: 13, fontWeight: 600 }}>@hemsworthmwfc</div></div>
-                    </a>
-                    <div style={{ height: 1, background: "#ffffff07" }} />
-                    <a href="https://instagram.com/hemsworthmwfc" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0, background: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" }}>📷</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>INSTAGRAM</div><div style={{ fontSize: 13, fontWeight: 600 }}>@hemsworthmwfc</div></div>
-                    </a>
-                    <div style={{ height: 1, background: "#ffffff07" }} />
-                    <a href="https://facebook.com/search/top?q=Hemsworth+Miners+Welfare+FC" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#aabbcc" }}>
-                      <div style={{ width: 36, height: 36, background: "#1877f222", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👥</div>
-                      <div><div style={{ fontSize: 11, color: "#8899bb", letterSpacing: 0.5, marginBottom: 1 }}>FACEBOOK</div><div style={{ fontSize: 13, fontWeight: 600 }}>Hemsworth Miners Welfare FC</div></div>
-                    </a>
-                  </div>
-                </div>
               </div>
             </div>
           );
@@ -3117,34 +3252,216 @@ export default function App() {
 
 
         {active === "The Clubhouse" && (() => {
+          const clubhouse = data.clubhouse || {};
+          const matchday = clubhouse.matchday || {};
+          const motm = clubhouse.motm || {};
+          const motmPlayers = motm.players || [];
+
+          // Total votes for poll percentages
+          const motmVotes = clubhouse.motmVotes || {};
+          const totalVotes = Object.values(motmVotes).reduce((s, v) => s + v, 0);
+
+          const submitPrediction = (homeGoals, awayGoals) => {
+            if (!fanUser) return;
+            update(ref(db, `users/${fanUser.uid}/predictions`), {
+              [`match_${matchday.home}_${matchday.away}`]: { home: homeGoals, away: awayGoals, submittedAt: new Date().toISOString() }
+            });
+            setPredictions(prev => ({ ...prev, [`match_${matchday.home}_${matchday.away}`]: { home: homeGoals, away: awayGoals } }));
+          };
+
+          const motmPollId = motm.matchTitle || "default";
+          // Check if stored vote matches current poll
+          const storedMotmVote = motmVote && typeof motmVote === "object" ? motmVote : null;
+          const effectiveMotmVote = storedMotmVote?.pollId === motmPollId ? storedMotmVote.player : null;
+          const submitMotmVote = (playerName) => {
+            if (!fanUser || effectiveMotmVote) return;
+            update(ref(db, `hmwfc/clubhouse/motmVotes`), { [playerName]: (motmVotes[playerName] || 0) + 1 });
+            update(ref(db, `users/${fanUser.uid}`), { motmVote: { player: playerName, pollId: motmPollId } });
+            setMotmVote({ player: playerName, pollId: motmPollId });
+          };
+
+          const predKey = `match_${matchday.home}_${matchday.away}`;
+          const myPred = predictions[predKey];
 
           return (
             <div style={{ padding: "0 0 40px" }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>The Clubhouse 🏠</div>
-              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 24 }}>Home of The Wells fan community</div>
+              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 28 }}>Home of The Wells fan community</div>
 
-              {/* Leaderboard */}
+              {/* ── Match Predictions ── */}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>⚽ Match Predictions</div>
+              {matchday.locked ? (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14, marginBottom: 28 }}>
+                  🔒 Predictions aren't open yet — check back on matchday!
+                </div>
+              ) : (
+                <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: 20, marginBottom: 28 }}>
+                  {/* Teams + badges */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                    {(() => {
+                      const homeTeam = (data.table || []).find(t => t.team === matchday.home);
+                      const awayTeam = (data.table || []).find(t => t.team === matchday.away);
+                      const homeBadge = homeTeam?.badge ? `data:image/png;base64,${homeTeam.badge}` : (matchday.homeBadge || null);
+                      const awayBadge = awayTeam?.badge ? `data:image/png;base64,${awayTeam.badge}` : (matchday.awayBadge || null);
+                      return (
+                        <>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} /> : <span style={{ fontSize: 36 }}>🛡</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center" }}>{matchday.home || "Home"}</div>
+                          </div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, color: "#8899bb" }}>vs</div>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} /> : <span style={{ fontSize: 36 }}>🛡</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center" }}>{matchday.away || "Away"}</div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {!fanUser ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 12 }}>Sign in to submit your prediction</div>
+                      <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign In</button>
+                    </div>
+                  ) : myPred ? (
+                    <div>
+                      <div style={{ textAlign: "center", marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, color: "#10b981", marginBottom: 4 }}>✓ Your prediction is locked in</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#347ebf" }}>{myPred.home} – {myPred.away}</div>
+                      </div>
+                      {/* All fans' predictions */}
+                      {Object.keys(allPredictions).length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>EVERYONE'S PREDICTIONS</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {Object.entries(allPredictions)
+                              .filter(([, v]) => v.predictions?.[predKey])
+                              .map(([name, v]) => {
+                                const pred = v.predictions[predKey];
+                                const homeTeam = (data.table || []).find(t => t.team === matchday.home);
+                                const awayTeam = (data.table || []).find(t => t.team === matchday.away);
+                                const homeBadge = homeTeam?.badge ? `data:image/png;base64,${homeTeam.badge}` : null;
+                                const awayBadge = awayTeam?.badge ? `data:image/png;base64,${awayTeam.badge}` : null;
+                                const isMe = name === fanProfile?.displayName;
+                                return (
+                                  <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: isMe ? "#347ebf11" : "#0d0c22", borderRadius: 8, border: `1px solid ${isMe ? "#347ebf44" : "#ffffff0f"}` }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#191740", border: "1px solid #ffffff15", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                      {v.photo ? <img src={v.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 14 }}>👤</span>}
+                                    </div>
+                                    <div style={{ flex: 1, fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: isMe ? 700 : 400, color: isMe ? "#347ebf" : "#fff" }}>{name}{isMe ? " (you)" : ""}</div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                      {homeBadge && <img src={homeBadge} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />}
+                                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900 }}>{pred.home} – {pred.away}</span>
+                                      {awayBadge && <img src={awayBadge} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <PredictionForm
+                      homeName={matchday.home}
+                      awayName={matchday.away}
+                      onSubmit={submitPrediction}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* ── Man of the Match ── */}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>🏅 Man of the Match</div>
+              {motm.locked ? (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", marginBottom: 28 }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 6 }}>Waiting for Match Result</div>
+                  <div style={{ fontSize: 13, color: "#8899bb" }}>Voting will open once the match is finished.</div>
+                </div>
+              ) : (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 20, marginBottom: 28 }}>
+                  {motm.matchTitle && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 16, textAlign: "center", letterSpacing: 1 }}>{motm.matchTitle.toUpperCase()}</div>}
+                  {!fanUser ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 12 }}>Sign in to vote</div>
+                      <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign In</button>
+                    </div>
+                  ) : effectiveMotmVote ? (
+                    /* Show poll results — vertical cards with % overlay */
+                    <div>
+                      <div style={{ fontSize: 12, color: "#10b981", marginBottom: 6, textAlign: "center" }}>✓ You voted for {effectiveMotmVote}</div>
+                      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 16, textAlign: "center" }}>{totalVotes} vote{totalVotes !== 1 ? "s" : ""} total</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxWidth: 480, margin: "0 auto" }}>
+                        {[...motmPlayers].sort((a, b) => (motmVotes[b.name] || 0) - (motmVotes[a.name] || 0)).map(p => {
+                          const squadPlayer = (data.squad || []).find(s => s.name === p.name);
+                          const photo = squadPlayer?.photo || p.photo || null;
+                          const votes = motmVotes[p.name] || 0;
+                          const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                          const isMyVote = effectiveMotmVote === p.name;
+                          return (
+                            <div key={p.name} style={{ textAlign: "center" }}>
+                              <div style={{ position: "relative", height: 160, borderRadius: 10, overflow: "hidden", border: `2px solid ${isMyVote ? "#347ebf" : "#ffffff15"}`, marginBottom: 6 }}>
+                                {photo
+                                  ? <img src={photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                                  : <div style={{ width: "100%", height: "100%", background: "#191740", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>👤</div>}
+                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#000000bb", padding: "6px 8px" }}>
+                                  <div style={{ height: 4, background: "#ffffff22", borderRadius: 2, marginBottom: 4 }}>
+                                    <div style={{ height: "100%", width: `${pct}%`, background: isMyVote ? "#347ebf" : "#f59e0b", borderRadius: 2, transition: "width 0.5s" }} />
+                                  </div>
+                                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: isMyVote ? "#347ebf" : "#fff" }}>{pct}%</div>
+                                </div>
+                              </div>
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: isMyVote ? "#347ebf" : "#fff", lineHeight: 1.3 }}>{p.name}{isMyVote ? " ✓" : ""}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Vote screen — 2x2 grid */
+                    <div>
+                      <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Who was your Man of the Match?</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxWidth: 480, margin: "0 auto" }}>
+                        {motmPlayers.map(p => {
+                          const squadPlayer = (data.squad || []).find(s => s.name === p.name);
+                          const photo = squadPlayer?.photo || p.photo || null;
+                          return (
+                            <button key={p.name} onClick={() => submitMotmVote(p.name)}
+                              style={{ background: "#0d0c22", border: "1px solid #ffffff22", borderRadius: 10, cursor: "pointer", textAlign: "center", transition: "all 0.2s", overflow: "hidden", padding: 0, display: "block", width: "100%" }}>
+                              <div style={{ height: 160, overflow: "hidden", background: "#191740" }}>
+                                {photo
+                                  ? <img src={photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>👤</div>}
+                              </div>
+                              <div style={{ padding: "10px 8px", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Leaderboard ── */}
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Season Pass Leaderboard 🏆</div>
               {leaderboard.length === 0 ? (
-                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14 }}>No season pass holders yet -- be the first!</div>
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14 }}>No season pass holders yet — be the first!</div>
               ) : (
                 <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                   {leaderboard.map((entry, idx) => {
                     const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
                     return (
                       <div key={idx} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: idx < leaderboard.length - 1 ? "1px solid #ffffff07" : "none", background: idx === 0 ? "#f59e0b0a" : "transparent" }}>
-                        {/* Position */}
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: medal ? 22 : 15, fontWeight: 900, width: 28, textAlign: "center", color: idx < 3 ? "#f59e0b" : "#8899bb", flexShrink: 0 }}>{medal || `${idx + 1}`}</div>
-                        {/* Avatar */}
                         <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", border: `2px solid ${idx === 0 ? "#f59e0b44" : "#ffffff15"}`, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           {entry.photo ? <img src={entry.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
                         </div>
-                        {/* Name + trophy count */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</div>
                           <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} {entry.count === 1 ? "trophy" : "trophies"}</div>
                         </div>
-                        {/* Points */}
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#aaaaaa" : idx === 2 ? "#cd7f32" : "#fff", lineHeight: 1 }}>{entry.score}</div>
                           <div style={{ fontSize: 10, color: "#8899bb", letterSpacing: 1 }}>PTS</div>
@@ -3300,6 +3617,34 @@ export default function App() {
           </div>
         )}
 
+      </div>
+
+      {/* Bottom tab bar — mobile only */}
+      <div className="bottom-tab-bar">
+        {[
+          { key: "Home", icon: "🏠", label: "Home" },
+          { key: "First Team", icon: "⚽", label: "First Team", sub: true },
+          { key: "News", icon: "📰", label: "News" },
+          { key: "Wells Season Pass", icon: "🎟️", label: "Fan Zone", sub: true },
+          { key: "__more__", icon: "☰", label: "More" },
+        ].map(tab => {
+          const isActive = tab.key === "First Team"
+            ? ["Table","Fixtures","Squad"].includes(active)
+            : tab.key === "Wells Season Pass"
+            ? ["Wells Season Pass","The Clubhouse"].includes(active)
+            : active === tab.key;
+          return (
+            <button key={tab.key} className={`bottom-tab ${isActive ? "active" : ""}`}
+              onClick={() => {
+                if (tab.key === "__more__") { setMenuOpen(true); }
+                else if (tab.key === "First Team") { setActive("Fixtures"); }
+                else { setActive(tab.key); }
+              }}>
+              <span className="bottom-tab-icon">{tab.icon}</span>
+              <span className="bottom-tab-label" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ borderTop: "1px solid #ffffff0f", padding: "18px 20px", textAlign: "center", color: "#8899bb", fontSize: 12, letterSpacing: 1 }}>
