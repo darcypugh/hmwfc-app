@@ -1968,55 +1968,46 @@ export default function App() {
               <img src={"/logo.png"} alt="HMWFC" style={{ height: 36, filter: "drop-shadow(0 0 8px #347ebf66)" }} />
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#347ebf", letterSpacing: 1 }}>THE WELLS</div>
             </div>
-            <div style={{ flex: 1, paddingTop: 8 }}>
-              {NAV_ITEMS.map(n => {
-                if (n === "First Team") {
-                  const isGroupActive = FIRST_TEAM_ITEMS.includes(active);
-                  return (
-                    <div key={n}>
-                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "firstteam" ? null : "firstteam")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>First Team</span>
-                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "firstteam" ? "▲" : "▼"}</span>
-                      </button>
-                      {(navGroup === "firstteam" || isGroupActive) && FIRST_TEAM_ITEMS.map(sub => (
-                        <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
-                      ))}
-                    </div>
-                  );
-                }
-                if (n === "Help The Wells") {
-                  const isGroupActive = HELP_WELLS_ITEMS.includes(active) || active === "Help The Wells" || active === "Merch";
-                  return (
-                    <div key={n}>
-                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "helpwells" ? null : "helpwells")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Help The Wells</span>
-                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "helpwells" ? "▲" : "▼"}</span>
-                      </button>
-                      {(navGroup === "helpwells" || isGroupActive) && HELP_WELLS_ITEMS.map(sub => (
-                        <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`} onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
-                      ))}
-                    </div>
-                  );
-                }
-                if (n === "Fan Zone") {
-                  const isGroupActive = FAN_ZONE_ITEMS.includes(active);
-                  return (
-                    <div key={n}>
-                      <button className={`nav-btn ${isGroupActive ? "active" : ""}`} onClick={() => setNavGroup(g => g === "fanzone" ? null : "fanzone")} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Fan Zone</span>
-                        <span style={{ fontSize: 10, opacity: 0.7 }}>{navGroup === "fanzone" ? "▲" : "▼"}</span>
-                      </button>
-                      {(navGroup === "fanzone" || isGroupActive) && FAN_ZONE_ITEMS.map(sub => (
-                        <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 32, fontSize: 13 }}>{sub}</button>
-                      ))}
-                    </div>
-                  );
-                }
-                return <button key={n} className={`nav-btn ${active === n ? "active" : ""}`} onClick={() => { setActive(n); setMenuOpen(false); }}>{n}</button>;
-              })}
+            <div style={{ flex: 1, paddingTop: 8, overflowY: "auto" }}>
+              {/* Quick links — always visible */}
+              {[
+                { label: "🏠 Home", key: "Home" },
+                { label: "📰 News", key: "News" },
+                { label: "🖼️ Gallery", key: "Gallery" },
+                { label: "📲 Download", key: "Download" },
+              ].map(({ label, key }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}>{label}</button>
+              ))}
+
+              {/* Divider */}
+              <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
+              <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FIRST TEAM</div>
+              {FIRST_TEAM_ITEMS.map(sub => (
+                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
+                  {sub === "Table" ? "📊 Table" : sub === "Fixtures" ? "📅 Fixtures" : "👕 Squad"}
+                </button>
+              ))}
+
+              <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
+              <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FAN ZONE</div>
+              {FAN_ZONE_ITEMS.map(sub => (
+                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
+                  {sub === "Wells Season Pass" ? "🎟️ Season Pass" : "🏠 The Clubhouse"}
+                </button>
+              ))}
+
+              <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
+              <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>HELP THE WELLS</div>
+              {HELP_WELLS_ITEMS.map(sub => (
+                <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`}
+                  onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14 }}>
+                  {sub === "Fundraising" ? "🎟️ Fundraising" : "🛒 Merch"}
+                </button>
+              ))}
             </div>
             <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
-              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ ADMIN PANEL</button>
+              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ Admin Panel</button>
             </div>
           </div>
         </>
@@ -2274,150 +2265,38 @@ export default function App() {
                 )}
               </div>
 
-              {/* RIGHT COLUMN */}
+              {/* RIGHT COLUMN — desktop sidebar only */}
               <div style={{ minWidth: 0 }}>
-                {/* Upcoming fixtures */}
+                {/* Next fixture */}
                 {(() => {
-                  const upcoming = data.fixtures && [...data.fixtures].filter(f => f.type === "upcoming").slice(0, 3);
-                  if (!upcoming || upcoming.length === 0) return null;
+                  const next = data.fixtures && [...data.fixtures].filter(f => f.type === "upcoming")[0];
+                  if (!next) return null;
+                  const homeBadge = getBadge(next.home, next);
+                  const awayBadge = getBadge(next.away, next);
+                  const weHome = next.home.includes("Hemsworth");
                   return (
                     <div style={{ marginBottom: 20 }}>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Upcoming Fixtures</div>
-                      <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
-                        {upcoming.map((f, i) => {
-                          const homeBadge = getBadge(f.home, f);
-                          const awayBadge = getBadge(f.away, f);
-                          const weHome = f.home.includes("Hemsworth");
-                          return (
-                            <div key={f.id} style={{ padding: "12px 14px", borderBottom: i < upcoming.length - 1 ? "1px solid #ffffff07" : "none" }}>
-                              <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 6, letterSpacing: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.date} · {f.time} · {f.venue}</div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                {homeBadge ? <img src={homeBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
-                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: weHome ? 700 : 400, color: "#fff", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{weHome ? "The Wells" : f.home}</span>
-                                <span style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, flexShrink: 0 }}>vs</span>
-                                <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: !weHome ? 700 : 400, color: "#fff", flex: 1, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!weHome ? "The Wells" : f.away}</span>
-                                {awayBadge ? <img src={awayBadge} alt="" style={{ width: 20, height: 20, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div style={{ padding: "10px 14px", borderTop: "1px solid #ffffff0f" }}>
-                          <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL FIXTURES →</button>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Next Match</div>
+                        <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
+                      </div>
+                      <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 16px" }}>
+                        <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{next.date} · {next.time} · {next.venue}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🛡</span>}
+                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: weHome ? 700 : 400, textAlign: "center" }}>{weHome ? "The Wells" : next.home}</span>
+                          </div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#8899bb" }}>vs</div>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
+                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🛡</span>}
+                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: !weHome ? 700 : 400, textAlign: "center" }}>{!weHome ? "The Wells" : next.away}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
                 })()}
-
-                {latestResult && (
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>Latest Result</div>
-                    <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, overflow: "hidden" }}>
-                      <div style={{ background: "linear-gradient(135deg, #191740, #0d0c22)", padding: "20px 16px 16px" }}>
-                        {/* Badges + Score */}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-                          {/* Home badge -- fixed height name prevents misalignment */}
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                            {(weWereHome ? oursBadge : oppBadge)
-                              ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
-                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
-                          </div>
-                          {/* Score */}
-                          <div style={{ textAlign: "center", flexShrink: 0 }}>
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 32, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
-                            {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
-                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{latestResult.date}</div>
-                          </div>
-                          {/* Away badge */}
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
-                            {(!weWereHome ? oursBadge : oppBadge)
-                              ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)", flexShrink: 0 }} />
-                              : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>🛡</div>}
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
-                          </div>
-                        </div>
-                        {/* Venue */}
-                        <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
-                      </div>
-                      {/* Scorers -- split home/away with badge */}
-                      {(latestResult.homeScorers || latestResult.awayScorers || latestResult.scorers) && (
-                        <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
-                          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                            {/* Home scorers */}
-                            <div style={{ flex: 1, textAlign: "right" }}>
-                              {((latestResult.homeScorers || latestResult.scorers || "")).split(",").filter(s => s.trim() && (weWereHome ? true : !latestResult.homeScorers)).map((s,i) => {
-                                return (
-                                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}>
-                                    <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
-                                    <span style={{ fontSize: 12 }}>⚽</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {/* Divider */}
-                            <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch", flexShrink: 0 }} />
-                            {/* Away scorers */}
-                            <div style={{ flex: 1, textAlign: "left" }}>
-                              {((latestResult.awayScorers || "")).split(",").filter(s => s.trim()).map((s,i) => {
-                                return (
-                                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                                    <span style={{ fontSize: 12 }}>⚽</span>
-                                    <span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 12 }}>League Table</div>
-                <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "1px solid #ffffff0f" }}>
-                        <th style={{ width: 3 }}></th>
-                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}>#</th>
-                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}></th>
-                        <th style={{ padding: "8px 4px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "left" }}>Club</th>
-                        <th style={{ padding: "8px 6px", fontSize: 10, color: "#8899bb", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, textAlign: "right" }}>Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sorted.map((r, idx) => {
-                        const zone = getZone(r.pos);
-                        const isOurs = r.highlight;
-                        const prevZone = idx > 0 ? getZone(sorted[idx-1].pos) : null;
-                        const showDivider = prevZone && prevZone !== zone;
-                        return (
-                          <tr key={r.pos} style={{ background: isOurs ? "#347ebf14" : "transparent", borderTop: showDivider ? "1px solid #ffffff14" : "none" }}>
-                            <td style={{ padding: 0, width: 3 }}><div style={{ width: 3, height: 36, background: isOurs ? "#347ebf" : zoneColor[zone], opacity: 0.8 }} /></td>
-                            <td style={{ padding: "6px 4px", fontSize: 12, color: isOurs ? "#347ebf" : zoneColor[zone], fontWeight: 700 }}>{r.pos}</td>
-                            <td style={{ padding: "6px 4px", width: 24 }}>
-                              {r.badge
-                                ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", display: "block" }} />
-                                : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>🛡</div>}
-                            </td>
-                            <td style={{ padding: "6px 4px", fontSize: 12, fontWeight: isOurs ? 700 : 400, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 0, width: "100%" }}>
-                              {isOurs ? "The Wells" : r.team.split(" ").slice(0,2).join(" ")}
-                            </td>
-                            <td style={{ padding: "6px 6px", fontSize: 12, fontWeight: 700, textAlign: "right" }}>{r.pts}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <div style={{ padding: "10px 12px", borderTop: "1px solid #ffffff0f" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW FULL TABLE →</button>
-                      {data.tableUpdatedAt && <span style={{ fontSize: 10, color: "#8899bb66" }}>Updated {new Date(data.tableUpdatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>}
-                    </div>
-                  </div>
-                </div>
-
               </div>
             </div>
           );
