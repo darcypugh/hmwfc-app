@@ -1332,10 +1332,135 @@ function AdminSeasonPass({ spData, onSave }) {
   );
 }
 
+
+function AdminClubhouse({ data, onUpdate }) {
+  const [matchday, setMatchday] = useState(data.clubhouse?.matchday || { locked: true, home: "Hemsworth Miners Welfare FC", away: "", homeBadge: "", awayBadge: "" });
+  const [motm, setMotm] = useState(data.clubhouse?.motm || { locked: true, players: [], winner: "" });
+  const [tab, setTab] = useState("predictions");
+
+  useEffect(() => {
+    setMatchday(data.clubhouse?.matchday || { locked: true, home: "Hemsworth Miners Welfare FC", away: "", homeBadge: "", awayBadge: "" });
+    setMotm(data.clubhouse?.motm || { locked: true, players: [], winner: "" });
+  }, [data.clubhouse]);
+
+  const saveMatchday = () => onUpdate("clubhouse", { ...(data.clubhouse || {}), matchday });
+  const saveMotm = () => onUpdate("clubhouse", { ...(data.clubhouse || {}), motm });
+
+  const addPlayer = () => setMotm(m => ({ ...m, players: [...(m.players || []), { name: "", photo: "" }] }));
+  const updatePlayer = (idx, field, val) => setMotm(m => ({ ...m, players: m.players.map((p, i) => i === idx ? { ...p, [field]: val } : p) }));
+  const removePlayer = (idx) => setMotm(m => ({ ...m, players: m.players.filter((_, i) => i !== idx) }));
+
+  const uploadPlayerPhoto = (idx, file) => {
+    if (!file) return;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 200;
+      const ratio = Math.min(MAX / img.width, MAX / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      updatePlayer(idx, "photo", canvas.toDataURL("image/jpeg", 0.8));
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
+  return (
+    <div>
+      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>Clubhouse</div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid #ffffff0f" }}>
+        {[["predictions", "⚽ Match Predictions"], ["motm", "🏅 Man of the Match"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} style={{ ...S.btn, borderRadius: 0, borderBottom: tab === k ? "2px solid #347ebf" : "2px solid transparent", color: tab === k ? "#347ebf" : "#8899bb", background: "none", padding: "10px 14px", fontSize: 12 }}>{label}</button>
+        ))}
+      </div>
+
+      {tab === "predictions" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: "#191740", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: matchday.locked ? "#ef4444" : "#10b981", marginBottom: 4 }}>{matchday.locked ? "🔒 Predictions Locked" : "🟢 Predictions Open"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{matchday.locked ? "Fans cannot submit predictions yet." : "Fans can submit their score predictions."}</div>
+            </div>
+            <button onClick={() => setMatchday(m => ({ ...m, locked: !m.locked }))} style={{ ...S.btn, background: matchday.locked ? "#ef444422" : "#10b98122", color: matchday.locked ? "#ef4444" : "#10b981", border: `1px solid ${matchday.locked ? "#ef444444" : "#10b98144"}`, flexShrink: 0 }}>{matchday.locked ? "Open" : "Lock"}</button>
+          </div>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>Teams and badges are pulled from the league table. For friendlies or cup games, type the team name and upload a badge manually.</div>
+          <div style={S.row}>
+            {["home", "away"].map(side => {
+              const tableTeam = (data.table || []).find(r => r.team === matchday[side]);
+              const tableBadge = tableTeam?.badge ? `data:image/png;base64,${tableTeam.badge}` : null;
+              const manualBadge = matchday[side + "Badge"];
+              const badge = tableBadge || manualBadge;
+              return (
+                <div key={side} style={{ flex: 1 }}>
+                  <label style={S.label}>{side === "home" ? "Home" : "Away"} Team</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    {badge ? <img src={badge} alt="" style={{ width: 32, height: 32, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 24, flexShrink: 0 }}>🛡</span>}
+                    <select style={S.input} value={matchday[side] || ""} onChange={e => setMatchday(m => ({ ...m, [side]: e.target.value, [side + "Badge"]: "" }))}>
+                      <option value="">Select or type below...</option>
+                      {(data.table || []).sort((a,b) => a.pos - b.pos).map(t => <option key={t.team} value={t.team}>{t.team}</option>)}
+                    </select>
+                  </div>
+                  <input style={{ ...S.input, marginBottom: 6 }} value={matchday[side] || ""} onChange={e => setMatchday(m => ({ ...m, [side]: e.target.value }))} placeholder="Or type team name..." />
+                  {!tableBadge && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: "#0d0c22", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
+                      {manualBadge ? <img src={manualBadge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>🛡</span>}
+                      <span style={{ fontSize: 11, color: "#8899bb" }}>{manualBadge ? "Change badge" : "Upload badge (optional)"}</span>
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = ev => setMatchday(m => ({ ...m, [side + "Badge"]: ev.target.result }));
+                        reader.readAsDataURL(file);
+                      }} />
+                    </label>
+                  )}
+                  {tableBadge && <div style={{ fontSize: 10, color: "#10b981" }}>✓ Badge from league table</div>}
+                </div>
+              );
+            })}
+          </div>
+          <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={saveMatchday}>Save</button>
+        </div>
+      )}
+
+      {tab === "motm" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: "#191740", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: motm.locked ? "#ef4444" : "#10b981", marginBottom: 4 }}>{motm.locked ? "🔒 Voting Locked" : "🟢 Voting Open"}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{motm.locked ? "Fans see 'Waiting for match result'." : "Fans can vote for Man of the Match."}</div>
+            </div>
+            <button onClick={() => setMotm(m => ({ ...m, locked: !m.locked }))} style={{ ...S.btn, background: motm.locked ? "#ef444422" : "#10b98122", color: motm.locked ? "#ef4444" : "#10b981", border: `1px solid ${motm.locked ? "#ef444444" : "#10b98144"}`, flexShrink: 0 }}>{motm.locked ? "Open Voting" : "Lock Voting"}</button>
+          </div>
+          <div><label style={S.label}>Match Title (e.g. vs Frickley Athletic)</label><input style={S.input} value={motm.matchTitle || ""} onChange={e => setMotm(m => ({ ...m, matchTitle: e.target.value }))} placeholder="vs Frickley Athletic — 14 Aug" /></div>
+          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Players</div>
+          {(motm.players || []).map((p, idx) => (
+            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0c22", borderRadius: 8, padding: 10 }}>
+              <label style={{ cursor: "pointer", flexShrink: 0 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #347ebf44" }}>
+                  {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
+                </div>
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPlayerPhoto(idx, e.target.files[0])} />
+              </label>
+              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => updatePlayer(idx, "name", e.target.value)} placeholder="Player name" />
+              <button onClick={() => removePlayer(idx)} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "6px 10px", flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={addPlayer}>+ Add Player</button>
+          <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={saveMotm}>Save</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
   const adminScrollRef = useRef(null);
-  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass"];
+  const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -1364,6 +1489,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
         {section === "Gallery" && <AdminGallery items={data.gallery || []} onSave={v => onUpdate("gallery", v)} />}
         {section === "Fundraising" && <AdminDraw drawData={data.draw || {}} onSave={v => onUpdate("draw", v)} />}
         {section === "Season Pass" && <AdminSeasonPass spData={data.seasonPass || {}} onSave={v => onUpdate("seasonPass", v)} />}
+        {section === "Clubhouse" && <AdminClubhouse data={data} onUpdate={onUpdate} />}
       </div>
     </div>
   );
@@ -1483,6 +1609,40 @@ function NonPassTrophyGrid({ trophies }) {
   );
 }
 
+
+function PredictionForm({ homeName, awayName, onSubmit }) {
+  const [homeGoals, setHomeGoals] = useState("");
+  const [awayGoals, setAwayGoals] = useState("");
+  const ready = homeGoals !== "" && awayGoals !== "" && !isNaN(homeGoals) && !isNaN(awayGoals);
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Enter your score prediction</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center", marginBottom: 16 }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 6 }}>{homeName}</div>
+          <input
+            type="number" min="0" max="20" value={homeGoals}
+            onChange={e => setHomeGoals(e.target.value)}
+            style={{ width: 64, height: 64, background: "#0d0c22", border: "2px solid #347ebf44", borderRadius: 10, color: "#fff", fontSize: 28, fontWeight: 900, textAlign: "center", fontFamily: "Barlow Condensed, sans-serif", outline: "none" }}
+          />
+        </div>
+        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#8899bb", paddingTop: 20 }}>–</div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 6 }}>{awayName}</div>
+          <input
+            type="number" min="0" max="20" value={awayGoals}
+            onChange={e => setAwayGoals(e.target.value)}
+            style={{ width: 64, height: 64, background: "#0d0c22", border: "2px solid #347ebf44", borderRadius: 10, color: "#fff", fontSize: 28, fontWeight: 900, textAlign: "center", fontFamily: "Barlow Condensed, sans-serif", outline: "none" }}
+          />
+        </div>
+      </div>
+      <button onClick={() => ready && onSubmit(+homeGoals, +awayGoals)} style={{ ...S.btn, background: ready ? "linear-gradient(135deg,#347ebf,#1a5f9e)" : "#ffffff0f", color: ready ? "#fff" : "#8899bb55", width: "100%", fontSize: 15, padding: "12px 0", cursor: ready ? "pointer" : "not-allowed" }}>
+        {ready ? "Lock in my prediction →" : "Enter both scores to continue"}
+      </button>
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -1511,6 +1671,8 @@ export default function App() {
   const [trophyTab, setTrophyTab] = useState("todo");
   const [trophyCodeInput, setTrophyCodeInput] = useState("");
   const [trophyCodeMsg, setTrophyCodeMsg] = useState("");
+  const [predictions, setPredictions] = useState({});
+  const [motmVote, setMotmVote] = useState(null);
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -1651,6 +1813,26 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // Load fan's own predictions
+  useEffect(() => {
+    if (!fanUser) return;
+    const predRef = ref(db, `users/${fanUser.uid}/predictions`);
+    const unsub = onValue(predRef, (snap) => {
+      if (snap.exists()) setPredictions(snap.val());
+    });
+    return () => unsub();
+  }, [fanUser]);
+
+  // Load fan's motm vote
+  useEffect(() => {
+    if (!fanUser) return;
+    const motmRef = ref(db, `users/${fanUser.uid}/motmVote`);
+    const unsub = onValue(motmRef, (snap) => {
+      if (snap.exists()) setMotmVote(snap.val());
+    });
+    return () => unsub();
+  }, [fanUser]);
 
   useEffect(() => {
     const unsub = onValue(ref(db, "users"), (snap) => {
@@ -3117,34 +3299,171 @@ export default function App() {
 
 
         {active === "The Clubhouse" && (() => {
+          const clubhouse = data.clubhouse || {};
+          const matchday = clubhouse.matchday || {};
+          const motm = clubhouse.motm || {};
+          const motmPlayers = motm.players || [];
+
+          // Total votes for poll percentages
+          const motmVotes = clubhouse.motmVotes || {};
+          const totalVotes = Object.values(motmVotes).reduce((s, v) => s + v, 0);
+
+          const submitPrediction = (homeGoals, awayGoals) => {
+            if (!fanUser) return;
+            update(ref(db, `users/${fanUser.uid}/predictions`), {
+              [`match_${matchday.home}_${matchday.away}`]: { home: homeGoals, away: awayGoals, submittedAt: new Date().toISOString() }
+            });
+            setPredictions(prev => ({ ...prev, [`match_${matchday.home}_${matchday.away}`]: { home: homeGoals, away: awayGoals } }));
+          };
+
+          const submitMotmVote = (playerName) => {
+            if (!fanUser || motmVote) return;
+            update(ref(db, `hmwfc/clubhouse/motmVotes`), { [playerName]: (motmVotes[playerName] || 0) + 1 });
+            update(ref(db, `users/${fanUser.uid}`), { motmVote: playerName });
+            setMotmVote(playerName);
+          };
+
+          const predKey = `match_${matchday.home}_${matchday.away}`;
+          const myPred = predictions[predKey];
 
           return (
             <div style={{ padding: "0 0 40px" }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>The Clubhouse 🏠</div>
-              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 24 }}>Home of The Wells fan community</div>
+              <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 28 }}>Home of The Wells fan community</div>
 
-              {/* Leaderboard */}
+              {/* ── Match Predictions ── */}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>⚽ Match Predictions</div>
+              {matchday.locked ? (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14, marginBottom: 28 }}>
+                  🔒 Predictions aren't open yet — check back on matchday!
+                </div>
+              ) : (
+                <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: 20, marginBottom: 28 }}>
+                  {/* Teams + badges */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                    {(() => {
+                      const homeTeam = (data.table || []).find(t => t.team === matchday.home);
+                      const awayTeam = (data.table || []).find(t => t.team === matchday.away);
+                      const homeBadge = homeTeam?.badge ? `data:image/png;base64,${homeTeam.badge}` : (matchday.homeBadge || null);
+                      const awayBadge = awayTeam?.badge ? `data:image/png;base64,${awayTeam.badge}` : (matchday.awayBadge || null);
+                      return (
+                        <>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} /> : <span style={{ fontSize: 36 }}>🛡</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center" }}>{matchday.home || "Home"}</div>
+                          </div>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, color: "#8899bb" }}>vs</div>
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} /> : <span style={{ fontSize: 36 }}>🛡</span>}
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center" }}>{matchday.away || "Away"}</div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  {!fanUser ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 12 }}>Sign in to submit your prediction</div>
+                      <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign In</button>
+                    </div>
+                  ) : myPred ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 8 }}>Your prediction</div>
+                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#347ebf" }}>{myPred.home} – {myPred.away}</div>
+                      <div style={{ fontSize: 11, color: "#8899bb", marginTop: 6 }}>Prediction locked in ✓</div>
+                    </div>
+                  ) : (
+                    <PredictionForm
+                      homeName={matchday.home}
+                      awayName={matchday.away}
+                      onSubmit={submitPrediction}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* ── Man of the Match ── */}
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>🏅 Man of the Match</div>
+              {motm.locked ? (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", marginBottom: 28 }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, marginBottom: 6 }}>Waiting for Match Result</div>
+                  <div style={{ fontSize: 13, color: "#8899bb" }}>Voting will open once the match is finished.</div>
+                </div>
+              ) : (
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 20, marginBottom: 28 }}>
+                  {motm.matchTitle && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 16, textAlign: "center", letterSpacing: 1 }}>{motm.matchTitle.toUpperCase()}</div>}
+                  {!fanUser ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 12 }}>Sign in to vote</div>
+                      <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign In</button>
+                    </div>
+                  ) : motmVote ? (
+                    /* Show poll results after voting */
+                    <div>
+                      <div style={{ fontSize: 12, color: "#10b981", marginBottom: 16, textAlign: "center" }}>✓ You voted for {motmVote} · {totalVotes} vote{totalVotes !== 1 ? "s" : ""} total</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {[...motmPlayers].sort((a, b) => (motmVotes[b.name] || 0) - (motmVotes[a.name] || 0)).map(p => {
+                          const votes = motmVotes[p.name] || 0;
+                          const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                          const isMyVote = motmVote === p.name;
+                          return (
+                            <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#0d0c22", border: `2px solid ${isMyVote ? "#347ebf" : "#ffffff15"}` }}>
+                                {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>👤</span>}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                  <span style={{ fontSize: 13, fontWeight: isMyVote ? 700 : 400, color: isMyVote ? "#347ebf" : "#fff" }}>{p.name}{isMyVote ? " ✓" : ""}</span>
+                                  <span style={{ fontSize: 12, color: "#8899bb" }}>{pct}%</span>
+                                </div>
+                                <div style={{ height: 6, background: "#ffffff0f", borderRadius: 3, overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${pct}%`, background: isMyVote ? "#347ebf" : "#8899bb", borderRadius: 3, transition: "width 0.5s" }} />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Vote screen */
+                    <div>
+                      <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Who was your Man of the Match?</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 12 }}>
+                        {motmPlayers.map(p => (
+                          <button key={p.name} onClick={() => submitMotmVote(p.name)}
+                            style={{ background: "#0d0c22", border: "1px solid #ffffff15", borderRadius: 10, padding: 12, cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}>
+                            <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", margin: "0 auto 8px", background: "#191740", border: "2px solid #ffffff15" }}>
+                              {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 24 }}>👤</span>}
+                            </div>
+                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Leaderboard ── */}
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, marginBottom: 14 }}>Season Pass Leaderboard 🏆</div>
               {leaderboard.length === 0 ? (
-                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14 }}>No season pass holders yet -- be the first!</div>
+                <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: 24, textAlign: "center", color: "#8899bb", fontSize: 14 }}>No season pass holders yet — be the first!</div>
               ) : (
                 <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                   {leaderboard.map((entry, idx) => {
                     const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
                     return (
                       <div key={idx} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: idx < leaderboard.length - 1 ? "1px solid #ffffff07" : "none", background: idx === 0 ? "#f59e0b0a" : "transparent" }}>
-                        {/* Position */}
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: medal ? 22 : 15, fontWeight: 900, width: 28, textAlign: "center", color: idx < 3 ? "#f59e0b" : "#8899bb", flexShrink: 0 }}>{medal || `${idx + 1}`}</div>
-                        {/* Avatar */}
                         <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", border: `2px solid ${idx === 0 ? "#f59e0b44" : "#ffffff15"}`, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           {entry.photo ? <img src={entry.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
                         </div>
-                        {/* Name + trophy count */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</div>
                           <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{entry.count} {entry.count === 1 ? "trophy" : "trophies"}</div>
                         </div>
-                        {/* Points */}
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: idx === 0 ? "#f59e0b" : idx === 1 ? "#aaaaaa" : idx === 2 ? "#cd7f32" : "#fff", lineHeight: 1 }}>{entry.score}</div>
                           <div style={{ fontSize: 10, color: "#8899bb", letterSpacing: 1 }}>PTS</div>
