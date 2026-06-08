@@ -1436,21 +1436,36 @@ function AdminClubhouse({ data, onUpdate }) {
             <button onClick={() => setMotm(m => ({ ...m, locked: !m.locked }))} style={{ ...S.btn, background: motm.locked ? "#ef444422" : "#10b98122", color: motm.locked ? "#ef4444" : "#10b981", border: `1px solid ${motm.locked ? "#ef444444" : "#10b98144"}`, flexShrink: 0 }}>{motm.locked ? "Open Voting" : "Lock Voting"}</button>
           </div>
           <div><label style={S.label}>Match Title (e.g. vs Frickley Athletic)</label><input style={S.input} value={motm.matchTitle || ""} onChange={e => setMotm(m => ({ ...m, matchTitle: e.target.value }))} placeholder="vs Frickley Athletic — 14 Aug" /></div>
-          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Players</div>
-          {(motm.players || []).map((p, idx) => (
-            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0c22", borderRadius: 8, padding: 10 }}>
-              <label style={{ cursor: "pointer", flexShrink: 0 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #347ebf44" }}>
-                  {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
+          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Players on ballot</div>
+          <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>Select from current squad — photo pulls through automatically.</div>
+          {(motm.players || []).map((p, idx) => {
+            const squadPlayer = (data.squad || []).find(s => s.name === p.name);
+            const photo = squadPlayer?.photo || p.photo || null;
+            return (
+              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d0c22", borderRadius: 8, padding: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#191740", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #ffffff15", flexShrink: 0 }}>
+                  {photo ? <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /> : <span style={{ fontSize: 20 }}>👤</span>}
                 </div>
-                <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadPlayerPhoto(idx, e.target.files[0])} />
-              </label>
-              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => updatePlayer(idx, "name", e.target.value)} placeholder="Player name" />
-              <button onClick={() => removePlayer(idx)} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "6px 10px", flexShrink: 0 }}>✕</button>
-            </div>
-          ))}
-          <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={addPlayer}>+ Add Player</button>
-          <button style={{ ...S.btn, background: "#10b981", color: "#fff", alignSelf: "flex-start" }} onClick={saveMotm}>Save</button>
+                <select style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => updatePlayer(idx, "name", e.target.value)}>
+                  <option value="">Select player...</option>
+                  {(data.squad || []).filter(s => s.playing).sort((a,b) => a.name.localeCompare(b.name)).map(s => (
+                    <option key={s.id} value={s.name}>{s.name} ({s.pos})</option>
+                  ))}
+                </select>
+                <button onClick={() => removePlayer(idx)} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "6px 10px", flexShrink: 0 }}>✕</button>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={addPlayer}>+ Add Player</button>
+            <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444" }} onClick={() => {
+              if (window.confirm("Clear all votes and reset Man of the Match?")) {
+                setMotm(m => ({ ...m, locked: true, players: [], matchTitle: "" }));
+                update(ref(db), { "hmwfc/clubhouse/motmVotes": null, "hmwfc/clubhouse/motm": { locked: true, players: [], matchTitle: "" } });
+              }
+            }}>🗑 Clear & Reset</button>
+            <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={saveMotm}>Save</button>
+          </div>
         </div>
       )}
     </div>
@@ -1673,6 +1688,7 @@ export default function App() {
   const [trophyCodeMsg, setTrophyCodeMsg] = useState("");
   const [predictions, setPredictions] = useState({});
   const [motmVote, setMotmVote] = useState(null);
+  const [allPredictions, setAllPredictions] = useState({});
   const [fixtureTab, setFixtureTab] = useState("upcoming");
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
@@ -1833,6 +1849,21 @@ export default function App() {
     });
     return () => unsub();
   }, [fanUser]);
+
+  // Load all fans' predictions for the leaderboard display
+  useEffect(() => {
+    const unsub = onValue(ref(db, "users"), (snap) => {
+      if (!snap.exists()) return;
+      const all = {};
+      Object.values(snap.val()).forEach(u => {
+        if (u.displayName && u.predictions) {
+          all[u.displayName] = { predictions: u.predictions, photo: u.photo || null };
+        }
+      });
+      setAllPredictions(all);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = onValue(ref(db, "users"), (snap) => {
@@ -3367,10 +3398,42 @@ export default function App() {
                       <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign In</button>
                     </div>
                   ) : myPred ? (
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 8 }}>Your prediction</div>
-                      <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#347ebf" }}>{myPred.home} – {myPred.away}</div>
-                      <div style={{ fontSize: 11, color: "#8899bb", marginTop: 6 }}>Prediction locked in ✓</div>
+                    <div>
+                      <div style={{ textAlign: "center", marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, color: "#10b981", marginBottom: 4 }}>✓ Your prediction is locked in</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#347ebf" }}>{myPred.home} – {myPred.away}</div>
+                      </div>
+                      {/* All fans' predictions */}
+                      {Object.keys(allPredictions).length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, color: "#8899bb", fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>EVERYONE'S PREDICTIONS</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {Object.entries(allPredictions)
+                              .filter(([, v]) => v.predictions?.[predKey])
+                              .map(([name, v]) => {
+                                const pred = v.predictions[predKey];
+                                const homeTeam = (data.table || []).find(t => t.team === matchday.home);
+                                const awayTeam = (data.table || []).find(t => t.team === matchday.away);
+                                const homeBadge = homeTeam?.badge ? `data:image/png;base64,${homeTeam.badge}` : null;
+                                const awayBadge = awayTeam?.badge ? `data:image/png;base64,${awayTeam.badge}` : null;
+                                const isMe = name === fanProfile?.displayName;
+                                return (
+                                  <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: isMe ? "#347ebf11" : "#0d0c22", borderRadius: 8, border: `1px solid ${isMe ? "#347ebf44" : "#ffffff0f"}` }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#191740", border: "1px solid #ffffff15", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                      {v.photo ? <img src={v.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 14 }}>👤</span>}
+                                    </div>
+                                    <div style={{ flex: 1, fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: isMe ? 700 : 400, color: isMe ? "#347ebf" : "#fff" }}>{name}{isMe ? " (you)" : ""}</div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                                      {homeBadge && <img src={homeBadge} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />}
+                                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900 }}>{pred.home} – {pred.away}</span>
+                                      {awayBadge && <img src={awayBadge} alt="" style={{ width: 16, height: 16, objectFit: "contain" }} />}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <PredictionForm
@@ -3427,19 +3490,25 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    /* Vote screen */
+                    /* Vote screen — tall vertical player cards */
                     <div>
                       <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Who was your Man of the Match?</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 12 }}>
-                        {motmPlayers.map(p => (
-                          <button key={p.name} onClick={() => submitMotmVote(p.name)}
-                            style={{ background: "#0d0c22", border: "1px solid #ffffff15", borderRadius: 10, padding: 12, cursor: "pointer", textAlign: "center", transition: "all 0.2s" }}>
-                            <div style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", margin: "0 auto 8px", background: "#191740", border: "2px solid #ffffff15" }}>
-                              {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 24 }}>👤</span>}
-                            </div>
-                            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
-                          </button>
-                        ))}
+                      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
+                        {motmPlayers.map(p => {
+                          const squadPlayer = (data.squad || []).find(s => s.name === p.name);
+                          const photo = squadPlayer?.photo || p.photo || null;
+                          return (
+                            <button key={p.name} onClick={() => submitMotmVote(p.name)}
+                              style={{ background: "#0d0c22", border: "1px solid #ffffff22", borderRadius: 10, cursor: "pointer", textAlign: "center", transition: "all 0.2s", flexShrink: 0, width: 100, overflow: "hidden", padding: 0 }}>
+                              <div style={{ height: 140, overflow: "hidden", background: "#191740" }}>
+                                {photo
+                                  ? <img src={photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>👤</div>}
+                              </div>
+                              <div style={{ padding: "8px 6px", fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
