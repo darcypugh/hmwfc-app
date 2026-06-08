@@ -1350,24 +1350,6 @@ function AdminClubhouse({ data, onUpdate }) {
   const updatePlayer = (idx, field, val) => setMotm(m => ({ ...m, players: m.players.map((p, i) => i === idx ? { ...p, [field]: val } : p) }));
   const removePlayer = (idx) => setMotm(m => ({ ...m, players: m.players.filter((_, i) => i !== idx) }));
 
-  const uploadPlayerPhoto = (idx, file) => {
-    if (!file) return;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 200;
-      const ratio = Math.min(MAX / img.width, MAX / img.height);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      updatePlayer(idx, "photo", canvas.toDataURL("image/jpeg", 0.8));
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
-  };
-
   return (
     <div>
       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>Clubhouse</div>
