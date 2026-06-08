@@ -1925,12 +1925,12 @@ export default function App() {
         .squad-row:hover { background: #347ebf11 !important; }
         .bottom-tab-bar { display: none; }
         @media (max-width: 768px) {
-          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding: 0; safe-area-inset-bottom: env(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); }
-          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px 6px; border: none; background: none; cursor: pointer; gap: 3px; min-width: 0; }
-          .bottom-tab-icon { font-size: 20px; line-height: 1; }
-          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; }
+          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 4px 8px; border: none; background: none; cursor: pointer; gap: 5px; min-width: 0; }
+          .bottom-tab-icon { font-size: 24px; line-height: 1; }
+          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; }
           .bottom-tab.active .bottom-tab-label { color: #347ebf; }
-          .main-content-pad { padding-bottom: 70px; }
+          .main-content-pad { padding-bottom: 90px; }
         }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
