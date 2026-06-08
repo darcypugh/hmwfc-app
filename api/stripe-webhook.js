@@ -55,7 +55,7 @@ async function sendPassEmail(buyerEmail, buyerName, code) {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#0d0c22;color:#ffffff;border-radius:12px;overflow:hidden;">
         <div style="background:linear-gradient(135deg,#191740,#0d0c22);padding:32px 32px 24px;text-align:center;">
-          <img src="https://hemsworthmwfc.co.uk/logo.png" alt="HMWFC" style="height:80px;margin-bottom:16px;" />
+          <img src="https://hemsworthmwfc.co.uk/logo.png" alt="HMWFC" style="height:80px;width:auto;margin-bottom:16px;" />
           <h1 style="font-size:28px;font-weight:900;margin:0;letter-spacing:2px;">WELLS SEASON PASS</h1>
           <p style="color:#8899bb;font-size:13px;margin:6px 0 0;letter-spacing:2px;">HEMSWORTH MINERS WELFARE FC</p>
         </div>
