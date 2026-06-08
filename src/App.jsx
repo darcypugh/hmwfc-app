@@ -1839,8 +1839,9 @@ export default function App() {
       if (!snap.exists()) return;
       const all = {};
       Object.values(snap.val()).forEach(u => {
-        if (u.displayName && u.predictions) {
-          all[u.displayName] = { predictions: u.predictions, photo: u.photo || null };
+        if (u.predictions) {
+          const name = u.displayName || u.email || "Fan";
+          all[name] = { predictions: u.predictions, photo: u.photo || null };
         }
       });
       setAllPredictions(all);
@@ -3331,15 +3332,15 @@ export default function App() {
           };
 
           const motmPollId = motm.matchTitle || "default";
+          // Check if stored vote matches current poll
+          const storedMotmVote = motmVote && typeof motmVote === "object" ? motmVote : null;
+          const effectiveMotmVote = storedMotmVote?.pollId === motmPollId ? storedMotmVote.player : null;
           const submitMotmVote = (playerName) => {
-            if (!fanUser || motmVote) return;
+            if (!fanUser || effectiveMotmVote) return;
             update(ref(db, `hmwfc/clubhouse/motmVotes`), { [playerName]: (motmVotes[playerName] || 0) + 1 });
             update(ref(db, `users/${fanUser.uid}`), { motmVote: { player: playerName, pollId: motmPollId } });
-            setMotmVote(playerName);
+            setMotmVote({ player: playerName, pollId: motmPollId });
           };
-          // Check if stored vote matches current poll
-          const storedMotmVote = typeof motmVote === "object" ? motmVote : null;
-          const effectiveMotmVote = storedMotmVote?.pollId === motmPollId ? storedMotmVote.player : null;
 
           const predKey = `match_${matchday.home}_${matchday.away}`;
           const myPred = predictions[predKey];
@@ -3453,7 +3454,7 @@ export default function App() {
                     <div>
                       <div style={{ fontSize: 12, color: "#10b981", marginBottom: 6, textAlign: "center" }}>✓ You voted for {effectiveMotmVote}</div>
                       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 16, textAlign: "center" }}>{totalVotes} vote{totalVotes !== 1 ? "s" : ""} total</div>
-                      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                         {[...motmPlayers].sort((a, b) => (motmVotes[b.name] || 0) - (motmVotes[a.name] || 0)).map(p => {
                           const squadPlayer = (data.squad || []).find(s => s.name === p.name);
                           const photo = squadPlayer?.photo || p.photo || null;
@@ -3461,42 +3462,41 @@ export default function App() {
                           const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
                           const isMyVote = effectiveMotmVote === p.name;
                           return (
-                            <div key={p.name} style={{ flexShrink: 0, width: 100, textAlign: "center" }}>
-                              <div style={{ position: "relative", height: 140, borderRadius: 10, overflow: "hidden", border: `2px solid ${isMyVote ? "#347ebf" : "#ffffff15"}`, marginBottom: 6 }}>
+                            <div key={p.name} style={{ textAlign: "center" }}>
+                              <div style={{ position: "relative", height: 160, borderRadius: 10, overflow: "hidden", border: `2px solid ${isMyVote ? "#347ebf" : "#ffffff15"}`, marginBottom: 6 }}>
                                 {photo
                                   ? <img src={photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                                   : <div style={{ width: "100%", height: "100%", background: "#191740", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>👤</div>}
-                                {/* % bar overlay at bottom */}
-                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#000000aa", padding: "4px 6px" }}>
-                                  <div style={{ height: 4, background: "#ffffff22", borderRadius: 2, marginBottom: 3 }}>
+                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#000000bb", padding: "6px 8px" }}>
+                                  <div style={{ height: 4, background: "#ffffff22", borderRadius: 2, marginBottom: 4 }}>
                                     <div style={{ height: "100%", width: `${pct}%`, background: isMyVote ? "#347ebf" : "#f59e0b", borderRadius: 2, transition: "width 0.5s" }} />
                                   </div>
-                                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: isMyVote ? "#347ebf" : "#fff" }}>{pct}%</div>
+                                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: isMyVote ? "#347ebf" : "#fff" }}>{pct}%</div>
                                 </div>
                               </div>
-                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, color: isMyVote ? "#347ebf" : "#fff", lineHeight: 1.3 }}>{p.name}{isMyVote ? " ✓" : ""}</div>
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: isMyVote ? "#347ebf" : "#fff", lineHeight: 1.3 }}>{p.name}{isMyVote ? " ✓" : ""}</div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
                   ) : (
-                    /* Vote screen — tall vertical player cards */
+                    /* Vote screen — 2x2 grid */
                     <div>
                       <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Who was your Man of the Match?</div>
-                      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                         {motmPlayers.map(p => {
                           const squadPlayer = (data.squad || []).find(s => s.name === p.name);
                           const photo = squadPlayer?.photo || p.photo || null;
                           return (
                             <button key={p.name} onClick={() => submitMotmVote(p.name)}
-                              style={{ background: "#0d0c22", border: "1px solid #ffffff22", borderRadius: 10, cursor: "pointer", textAlign: "center", transition: "all 0.2s", flexShrink: 0, width: 100, overflow: "hidden", padding: 0 }}>
-                              <div style={{ height: 140, overflow: "hidden", background: "#191740" }}>
+                              style={{ background: "#0d0c22", border: "1px solid #ffffff22", borderRadius: 10, cursor: "pointer", textAlign: "center", transition: "all 0.2s", overflow: "hidden", padding: 0, display: "block", width: "100%" }}>
+                              <div style={{ height: 160, overflow: "hidden", background: "#191740" }}>
                                 {photo
                                   ? <img src={photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                                   : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>👤</div>}
                               </div>
-                              <div style={{ padding: "8px 6px", fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
+                              <div style={{ padding: "10px 8px", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>{p.name}</div>
                             </button>
                           );
                         })}
