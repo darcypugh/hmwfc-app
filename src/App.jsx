@@ -3454,7 +3454,7 @@ export default function App() {
                     <div>
                       <div style={{ fontSize: 12, color: "#10b981", marginBottom: 6, textAlign: "center" }}>✓ You voted for {effectiveMotmVote}</div>
                       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 16, textAlign: "center" }}>{totalVotes} vote{totalVotes !== 1 ? "s" : ""} total</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxWidth: 480, margin: "0 auto" }}>
                         {[...motmPlayers].sort((a, b) => (motmVotes[b.name] || 0) - (motmVotes[a.name] || 0)).map(p => {
                           const squadPlayer = (data.squad || []).find(s => s.name === p.name);
                           const photo = squadPlayer?.photo || p.photo || null;
@@ -3484,7 +3484,7 @@ export default function App() {
                     /* Vote screen — 2x2 grid */
                     <div>
                       <div style={{ fontSize: 13, color: "#aabbcc", marginBottom: 16, textAlign: "center" }}>Who was your Man of the Match?</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, maxWidth: 480, margin: "0 auto" }}>
                         {motmPlayers.map(p => {
                           const squadPlayer = (data.squad || []).find(s => s.name === p.name);
                           const photo = squadPlayer?.photo || p.photo || null;
