@@ -1442,8 +1442,9 @@ function AdminClubhouse({ data, onUpdate }) {
             <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf" }} onClick={addPlayer}>+ Add Player</button>
             <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444" }} onClick={() => {
               if (window.confirm("Clear all votes and reset Man of the Match?")) {
-                setMotm(m => ({ ...m, locked: true, players: [], matchTitle: "" }));
-                update(ref(db), { "hmwfc/clubhouse/motmVotes": null, "hmwfc/clubhouse/motm": { locked: true, players: [], matchTitle: "" } });
+                const newMotm = { locked: true, players: [], matchTitle: "" };
+                setMotm(newMotm);
+                update(ref(db), { "hmwfc/clubhouse/motmVotes": null, "hmwfc/clubhouse/motm": newMotm });
               }
             }}>🗑 Clear & Reset</button>
             <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={saveMotm}>Save</button>
@@ -1822,12 +1823,12 @@ export default function App() {
     return () => unsub();
   }, [fanUser]);
 
-  // Load fan's motm vote
+  // Load fan's motm vote (object with pollId, or legacy string)
   useEffect(() => {
     if (!fanUser) return;
     const motmRef = ref(db, `users/${fanUser.uid}/motmVote`);
     const unsub = onValue(motmRef, (snap) => {
-      if (snap.exists()) setMotmVote(snap.val());
+      setMotmVote(snap.exists() ? snap.val() : null);
     });
     return () => unsub();
   }, [fanUser]);
@@ -3329,12 +3330,16 @@ export default function App() {
             setPredictions(prev => ({ ...prev, [`match_${matchday.home}_${matchday.away}`]: { home: homeGoals, away: awayGoals } }));
           };
 
+          const motmPollId = motm.matchTitle || "default";
           const submitMotmVote = (playerName) => {
             if (!fanUser || motmVote) return;
             update(ref(db, `hmwfc/clubhouse/motmVotes`), { [playerName]: (motmVotes[playerName] || 0) + 1 });
-            update(ref(db, `users/${fanUser.uid}`), { motmVote: playerName });
+            update(ref(db, `users/${fanUser.uid}`), { motmVote: { player: playerName, pollId: motmPollId } });
             setMotmVote(playerName);
           };
+          // Check if stored vote matches current poll
+          const storedMotmVote = typeof motmVote === "object" ? motmVote : null;
+          const effectiveMotmVote = storedMotmVote?.pollId === motmPollId ? storedMotmVote.player : null;
 
           const predKey = `match_${matchday.home}_${matchday.away}`;
           const myPred = predictions[predKey];
@@ -3443,29 +3448,33 @@ export default function App() {
                       <div style={{ fontSize: 13, color: "#8899bb", marginBottom: 12 }}>Sign in to vote</div>
                       <button onClick={() => setShowFanLogin(true)} style={{ ...S.btn, background: "#347ebf", color: "#fff" }}>Sign In</button>
                     </div>
-                  ) : motmVote ? (
-                    /* Show poll results after voting */
+                  ) : effectiveMotmVote ? (
+                    /* Show poll results — vertical cards with % overlay */
                     <div>
-                      <div style={{ fontSize: 12, color: "#10b981", marginBottom: 16, textAlign: "center" }}>✓ You voted for {motmVote} · {totalVotes} vote{totalVotes !== 1 ? "s" : ""} total</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ fontSize: 12, color: "#10b981", marginBottom: 6, textAlign: "center" }}>✓ You voted for {effectiveMotmVote}</div>
+                      <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 16, textAlign: "center" }}>{totalVotes} vote{totalVotes !== 1 ? "s" : ""} total</div>
+                      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
                         {[...motmPlayers].sort((a, b) => (motmVotes[b.name] || 0) - (motmVotes[a.name] || 0)).map(p => {
+                          const squadPlayer = (data.squad || []).find(s => s.name === p.name);
+                          const photo = squadPlayer?.photo || p.photo || null;
                           const votes = motmVotes[p.name] || 0;
                           const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-                          const isMyVote = motmVote === p.name;
+                          const isMyVote = effectiveMotmVote === p.name;
                           return (
-                            <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#0d0c22", border: `2px solid ${isMyVote ? "#347ebf" : "#ffffff15"}` }}>
-                                {p.photo ? <img src={p.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>👤</span>}
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <span style={{ fontSize: 13, fontWeight: isMyVote ? 700 : 400, color: isMyVote ? "#347ebf" : "#fff" }}>{p.name}{isMyVote ? " ✓" : ""}</span>
-                                  <span style={{ fontSize: 12, color: "#8899bb" }}>{pct}%</span>
+                            <div key={p.name} style={{ flexShrink: 0, width: 100, textAlign: "center" }}>
+                              <div style={{ position: "relative", height: 140, borderRadius: 10, overflow: "hidden", border: `2px solid ${isMyVote ? "#347ebf" : "#ffffff15"}`, marginBottom: 6 }}>
+                                {photo
+                                  ? <img src={photo} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                                  : <div style={{ width: "100%", height: "100%", background: "#191740", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>👤</div>}
+                                {/* % bar overlay at bottom */}
+                                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "#000000aa", padding: "4px 6px" }}>
+                                  <div style={{ height: 4, background: "#ffffff22", borderRadius: 2, marginBottom: 3 }}>
+                                    <div style={{ height: "100%", width: `${pct}%`, background: isMyVote ? "#347ebf" : "#f59e0b", borderRadius: 2, transition: "width 0.5s" }} />
+                                  </div>
+                                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, color: isMyVote ? "#347ebf" : "#fff" }}>{pct}%</div>
                                 </div>
-                                <div style={{ height: 6, background: "#ffffff0f", borderRadius: 3, overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${pct}%`, background: isMyVote ? "#347ebf" : "#8899bb", borderRadius: 3, transition: "width 0.5s" }} />
-                                </div>
                               </div>
+                              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, color: isMyVote ? "#347ebf" : "#fff", lineHeight: 1.3 }}>{p.name}{isMyVote ? " ✓" : ""}</div>
                             </div>
                           );
                         })}
