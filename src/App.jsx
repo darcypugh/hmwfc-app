@@ -3625,12 +3625,12 @@ export default function App() {
           { key: "Home", icon: "🏠", label: "Home" },
           { key: "First Team", icon: "⚽", label: "First Team", sub: true },
           { key: "News", icon: "📰", label: "News" },
-          { key: "Wells Season Pass", icon: "🎟️", label: "Fan Zone", sub: true },
+          { key: "The Clubhouse", icon: "🎟️", label: "Fan Zone", sub: true },
           { key: "__more__", icon: "☰", label: "More" },
         ].map(tab => {
           const isActive = tab.key === "First Team"
             ? ["Table","Fixtures","Squad"].includes(active)
-            : tab.key === "Wells Season Pass"
+            : tab.key === "The Clubhouse"
             ? ["Wells Season Pass","The Clubhouse"].includes(active)
             : active === tab.key;
           return (
