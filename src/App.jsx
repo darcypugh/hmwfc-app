@@ -1872,6 +1872,11 @@ export default function App() {
 
 
 
+  const navigate = (page) => {
+    setActive(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const updateSection = (section, value) => {
     setData(prev => ({ ...prev, [section]: value }));
     const patch = { [`hmwfc/${section}`]: value };
@@ -1939,6 +1944,8 @@ export default function App() {
         .fixture-teams { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .fixture-venue { min-width: 110px; font-size: 11px; color: #8899bb; text-align: right; flex-shrink: 0; }
         .fixture-date { min-width: 60px; font-size: 12px; color: #8899bb; font-weight: 600; flex-shrink: 0; }
+        .tbl-hide { }
+        @media (max-width: 600px) { .tbl-hide { display: none; } }
         @media (max-width: 520px) {
           .fixture-card-inner { flex-direction: column; align-items: stretch; gap: 8px; }
           .fixture-teams { flex-direction: column; gap: 6px; }
@@ -1974,7 +1981,7 @@ export default function App() {
                 { label: "🖼️ Gallery", key: "Gallery" },
                 { label: "📲 Download", key: "Download" },
               ].map(({ label, key }) => (
-                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}>{label}</button>
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { navigate(key); setMenuOpen(false); }}>{label}</button>
               ))}
 
               {/* Divider */}
@@ -2017,7 +2024,7 @@ export default function App() {
             <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menu">
               <span /><span /><span />
             </button>
-            <img src={"/logo.png"} alt="HMWFC" onClick={() => setActive("Home")} style={{ height: "clamp(44px, 12vw, 64px)", filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer", flexShrink: 0 }} />
+            <img src={"/logo.png"} alt="HMWFC" onClick={() => navigate("Home")} style={{ height: "clamp(44px, 12vw, 64px)", filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(13px, 3.8vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
@@ -2032,8 +2039,8 @@ export default function App() {
                   </button>
                   {profileMenuOpen && (
                     <div style={{ position: "absolute", top: 44, right: 0, background: "#191740", border: "1px solid #347ebf33", borderRadius: 10, overflow: "hidden", zIndex: 400, minWidth: 160, boxShadow: "0 8px 30px #00000066" }}>
-                      <button onClick={() => { setActive("My Account"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>👤 My Account</button>
-                      {fanProfile?.passUnlocked && <button onClick={() => { setActive("Wells Season Pass"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>🎟️ My Season Pass</button>}
+                      <button onClick={() => { navigate("My Account"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>👤 My Account</button>
+                      {fanProfile?.passUnlocked && <button onClick={() => { navigate("Wells Season Pass"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>🎟️ My Season Pass</button>}
                       <button onClick={() => { signOut(auth); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>Sign out</button>
                     </div>
                   )}
@@ -2128,7 +2135,7 @@ export default function App() {
                   <div style={{ marginBottom: 20 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>League Position</div>
-                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
+                      <button onClick={() => navigate("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
                     </div>
                     <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                       {nearbyRows.map(r => {
@@ -2139,7 +2146,7 @@ export default function App() {
                             <div style={{ width: 3, height: 28, background: isOurs ? "#347ebf" : zoneColor[zone], borderRadius: 2, flexShrink: 0 }} />
                             <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
-                            <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells ⭐" : r.team.split(" ").slice(0,3).join(" ")}</div>
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{r.pts}pts</div>
                           </div>
                         );
@@ -2151,7 +2158,7 @@ export default function App() {
                 {/* Season Pass teaser */}
                 {seasonPassData && (
                   <div style={{ marginBottom: 20 }}>
-                    <div onClick={() => setActive("Wells Season Pass")} style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+                    <div onClick={() => navigate("Wells Season Pass")} style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
                       <div style={{ fontSize: 32, flexShrink: 0 }}>🎟️</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900, marginBottom: 3 }}>Wells Season Pass</div>
@@ -2226,11 +2233,11 @@ export default function App() {
                   <div style={{ marginTop: 24, marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
-                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                      <button onClick={() => navigate("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
                     <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
                       {data.merch.map(m => (
-                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
+                        <div key={m.id} onClick={() => { setSelectedMerch(m); setSelectedSize(""); setQty(1); setActive("Merch"); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
                           {m.image ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}><img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} /></div> : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
                           <div style={{ padding: "8px 10px 10px" }}>
                             {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
@@ -2247,10 +2254,10 @@ export default function App() {
                   <div style={{ marginTop: 16, marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
-                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                      <button onClick={() => { navigate("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
                     <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
+                      <div onClick={() => { navigate("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
                         <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
                         <div style={{ padding: "8px 10px 10px" }}>
                           <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
@@ -2276,7 +2283,7 @@ export default function App() {
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Next Match</div>
-                        <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
+                        <button onClick={() => navigate("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
                       </div>
                       <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 16px" }}>
                         <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{next.date} · {next.time} · {next.venue}</div>
@@ -2304,7 +2311,7 @@ export default function App() {
           <div>
             {selectedArticle ? (
               <div>
-                <button onClick={() => setSelectedArticle(null)} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back to News</button>
+                <button onClick={() => { setSelectedArticle(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back to News</button>
                 <div style={{ maxWidth: 680 }}>
                   {selectedArticle.image
                     ? <img src={selectedArticle.image} alt="" style={{ width: "100%", maxHeight: 340, objectFit: "cover", borderRadius: 12, marginBottom: 24 }} />
@@ -2417,7 +2424,7 @@ export default function App() {
               </div>
               <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                 <table>
-                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th className="tbl-hide">P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>GD</th><th>Pts</th></tr></thead>
                   <tbody>
                     {sorted.map((r, idx) => {
                       const zone = getZone(r.pos);
@@ -2438,10 +2445,10 @@ export default function App() {
                               {r.team}
                             </div>
                           </td>
-                          <td style={{ color: "#aabbcc" }}>{r.p}</td>
-                          <td style={{ color: "#10b981" }}>{r.w}</td>
-                          <td style={{ color: "#aabbcc" }}>{r.d}</td>
-                          <td style={{ color: "#ef4444" }}>{r.l}</td>
+                          <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.p}</td>
+                          <td className="tbl-hide" style={{ color: "#10b981" }}>{r.w}</td>
+                          <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.d}</td>
+                          <td className="tbl-hide" style={{ color: "#ef4444" }}>{r.l}</td>
                           <td style={{ color: r.gd && r.gd.startsWith("+") ? "#10b981" : "#ef4444" }}>{r.gd}</td>
                           <td style={{ fontWeight: 700 }}>{r.pts}</td>
                         </tr>
@@ -2747,7 +2754,7 @@ export default function App() {
           <div>
             {/* Product detail modal */}
             {selectedMerch && (
-              <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }}>
+              <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                 <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 460, overflow: "hidden", boxShadow: "0 20px 60px #00000088" }} onClick={e => e.stopPropagation()}>
                   {/* Image */}
                   {selectedMerch.image
@@ -2803,7 +2810,7 @@ export default function App() {
                           if (noLink) return <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>;
                           return <a href={link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>Buy Now — {selectedMerch.price}</a>;
                         })()}
-                    <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
+                    <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
                   </div>
                 </div>
               </div>
@@ -2832,7 +2839,7 @@ export default function App() {
           <div>
             {selectedAlbum ? (
               <div>
-                <button onClick={() => setSelectedAlbum(null)} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
+                <button onClick={() => { setSelectedAlbum(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, marginBottom: 4 }}>{selectedAlbum.name}</div>
                 {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 20 }}>📅 {selectedAlbum.date}</div>}
                 {(selectedAlbum.photos || []).length === 0
@@ -3542,7 +3549,7 @@ export default function App() {
               </div>
 
               {/* Sign out */}
-              <button onClick={() => { signOut(auth); setActive("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
+              <button onClick={() => { signOut(auth); navigate("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
             </div>
           );
         })()}
@@ -3638,7 +3645,7 @@ export default function App() {
               onClick={() => {
                 if (tab.key === "__more__") { setMenuOpen(true); }
                 else if (tab.key === "First Team") { setActive("Fixtures"); }
-                else { setActive(tab.key); }
+                else { navigate(tab.key); }
               }}>
               <span className="bottom-tab-icon">{tab.icon}</span>
               <span className="bottom-tab-label" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.label}</span>
