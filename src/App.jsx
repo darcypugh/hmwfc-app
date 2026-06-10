@@ -78,9 +78,6 @@ const DEFAULT_DATA = {
   },
 };
 
-const FAN_ZONE_ITEMS = ["Wells Season Pass", "The Clubhouse"];
-const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
-const HELP_WELLS_ITEMS = ["Fundraising", "Merch"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
@@ -93,100 +90,87 @@ const S = {
 
 // ── Rich Text Editor ─────────────────────────────────────────────────────────
 function RichEditor({ value, onChange }) {
-  const editorRef = useRef(null);
-  const [initialized, setInitialized] = useState(false);
+  const containerRef = useRef(null);
+  const quillRef = useRef(null);
+  const valueRef = useRef(value);
 
   useEffect(() => {
-    if (editorRef.current && !initialized) {
-      editorRef.current.innerHTML = value || "";
-      setInitialized(true);
-    }
-  }, [initialized, value]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Load Quill from CDN if not already loaded
+    const loadQuill = () => {
+      return new Promise((resolve) => {
+        if (window.Quill) { resolve(); return; }
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css";
+        document.head.appendChild(link);
+        const style = document.createElement("style");
+        style.textContent = `
+          .ql-toolbar { background: #191740 !important; border: none !important; border-bottom: 1px solid #ffffff0f !important; border-radius: 8px 8px 0 0; flex-wrap: wrap; }
+          .ql-container { background: #0d0c22 !important; border: none !important; border-radius: 0 0 8px 8px; font-family: Barlow, sans-serif; font-size: 14px; color: #aabbcc; min-height: 140px; }
+          .ql-editor { min-height: 140px; padding: 12px 14px; color: #aabbcc; line-height: 1.7; }
+          .ql-editor p { margin: 0 0 10px; }
+          .ql-editor h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #fff; margin: 12px 0 6px; }
+          .ql-editor h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin: 10px 0 4px; }
+          .ql-editor strong, .ql-editor b { color: #fff; }
+          .ql-editor.ql-blank::before { color: #8899bb; font-style: normal; }
+          .ql-toolbar .ql-stroke { stroke: #aabbcc !important; }
+          .ql-toolbar .ql-fill { fill: #aabbcc !important; }
+          .ql-toolbar .ql-picker { color: #aabbcc !important; }
+          .ql-toolbar .ql-picker-options { background: #191740 !important; border: 1px solid #347ebf44 !important; }
+          .ql-toolbar button:hover .ql-stroke, .ql-toolbar button.ql-active .ql-stroke { stroke: #347ebf !important; }
+          .ql-toolbar button:hover .ql-fill, .ql-toolbar button.ql-active .ql-fill { fill: #347ebf !important; }
+          .ql-toolbar .ql-active { color: #347ebf !important; }
+          .ql-snow .ql-picker-label { color: #aabbcc !important; }
+          .ql-snow .ql-picker-item { color: #aabbcc !important; background: #191740; }
+          .ql-snow .ql-picker-item:hover { color: #347ebf !important; background: #347ebf11; }
+        `;
+        document.head.appendChild(style);
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js";
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
 
-  useEffect(() => {
-    if (editorRef.current && initialized) {
-      const current = editorRef.current.innerHTML;
-      if (current !== value) {
-        const sel = window.getSelection();
-        const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-        editorRef.current.innerHTML = value || "";
-        if (range) {
-          try { sel.removeAllRanges(); sel.addRange(range); } catch(e) {}
-        }
+    loadQuill().then(() => {
+      if (!containerRef.current || quillRef.current) return;
+      quillRef.current = new window.Quill(containerRef.current, {
+        theme: "snow",
+        placeholder: "Write your article here...",
+        modules: {
+          toolbar: [
+            [{ header: [2, 3, false] }],
+            ["bold", "italic", "underline"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            [{ size: ["small", false, "large", "huge"] }],
+            [{ color: [] }],
+            ["clean"],
+          ],
+        },
+      });
+      // Set initial value
+      if (valueRef.current) {
+        quillRef.current.clipboard.dangerouslyPasteHTML(valueRef.current);
       }
-    }
-  }, [value, initialized]);
+      // Listen for changes
+      quillRef.current.on("text-change", () => {
+        const html = quillRef.current.root.innerHTML;
+        valueRef.current = html;
+        onChange(html);
+      });
+    });
 
-  const exec = (cmd, val) => {
-    editorRef.current.focus();
-    document.execCommand(cmd, false, val || null);
-    onChange(editorRef.current.innerHTML);
-  };
-
-  const handleInput = () => onChange(editorRef.current.innerHTML);
-
-  const toolBtn = (label, cmd, val) => (
-    <button key={label} onMouseDown={e => { e.preventDefault(); exec(cmd, val); }}
-      style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 5, color: "#aabbcc", fontWeight: 700, fontSize: 12, padding: "4px 9px", cursor: "pointer", fontFamily: "serif", lineHeight: 1 }}>
-      {label}
-    </button>
-  );
+    return () => {
+      // Cleanup on unmount
+      if (quillRef.current) {
+        quillRef.current = null;
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ border: "1px solid #347ebf44", borderRadius: 8, overflow: "hidden", background: "#0d0c22" }}>
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "8px 10px", borderBottom: "1px solid #ffffff0f", background: "#191740" }}>
-        {toolBtn("B", "bold")}
-        {toolBtn("I", "italic")}
-        {toolBtn("U", "underline")}
-        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
-        {toolBtn("P", "formatBlock", "p")}
-        {toolBtn("H2", "formatBlock", "h2")}
-        {toolBtn("H3", "formatBlock", "h3")}
-        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
-        {toolBtn("• List", "insertUnorderedList")}
-        {toolBtn("1. List", "insertOrderedList")}
-        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
-        {/* Font family */}
-        <select onMouseDown={e => e.stopPropagation()} onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("fontName", false, e.target.value); e.target.value = ""; }} defaultValue="" style={{ background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, color: "#aabbcc", fontSize: 11, padding: "3px 6px", cursor: "pointer" }}>
-          <option value="" disabled>Font</option>
-          <option value="Barlow, sans-serif">Barlow</option>
-          <option value="Barlow Condensed, sans-serif">Condensed</option>
-          <option value="Georgia, serif">Serif</option>
-          <option value="monospace">Mono</option>
-        </select>
-        {/* Font size */}
-        <select onMouseDown={e => e.stopPropagation()} onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("fontSize", false, e.target.value); e.target.value = ""; }} defaultValue="" style={{ background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, color: "#aabbcc", fontSize: 11, padding: "3px 6px", cursor: "pointer" }}>
-          <option value="" disabled>Size</option>
-          <option value="1">XS</option>
-          <option value="2">S</option>
-          <option value="3">M</option>
-          <option value="4">L</option>
-          <option value="5">XL</option>
-          <option value="6">2XL</option>
-          <option value="7">3XL</option>
-        </select>
-        {/* Text colour */}
-        <label title="Text colour" style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, padding: "3px 8px", fontSize: 11, color: "#aabbcc" }}>
-          A <input type="color" defaultValue="#ffffff" onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("foreColor", false, e.target.value); }} style={{ width: 16, height: 16, border: "none", background: "none", cursor: "pointer", padding: 0 }} />
-        </label>
-      </div>
-      {/* Editor area */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onBlur={handleInput}
-        style={{ minHeight: 140, padding: "12px 14px", color: "#aabbcc", fontSize: 14, lineHeight: 1.7, outline: "none", fontFamily: "Barlow, sans-serif" }}
-      />
-      <style>{`
-        [contenteditable] p { margin: 0 0 10px; }
-        [contenteditable] h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #fff; margin: 12px 0 6px; }
-        [contenteditable] h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin: 10px 0 4px; }
-        [contenteditable] ul, [contenteditable] ol { margin: 0 0 10px 20px; }
-        [contenteditable] b, [contenteditable] strong { color: #fff; }
-      `}</style>
+    <div style={{ border: "1px solid #347ebf44", borderRadius: 8, overflow: "hidden" }}>
+      <div ref={containerRef} />
     </div>
   );
 }
@@ -1046,25 +1030,55 @@ function AdminSeasonPass({ spData, onSave }) {
     update(ref(db), Object.fromEntries(Object.entries(newCodes).map(([k, v]) => [`hmwfc/passCodes/${k}`, v]))).then(() => setGeneratingCodes(false));
   };
 
-  const grantTrophy = (uid, trophyId) => {
-    // Write to a grants queue that server rules allow admin to write
-    // and fan's profile listener picks up
-    update(ref(db, `hmwfc/adminGrants`), { [`${uid}_${trophyId}`]: { uid, trophyId, granted: true, at: new Date().toISOString() } });
-    // Also write directly — works if Firebase rules allow auth != null on users
-    update(ref(db, `users/${uid}/trophies`), { [trophyId]: true });
-    // Force local state update so UI reflects immediately
-    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+  // ── Admin action helper — calls Vercel API route, verified server-side ──────
+  const adminAction = async (action, payload) => {
+    try {
+      const { getAuth } = await import("firebase/auth");
+      const currentUser = getAuth().currentUser;
+      if (!currentUser) return { error: "Not signed in" };
+      const idToken = await currentUser.getIdToken();
+      const res = await fetch("/api/admin-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, action, payload }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error("Admin action failed:", err);
+      return { error: err.message };
+    }
   };
 
-  const revokeTrophy = (uid, trophyId) => {
-    update(ref(db, `hmwfc/adminGrants`), { [`${uid}_${trophyId}`]: null });
-    set(ref(db, `users/${uid}/trophies/${trophyId}`), null);
+  const grantTrophy = async (uid, trophyId) => {
+    // Optimistic local update
+    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+    const result = await adminAction("grantTrophy", { uid, trophyId });
+    if (result.error) {
+      console.error("Grant failed:", result.error);
+      // Revert on failure
+      setUsers(prev => prev.map(u => {
+        if (u.uid !== uid) return u;
+        const trophies = { ...(u.trophies || {}) };
+        delete trophies[trophyId];
+        return { ...u, trophies };
+      }));
+    }
+  };
+
+  const revokeTrophy = async (uid, trophyId) => {
+    // Optimistic local update
     setUsers(prev => prev.map(u => {
       if (u.uid !== uid) return u;
       const trophies = { ...(u.trophies || {}) };
       delete trophies[trophyId];
       return { ...u, trophies };
     }));
+    const result = await adminAction("revokeTrophy", { uid, trophyId });
+    if (result.error) {
+      console.error("Revoke failed:", result.error);
+      // Revert on failure
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+    }
   };
 
   const unusedCodes = Object.entries(passCodes).filter(([, v]) => !v.used);
@@ -1229,13 +1243,13 @@ function AdminSeasonPass({ spData, onSave }) {
                   <button onClick={() => {
                     const { uid, trophyId, allPhotos, photoUrl } = lightboxPhoto;
                     const updated = allPhotos.map(p => p.url === photoUrl ? { ...p, reviewed: true } : p);
-                    update(ref(db, `users/${uid}/submissions/${trophyId}`), { photos: updated });
                     setUsers(prev => prev.map(u => {
                       if (u.uid !== uid) return u;
                       const subs = { ...(u.submissions || {}) };
                       subs[trophyId] = { ...(subs[trophyId] || {}), photos: updated };
                       return { ...u, submissions: subs };
                     }));
+                    adminAction("reviewPhoto", { uid, trophyId, photos: updated });
                     setLightboxPhoto(null);
                   }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", flex: 1 }}>✕ Delete photo</button>
                   <button onClick={() => setLightboxPhoto(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", flex: 1 }}>Close</button>
@@ -1292,9 +1306,9 @@ function AdminSeasonPass({ spData, onSave }) {
                               </div>
                               {isEvidence && !has && (
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <button onClick={() => { const newCount = Math.max(0, progress - 1); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
+                                  <button onClick={async () => { const newCount = Math.max(0, progress - 1); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
                                   <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
-                                  <button onClick={() => { const newCount = progress + 1; update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
+                                  <button onClick={async () => { const newCount = progress + 1; setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
                                 </div>
                               )}
                               <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
@@ -1872,6 +1886,11 @@ export default function App() {
 
 
 
+  const navigate = (page) => {
+    setActive(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const updateSection = (section, value) => {
     setData(prev => ({ ...prev, [section]: value }));
     const patch = { [`hmwfc/${section}`]: value };
@@ -1925,12 +1944,12 @@ export default function App() {
         .squad-row:hover { background: #347ebf11 !important; }
         .bottom-tab-bar { display: none; }
         @media (max-width: 768px) {
-          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: max(env(safe-area-inset-bottom), 12px); }
-          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 4px 8px; border: none; background: none; cursor: pointer; gap: 5px; min-width: 0; }
-          .bottom-tab-icon { font-size: 24px; line-height: 1; }
-          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; }
+          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: env(safe-area-inset-bottom); }
+          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 2px 8px; border: none; background: none; cursor: pointer; gap: 3px; min-width: 0; overflow: hidden; }
+          .bottom-tab-icon { font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
+          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; white-space: nowrap; }
           .bottom-tab.active .bottom-tab-label { color: #347ebf; }
-          .main-content-pad { padding-bottom: 90px; }
+          .main-content-pad { padding-bottom: 80px; }
         }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
@@ -1939,6 +1958,8 @@ export default function App() {
         .fixture-teams { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .fixture-venue { min-width: 110px; font-size: 11px; color: #8899bb; text-align: right; flex-shrink: 0; }
         .fixture-date { min-width: 60px; font-size: 12px; color: #8899bb; font-weight: 600; flex-shrink: 0; }
+        .tbl-hide { }
+        @media (max-width: 600px) { .tbl-hide { display: none; } }
         @media (max-width: 520px) {
           .fixture-card-inner { flex-direction: column; align-items: stretch; gap: 8px; }
           .fixture-teams { flex-direction: column; gap: 6px; }
@@ -1967,45 +1988,61 @@ export default function App() {
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#347ebf", letterSpacing: 1 }}>THE WELLS</div>
             </div>
             <div style={{ flex: 1, paddingTop: 8, overflowY: "auto" }}>
-              {/* Quick links — always visible */}
               {[
-                { label: "🏠 Home", key: "Home" },
-                { label: "📰 News", key: "News" },
-                { label: "🖼️ Gallery", key: "Gallery" },
-                { label: "📲 Download", key: "Download" },
-              ].map(({ label, key }) => (
-                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}>{label}</button>
+                { key: "Home", label: "Home", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+                { key: "News", label: "News", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M6 7h12M6 11h12M6 15h8"/></svg> },
+                { key: "Gallery", label: "Gallery", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> },
+                { key: "Download", label: "Download", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 18v2a1 1 0 001 1h16a1 1 0 001-1v-2"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { navigate(key); setMenuOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
+                </button>
               ))}
 
-              {/* Divider */}
               <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
               <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FIRST TEAM</div>
-              {FIRST_TEAM_ITEMS.map(sub => (
-                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
-                  {sub === "Table" ? "📊 Table" : sub === "Fixtures" ? "📅 Fixtures" : "👕 Squad"}
+              {[
+                { key: "Table", label: "Table", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg> },
+                { key: "Fixtures", label: "Fixtures", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
+                { key: "Squad", label: "Squad", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.85"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
                 </button>
               ))}
 
               <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
               <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FAN ZONE</div>
-              {FAN_ZONE_ITEMS.map(sub => (
-                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
-                  {sub === "Wells Season Pass" ? "🎟️ Season Pass" : "🏠 The Clubhouse"}
+              {[
+                { key: "Wells Season Pass", label: "Season Pass", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg> },
+                { key: "The Clubhouse", label: "The Clubhouse", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
                 </button>
               ))}
 
               <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
               <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>HELP THE WELLS</div>
-              {HELP_WELLS_ITEMS.map(sub => (
-                <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`}
-                  onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }}
-                  style={{ paddingLeft: 20, fontSize: 14 }}>
-                  {sub === "Fundraising" ? "🎟️ Fundraising" : "🛒 Merch"}
+              {[
+                { key: "Help The Wells", label: "Fundraising", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/></svg> },
+                { key: "Merch", label: "Merch", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key || (key === "Help The Wells" && active === "Help The Wells") ? "active" : ""}`}
+                  onClick={() => { navigate(key); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
                 </button>
               ))}
             </div>
             <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
-              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ Admin Panel</button>
+              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M18 8l2 2 4-4"/></svg>
+                Admin Panel
+              </button>
             </div>
           </div>
         </>
@@ -2017,7 +2054,7 @@ export default function App() {
             <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menu">
               <span /><span /><span />
             </button>
-            <img src={"/logo.png"} alt="HMWFC" onClick={() => setActive("Home")} style={{ height: "clamp(44px, 12vw, 64px)", filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer", flexShrink: 0 }} />
+            <img src={"/logo.png"} alt="HMWFC" onClick={() => navigate("Home")} style={{ height: "clamp(44px, 12vw, 64px)", filter: "drop-shadow(0 0 12px #347ebf66)", cursor: "pointer", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "clamp(13px, 3.8vw, 22px)", fontWeight: 900, letterSpacing: 1, lineHeight: 1.1 }}>HEMSWORTH MINERS WELFARE FC</div>
               <div style={{ fontSize: "clamp(9px, 2.5vw, 11px)", color: "#347ebf", letterSpacing: 2, fontWeight: 700, textTransform: "uppercase", marginTop: 2 }}>The Wells · Est. 1981</div>
@@ -2032,8 +2069,8 @@ export default function App() {
                   </button>
                   {profileMenuOpen && (
                     <div style={{ position: "absolute", top: 44, right: 0, background: "#191740", border: "1px solid #347ebf33", borderRadius: 10, overflow: "hidden", zIndex: 400, minWidth: 160, boxShadow: "0 8px 30px #00000066" }}>
-                      <button onClick={() => { setActive("My Account"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>👤 My Account</button>
-                      {fanProfile?.passUnlocked && <button onClick={() => { setActive("Wells Season Pass"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>🎟️ My Season Pass</button>}
+                      <button onClick={() => { navigate("My Account"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>👤 My Account</button>
+                      {fanProfile?.passUnlocked && <button onClick={() => { navigate("Wells Season Pass"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>🎟️ My Season Pass</button>}
                       <button onClick={() => { signOut(auth); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>Sign out</button>
                     </div>
                   )}
@@ -2128,7 +2165,7 @@ export default function App() {
                   <div style={{ marginBottom: 20 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>League Position</div>
-                      <button onClick={() => setActive("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
+                      <button onClick={() => navigate("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
                     </div>
                     <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                       {nearbyRows.map(r => {
@@ -2139,7 +2176,7 @@ export default function App() {
                             <div style={{ width: 3, height: 28, background: isOurs ? "#347ebf" : zoneColor[zone], borderRadius: 2, flexShrink: 0 }} />
                             <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
-                            <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells ⭐" : r.team.split(" ").slice(0,3).join(" ")}</div>
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{r.pts}pts</div>
                           </div>
                         );
@@ -2151,7 +2188,7 @@ export default function App() {
                 {/* Season Pass teaser */}
                 {seasonPassData && (
                   <div style={{ marginBottom: 20 }}>
-                    <div onClick={() => setActive("Wells Season Pass")} style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+                    <div onClick={() => navigate("Wells Season Pass")} style={{ background: "linear-gradient(135deg,#191740,#0d0c22)", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
                       <div style={{ fontSize: 32, flexShrink: 0 }}>🎟️</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 900, marginBottom: 3 }}>Wells Season Pass</div>
@@ -2226,11 +2263,11 @@ export default function App() {
                   <div style={{ marginTop: 24, marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Club Shop</div>
-                      <button onClick={() => setActive("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                      <button onClick={() => navigate("Merch")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
                     <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
                       {data.merch.map(m => (
-                        <div key={m.id} onClick={() => setActive("Merch")} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
+                        <div key={m.id} onClick={() => { setSelectedMerch(m); setSelectedSize(""); setQty(1); setActive("Merch"); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(90px, 28vw, 110px)", transition: "transform 0.2s" }}>
                           {m.image ? <div style={{ height: 80, background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}><img src={m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 6 }} /></div> : <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, background: "#0d0c22" }}>{m.emoji}</div>}
                           <div style={{ padding: "8px 10px 10px" }}>
                             {m.tag && <span style={{ background: "#ef444422", color: "#ef4444", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "block", marginBottom: 4 }}>{m.tag}</span>}
@@ -2247,10 +2284,10 @@ export default function App() {
                   <div style={{ marginTop: 16, marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#10b981", textTransform: "uppercase" }}>Help The Wells</div>
-                      <button onClick={() => { setActive("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
+                      <button onClick={() => { navigate("Help The Wells"); setDrawOpen(false); }} style={{ background: "none", border: "none", color: "#10b981", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>VIEW ALL →</button>
                     </div>
                     <div className="home-merch-strip" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, paddingRight: 20, WebkitOverflowScrolling: "touch" }}>
-                      <div onClick={() => { setActive("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
+                      <div onClick={() => { navigate("Help The Wells"); setDrawOpen(true); }} style={{ background: "#191740", border: "1px solid #10b98133", borderRadius: 10, overflow: "hidden", cursor: "pointer", flexShrink: 0, width: "clamp(120px, 36vw, 150px)", transition: "transform 0.2s" }}>
                         <div style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, background: "linear-gradient(135deg,#10b98122,#0d0c22)" }}>🎟️</div>
                         <div style={{ padding: "8px 10px 10px" }}>
                           <div style={{ background: "#10b98122", color: "#10b981", fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, display: "inline-block", marginBottom: 4, letterSpacing: 1 }}>LIVE</div>
@@ -2276,7 +2313,7 @@ export default function App() {
                     <div style={{ marginBottom: 20 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase" }}>Next Match</div>
-                        <button onClick={() => setActive("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
+                        <button onClick={() => navigate("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
                       </div>
                       <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 16px" }}>
                         <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{next.date} · {next.time} · {next.venue}</div>
@@ -2304,7 +2341,7 @@ export default function App() {
           <div>
             {selectedArticle ? (
               <div>
-                <button onClick={() => setSelectedArticle(null)} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back to News</button>
+                <button onClick={() => { setSelectedArticle(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back to News</button>
                 <div style={{ maxWidth: 680 }}>
                   {selectedArticle.image
                     ? <img src={selectedArticle.image} alt="" style={{ width: "100%", maxHeight: 340, objectFit: "cover", borderRadius: 12, marginBottom: 24 }} />
@@ -2417,7 +2454,7 @@ export default function App() {
               </div>
               <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                 <table>
-                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>GD</th><th>Pts</th></tr></thead>
                   <tbody>
                     {sorted.map((r, idx) => {
                       const zone = getZone(r.pos);
@@ -2439,9 +2476,9 @@ export default function App() {
                             </div>
                           </td>
                           <td style={{ color: "#aabbcc" }}>{r.p}</td>
-                          <td style={{ color: "#10b981" }}>{r.w}</td>
-                          <td style={{ color: "#aabbcc" }}>{r.d}</td>
-                          <td style={{ color: "#ef4444" }}>{r.l}</td>
+                          <td className="tbl-hide" style={{ color: "#10b981" }}>{r.w}</td>
+                          <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.d}</td>
+                          <td className="tbl-hide" style={{ color: "#ef4444" }}>{r.l}</td>
                           <td style={{ color: r.gd && r.gd.startsWith("+") ? "#10b981" : "#ef4444" }}>{r.gd}</td>
                           <td style={{ fontWeight: 700 }}>{r.pts}</td>
                         </tr>
@@ -2747,7 +2784,7 @@ export default function App() {
           <div>
             {/* Product detail modal */}
             {selectedMerch && (
-              <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }}>
+              <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                 <div style={{ background: "#191740", borderRadius: 16, width: "100%", maxWidth: 460, overflow: "hidden", boxShadow: "0 20px 60px #00000088" }} onClick={e => e.stopPropagation()}>
                   {/* Image */}
                   {selectedMerch.image
@@ -2803,7 +2840,7 @@ export default function App() {
                           if (noLink) return <div style={{ background: "#ffffff0f", border: "1px solid #ffffff15", borderRadius: 10, padding: "12px 16px", textAlign: "center", color: "#8899bb", fontSize: 13 }}>Payment link coming soon</div>;
                           return <a href={link} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "linear-gradient(135deg,#347ebf,#1a5f9e)", color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 16, letterSpacing: 1, padding: "13px 0", borderRadius: 10, textAlign: "center", textDecoration: "none" }}>Buy Now — {selectedMerch.price}</a>;
                         })()}
-                    <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
+                    <button onClick={() => { setSelectedMerch(null); setSelectedSize(""); setQty(1); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "none", color: "#8899bb", width: "100%", marginTop: 10, fontSize: 12 }}>← Back to shop</button>
                   </div>
                 </div>
               </div>
@@ -2832,7 +2869,7 @@ export default function App() {
           <div>
             {selectedAlbum ? (
               <div>
-                <button onClick={() => setSelectedAlbum(null)} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
+                <button onClick={() => { setSelectedAlbum(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, marginBottom: 4 }}>{selectedAlbum.name}</div>
                 {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 20 }}>📅 {selectedAlbum.date}</div>}
                 {(selectedAlbum.photos || []).length === 0
@@ -3542,7 +3579,7 @@ export default function App() {
               </div>
 
               {/* Sign out */}
-              <button onClick={() => { signOut(auth); setActive("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
+              <button onClick={() => { signOut(auth); navigate("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
             </div>
           );
         })()}
@@ -3622,25 +3659,24 @@ export default function App() {
       {/* Bottom tab bar — mobile only */}
       <div className="bottom-tab-bar">
         {[
-          { key: "Home", icon: "🏠", label: "Home" },
-          { key: "First Team", icon: "⚽", label: "First Team", sub: true },
-          { key: "News", icon: "📰", label: "News" },
-          { key: "Wells Season Pass", icon: "🎟️", label: "Fan Zone", sub: true },
-          { key: "__more__", icon: "☰", label: "More" },
+          { key: "Home", label: "Home", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+          { key: "First Team", label: "First Team", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 00-6.7 17.4M12 2a10 10 0 016.7 17.4M5 7h14M4.2 13h15.6M6 17h12M12 2v20"/></svg> },
+          { key: "News", label: "News", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 10h16M4 14h10M4 18h8"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg> },
+          { key: "The Clubhouse", label: "Fan Zone", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg> },
+          { key: "__more__", label: "More", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> },
         ].map(tab => {
           const isActive = tab.key === "First Team"
             ? ["Table","Fixtures","Squad"].includes(active)
-            : tab.key === "Wells Season Pass"
+            : tab.key === "The Clubhouse"
             ? ["Wells Season Pass","The Clubhouse"].includes(active)
             : active === tab.key;
           return (
             <button key={tab.key} className={`bottom-tab ${isActive ? "active" : ""}`}
               onClick={() => {
                 if (tab.key === "__more__") { setMenuOpen(true); }
-                else if (tab.key === "First Team") { setActive("Fixtures"); }
-                else { setActive(tab.key); }
+                else { setMenuOpen(false); if (tab.key === "First Team") { navigate("Fixtures"); } else { navigate(tab.key); } }
               }}>
-              <span className="bottom-tab-icon">{tab.icon}</span>
+              <span className="bottom-tab-icon" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.svg}</span>
               <span className="bottom-tab-label" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.label}</span>
             </button>
           );
