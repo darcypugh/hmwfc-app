@@ -93,100 +93,87 @@ const S = {
 
 // ── Rich Text Editor ─────────────────────────────────────────────────────────
 function RichEditor({ value, onChange }) {
-  const editorRef = useRef(null);
-  const [initialized, setInitialized] = useState(false);
+  const containerRef = useRef(null);
+  const quillRef = useRef(null);
+  const valueRef = useRef(value);
 
   useEffect(() => {
-    if (editorRef.current && !initialized) {
-      editorRef.current.innerHTML = value || "";
-      setInitialized(true);
-    }
-  }, [initialized, value]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Load Quill from CDN if not already loaded
+    const loadQuill = () => {
+      return new Promise((resolve) => {
+        if (window.Quill) { resolve(); return; }
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css";
+        document.head.appendChild(link);
+        const style = document.createElement("style");
+        style.textContent = `
+          .ql-toolbar { background: #191740 !important; border: none !important; border-bottom: 1px solid #ffffff0f !important; border-radius: 8px 8px 0 0; flex-wrap: wrap; }
+          .ql-container { background: #0d0c22 !important; border: none !important; border-radius: 0 0 8px 8px; font-family: Barlow, sans-serif; font-size: 14px; color: #aabbcc; min-height: 140px; }
+          .ql-editor { min-height: 140px; padding: 12px 14px; color: #aabbcc; line-height: 1.7; }
+          .ql-editor p { margin: 0 0 10px; }
+          .ql-editor h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #fff; margin: 12px 0 6px; }
+          .ql-editor h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin: 10px 0 4px; }
+          .ql-editor strong, .ql-editor b { color: #fff; }
+          .ql-editor.ql-blank::before { color: #8899bb; font-style: normal; }
+          .ql-toolbar .ql-stroke { stroke: #aabbcc !important; }
+          .ql-toolbar .ql-fill { fill: #aabbcc !important; }
+          .ql-toolbar .ql-picker { color: #aabbcc !important; }
+          .ql-toolbar .ql-picker-options { background: #191740 !important; border: 1px solid #347ebf44 !important; }
+          .ql-toolbar button:hover .ql-stroke, .ql-toolbar button.ql-active .ql-stroke { stroke: #347ebf !important; }
+          .ql-toolbar button:hover .ql-fill, .ql-toolbar button.ql-active .ql-fill { fill: #347ebf !important; }
+          .ql-toolbar .ql-active { color: #347ebf !important; }
+          .ql-snow .ql-picker-label { color: #aabbcc !important; }
+          .ql-snow .ql-picker-item { color: #aabbcc !important; background: #191740; }
+          .ql-snow .ql-picker-item:hover { color: #347ebf !important; background: #347ebf11; }
+        `;
+        document.head.appendChild(style);
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js";
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
 
-  useEffect(() => {
-    if (editorRef.current && initialized) {
-      const current = editorRef.current.innerHTML;
-      if (current !== value) {
-        const sel = window.getSelection();
-        const range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
-        editorRef.current.innerHTML = value || "";
-        if (range) {
-          try { sel.removeAllRanges(); sel.addRange(range); } catch(e) {}
-        }
+    loadQuill().then(() => {
+      if (!containerRef.current || quillRef.current) return;
+      quillRef.current = new window.Quill(containerRef.current, {
+        theme: "snow",
+        placeholder: "Write your article here...",
+        modules: {
+          toolbar: [
+            [{ header: [2, 3, false] }],
+            ["bold", "italic", "underline"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            [{ size: ["small", false, "large", "huge"] }],
+            [{ color: [] }],
+            ["clean"],
+          ],
+        },
+      });
+      // Set initial value
+      if (valueRef.current) {
+        quillRef.current.clipboard.dangerouslyPasteHTML(valueRef.current);
       }
-    }
-  }, [value, initialized]);
+      // Listen for changes
+      quillRef.current.on("text-change", () => {
+        const html = quillRef.current.root.innerHTML;
+        valueRef.current = html;
+        onChange(html);
+      });
+    });
 
-  const exec = (cmd, val) => {
-    editorRef.current.focus();
-    document.execCommand(cmd, false, val || null);
-    onChange(editorRef.current.innerHTML);
-  };
-
-  const handleInput = () => onChange(editorRef.current.innerHTML);
-
-  const toolBtn = (label, cmd, val) => (
-    <button key={label} onMouseDown={e => { e.preventDefault(); exec(cmd, val); }}
-      style={{ background: "#191740", border: "1px solid #ffffff15", borderRadius: 5, color: "#aabbcc", fontWeight: 700, fontSize: 12, padding: "4px 9px", cursor: "pointer", fontFamily: "serif", lineHeight: 1 }}>
-      {label}
-    </button>
-  );
+    return () => {
+      // Cleanup on unmount
+      if (quillRef.current) {
+        quillRef.current = null;
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ border: "1px solid #347ebf44", borderRadius: 8, overflow: "hidden", background: "#0d0c22" }}>
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", padding: "8px 10px", borderBottom: "1px solid #ffffff0f", background: "#191740" }}>
-        {toolBtn("B", "bold")}
-        {toolBtn("I", "italic")}
-        {toolBtn("U", "underline")}
-        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
-        {toolBtn("P", "formatBlock", "p")}
-        {toolBtn("H2", "formatBlock", "h2")}
-        {toolBtn("H3", "formatBlock", "h3")}
-        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
-        {toolBtn("• List", "insertUnorderedList")}
-        {toolBtn("1. List", "insertOrderedList")}
-        <div style={{ width: 1, background: "#ffffff15", margin: "0 4px" }} />
-        {/* Font family */}
-        <select onMouseDown={e => e.stopPropagation()} onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("fontName", false, e.target.value); e.target.value = ""; }} defaultValue="" style={{ background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, color: "#aabbcc", fontSize: 11, padding: "3px 6px", cursor: "pointer" }}>
-          <option value="" disabled>Font</option>
-          <option value="Barlow, sans-serif">Barlow</option>
-          <option value="Barlow Condensed, sans-serif">Condensed</option>
-          <option value="Georgia, serif">Serif</option>
-          <option value="monospace">Mono</option>
-        </select>
-        {/* Font size */}
-        <select onMouseDown={e => e.stopPropagation()} onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("fontSize", false, e.target.value); e.target.value = ""; }} defaultValue="" style={{ background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, color: "#aabbcc", fontSize: 11, padding: "3px 6px", cursor: "pointer" }}>
-          <option value="" disabled>Size</option>
-          <option value="1">XS</option>
-          <option value="2">S</option>
-          <option value="3">M</option>
-          <option value="4">L</option>
-          <option value="5">XL</option>
-          <option value="6">2XL</option>
-          <option value="7">3XL</option>
-        </select>
-        {/* Text colour */}
-        <label title="Text colour" style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", background: "#0d0c22", border: "1px solid #347ebf44", borderRadius: 4, padding: "3px 8px", fontSize: 11, color: "#aabbcc" }}>
-          A <input type="color" defaultValue="#ffffff" onChange={e => { editorRef.current && editorRef.current.focus(); document.execCommand("foreColor", false, e.target.value); }} style={{ width: 16, height: 16, border: "none", background: "none", cursor: "pointer", padding: 0 }} />
-        </label>
-      </div>
-      {/* Editor area */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onBlur={handleInput}
-        style={{ minHeight: 140, padding: "12px 14px", color: "#aabbcc", fontSize: 14, lineHeight: 1.7, outline: "none", fontFamily: "Barlow, sans-serif" }}
-      />
-      <style>{`
-        [contenteditable] p { margin: 0 0 10px; }
-        [contenteditable] h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 900; color: #fff; margin: 12px 0 6px; }
-        [contenteditable] h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin: 10px 0 4px; }
-        [contenteditable] ul, [contenteditable] ol { margin: 0 0 10px 20px; }
-        [contenteditable] b, [contenteditable] strong { color: #fff; }
-      `}</style>
+    <div style={{ border: "1px solid #347ebf44", borderRadius: 8, overflow: "hidden" }}>
+      <div ref={containerRef} />
     </div>
   );
 }
