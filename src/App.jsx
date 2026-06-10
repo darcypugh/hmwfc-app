@@ -1991,45 +1991,61 @@ export default function App() {
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: "#347ebf", letterSpacing: 1 }}>THE WELLS</div>
             </div>
             <div style={{ flex: 1, paddingTop: 8, overflowY: "auto" }}>
-              {/* Quick links — always visible */}
               {[
-                { label: "🏠 Home", key: "Home" },
-                { label: "📰 News", key: "News" },
-                { label: "🖼️ Gallery", key: "Gallery" },
-                { label: "📲 Download", key: "Download" },
-              ].map(({ label, key }) => (
-                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { navigate(key); setMenuOpen(false); }}>{label}</button>
+                { key: "Home", label: "Home", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+                { key: "News", label: "News", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M6 7h12M6 11h12M6 15h8"/></svg> },
+                { key: "Gallery", label: "Gallery", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> },
+                { key: "Download", label: "Download", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 18v2a1 1 0 001 1h16a1 1 0 001-1v-2"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { navigate(key); setMenuOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
+                </button>
               ))}
 
-              {/* Divider */}
               <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
               <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FIRST TEAM</div>
-              {FIRST_TEAM_ITEMS.map(sub => (
-                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
-                  {sub === "Table" ? "📊 Table" : sub === "Fixtures" ? "📅 Fixtures" : "👕 Squad"}
+              {[
+                { key: "Table", label: "Table", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg> },
+                { key: "Fixtures", label: "Fixtures", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
+                { key: "Squad", label: "Squad", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.85"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
                 </button>
               ))}
 
               <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
               <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>FAN ZONE</div>
-              {FAN_ZONE_ITEMS.map(sub => (
-                <button key={sub} className={`nav-btn ${active === sub ? "active" : ""}`} onClick={() => { setActive(sub); setMenuOpen(false); }} style={{ paddingLeft: 20, fontSize: 14 }}>
-                  {sub === "Wells Season Pass" ? "🎟️ Season Pass" : "🏠 The Clubhouse"}
+              {[
+                { key: "Wells Season Pass", label: "Season Pass", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg> },
+                { key: "The Clubhouse", label: "The Clubhouse", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key ? "active" : ""}`} onClick={() => { setActive(key); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
                 </button>
               ))}
 
               <div style={{ margin: "8px 20px", height: 1, background: "#ffffff0f" }} />
               <div style={{ padding: "4px 20px 8px", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 2 }}>HELP THE WELLS</div>
-              {HELP_WELLS_ITEMS.map(sub => (
-                <button key={sub} className={`nav-btn ${active === sub || (sub === "Fundraising" && active === "Help The Wells") ? "active" : ""}`}
-                  onClick={() => { setActive(sub === "Fundraising" ? "Help The Wells" : sub); setMenuOpen(false); }}
-                  style={{ paddingLeft: 20, fontSize: 14 }}>
-                  {sub === "Fundraising" ? "🎟️ Fundraising" : "🛒 Merch"}
+              {[
+                { key: "Help The Wells", label: "Fundraising", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/></svg> },
+                { key: "Merch", label: "Merch", icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> },
+              ].map(({ key, label, icon }) => (
+                <button key={key} className={`nav-btn ${active === key || (key === "Help The Wells" && active === "Help The Wells") ? "active" : ""}`}
+                  onClick={() => { navigate(key); setMenuOpen(false); }}
+                  style={{ paddingLeft: 20, fontSize: 14, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ opacity: 0.7, display: "flex", flexShrink: 0 }}>{icon}</span>{label}
                 </button>
               ))}
             </div>
             <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
-              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>⚙ Admin Panel</button>
+              <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M18 8l2 2 4-4"/></svg>
+                Admin Panel
+              </button>
             </div>
           </div>
         </>
