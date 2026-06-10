@@ -78,9 +78,6 @@ const DEFAULT_DATA = {
   },
 };
 
-const FAN_ZONE_ITEMS = ["Wells Season Pass", "The Clubhouse"];
-const FIRST_TEAM_ITEMS = ["Table", "Fixtures", "Squad"];
-const HELP_WELLS_ITEMS = ["Fundraising", "Merch"];
 const POS_COLOR = { GK: "#f59e0b", RB: "#347ebf", LB: "#347ebf", CB: "#10b981", CM: "#8b5cf6", AM: "#ef4444", FW: "#ef4444", WB: "#347ebf", DM: "#8b5cf6" };
 const POS_OPTIONS = ["GK","RB","LB","CB","WB","DM","CM","AM","FW"];
 
