@@ -1947,12 +1947,12 @@ export default function App() {
         .squad-row:hover { background: #347ebf11 !important; }
         .bottom-tab-bar { display: none; }
         @media (max-width: 768px) {
-          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: max(env(safe-area-inset-bottom), 12px); }
-          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 4px 8px; border: none; background: none; cursor: pointer; gap: 5px; min-width: 0; }
-          .bottom-tab-icon { font-size: 24px; line-height: 1; }
-          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; }
+          .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: env(safe-area-inset-bottom); }
+          .bottom-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 2px 8px; border: none; background: none; cursor: pointer; gap: 3px; min-width: 0; overflow: hidden; }
+          .bottom-tab-icon { font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
+          .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; white-space: nowrap; }
           .bottom-tab.active .bottom-tab-label { color: #347ebf; }
-          .main-content-pad { padding-bottom: 90px; }
+          .main-content-pad { padding-bottom: 80px; }
         }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
@@ -3646,11 +3646,11 @@ export default function App() {
       {/* Bottom tab bar — mobile only */}
       <div className="bottom-tab-bar">
         {[
-          { key: "Home", icon: "🏠", label: "Home" },
-          { key: "First Team", icon: "⚽", label: "First Team", sub: true },
-          { key: "News", icon: "📰", label: "News" },
-          { key: "The Clubhouse", icon: "🎟️", label: "Fan Zone", sub: true },
-          { key: "__more__", icon: "☰", label: "More" },
+          { key: "Home", label: "Home", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg> },
+          { key: "First Team", label: "First Team", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 00-6.7 17.4M12 2a10 10 0 016.7 17.4M5 7h14M4.2 13h15.6M6 17h12M12 2v20"/></svg> },
+          { key: "News", label: "News", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 10h16M4 14h10M4 18h8"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg> },
+          { key: "The Clubhouse", label: "Fan Zone", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg> },
+          { key: "__more__", label: "More", svg: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> },
         ].map(tab => {
           const isActive = tab.key === "First Team"
             ? ["Table","Fixtures","Squad"].includes(active)
@@ -3663,7 +3663,7 @@ export default function App() {
                 if (tab.key === "__more__") { setMenuOpen(true); }
                 else { setMenuOpen(false); if (tab.key === "First Team") { navigate("Fixtures"); } else { navigate(tab.key); } }
               }}>
-              <span className="bottom-tab-icon">{tab.icon}</span>
+              <span className="bottom-tab-icon" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.svg}</span>
               <span className="bottom-tab-label" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.label}</span>
             </button>
           );
