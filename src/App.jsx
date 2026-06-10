@@ -1046,25 +1046,55 @@ function AdminSeasonPass({ spData, onSave }) {
     update(ref(db), Object.fromEntries(Object.entries(newCodes).map(([k, v]) => [`hmwfc/passCodes/${k}`, v]))).then(() => setGeneratingCodes(false));
   };
 
-  const grantTrophy = (uid, trophyId) => {
-    // Write to a grants queue that server rules allow admin to write
-    // and fan's profile listener picks up
-    update(ref(db, `hmwfc/adminGrants`), { [`${uid}_${trophyId}`]: { uid, trophyId, granted: true, at: new Date().toISOString() } });
-    // Also write directly — works if Firebase rules allow auth != null on users
-    update(ref(db, `users/${uid}/trophies`), { [trophyId]: true });
-    // Force local state update so UI reflects immediately
-    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+  // ── Admin action helper — calls Vercel API route, verified server-side ──────
+  const adminAction = async (action, payload) => {
+    try {
+      const { getAuth } = await import("firebase/auth");
+      const currentUser = getAuth().currentUser;
+      if (!currentUser) return { error: "Not signed in" };
+      const idToken = await currentUser.getIdToken();
+      const res = await fetch("/api/admin-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, action, payload }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error("Admin action failed:", err);
+      return { error: err.message };
+    }
   };
 
-  const revokeTrophy = (uid, trophyId) => {
-    update(ref(db, `hmwfc/adminGrants`), { [`${uid}_${trophyId}`]: null });
-    set(ref(db, `users/${uid}/trophies/${trophyId}`), null);
+  const grantTrophy = async (uid, trophyId) => {
+    // Optimistic local update
+    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+    const result = await adminAction("grantTrophy", { uid, trophyId });
+    if (result.error) {
+      console.error("Grant failed:", result.error);
+      // Revert on failure
+      setUsers(prev => prev.map(u => {
+        if (u.uid !== uid) return u;
+        const trophies = { ...(u.trophies || {}) };
+        delete trophies[trophyId];
+        return { ...u, trophies };
+      }));
+    }
+  };
+
+  const revokeTrophy = async (uid, trophyId) => {
+    // Optimistic local update
     setUsers(prev => prev.map(u => {
       if (u.uid !== uid) return u;
       const trophies = { ...(u.trophies || {}) };
       delete trophies[trophyId];
       return { ...u, trophies };
     }));
+    const result = await adminAction("revokeTrophy", { uid, trophyId });
+    if (result.error) {
+      console.error("Revoke failed:", result.error);
+      // Revert on failure
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+    }
   };
 
   const unusedCodes = Object.entries(passCodes).filter(([, v]) => !v.used);
@@ -1229,13 +1259,13 @@ function AdminSeasonPass({ spData, onSave }) {
                   <button onClick={() => {
                     const { uid, trophyId, allPhotos, photoUrl } = lightboxPhoto;
                     const updated = allPhotos.map(p => p.url === photoUrl ? { ...p, reviewed: true } : p);
-                    update(ref(db, `users/${uid}/submissions/${trophyId}`), { photos: updated });
                     setUsers(prev => prev.map(u => {
                       if (u.uid !== uid) return u;
                       const subs = { ...(u.submissions || {}) };
                       subs[trophyId] = { ...(subs[trophyId] || {}), photos: updated };
                       return { ...u, submissions: subs };
                     }));
+                    adminAction("reviewPhoto", { uid, trophyId, photos: updated });
                     setLightboxPhoto(null);
                   }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", flex: 1 }}>✕ Delete photo</button>
                   <button onClick={() => setLightboxPhoto(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", flex: 1 }}>Close</button>
@@ -1292,9 +1322,9 @@ function AdminSeasonPass({ spData, onSave }) {
                               </div>
                               {isEvidence && !has && (
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <button onClick={() => { const newCount = Math.max(0, progress - 1); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
+                                  <button onClick={async () => { const newCount = Math.max(0, progress - 1); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
                                   <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
-                                  <button onClick={() => { const newCount = progress + 1; update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
+                                  <button onClick={async () => { const newCount = progress + 1; setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
                                 </div>
                               )}
                               <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
