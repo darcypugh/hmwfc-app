@@ -2424,7 +2424,7 @@ export default function App() {
               </div>
               <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                 <table>
-                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th className="tbl-hide">P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>GD</th><th>Pts</th></tr></thead>
+                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>GD</th><th>Pts</th></tr></thead>
                   <tbody>
                     {sorted.map((r, idx) => {
                       const zone = getZone(r.pos);
@@ -2445,7 +2445,7 @@ export default function App() {
                               {r.team}
                             </div>
                           </td>
-                          <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.p}</td>
+                          <td style={{ color: "#aabbcc" }}>{r.p}</td>
                           <td className="tbl-hide" style={{ color: "#10b981" }}>{r.w}</td>
                           <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.d}</td>
                           <td className="tbl-hide" style={{ color: "#ef4444" }}>{r.l}</td>
@@ -3644,8 +3644,7 @@ export default function App() {
             <button key={tab.key} className={`bottom-tab ${isActive ? "active" : ""}`}
               onClick={() => {
                 if (tab.key === "__more__") { setMenuOpen(true); }
-                else if (tab.key === "First Team") { setActive("Fixtures"); }
-                else { navigate(tab.key); }
+                else { setMenuOpen(false); if (tab.key === "First Team") { navigate("Fixtures"); } else { navigate(tab.key); } }
               }}>
               <span className="bottom-tab-icon">{tab.icon}</span>
               <span className="bottom-tab-label" style={{ color: isActive ? "#347ebf" : "#8899bb" }}>{tab.label}</span>
