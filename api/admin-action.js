@@ -38,7 +38,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 
-  if (decoded.email !== process.env.ADMIN_EMAIL) {
+  const adminEmails = (process.env.ADMIN_EMAIL || "").split(",").map(e => e.trim().toLowerCase());
+  if (!adminEmails.includes(decoded.email.toLowerCase())) {
     return res.status(403).json({ error: "Not authorised" });
   }
 
