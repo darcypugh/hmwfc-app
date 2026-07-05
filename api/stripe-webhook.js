@@ -1,12 +1,11 @@
 // api/stripe-webhook.js
-// Vercel serverless function — place this at /api/stripe-webhook.js in your repo root
+// Vercel serverless function — place at /api/stripe-webhook.js in your repo root
 
 import Stripe from "stripe";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { Resend } from "resend";
 
-// ── Initialise Firebase Admin (once across hot reloads) ──────────────────────
 if (!getApps().length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   initializeApp({
@@ -19,7 +18,6 @@ const db = getDatabase();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ── Read raw body (needed for Stripe signature verification) ─────────────────
 async function getRawBody(req) {
   const chunks = [];
   for await (const chunk of req) {
@@ -28,7 +26,6 @@ async function getRawBody(req) {
   return Buffer.concat(chunks);
 }
 
-// ── Pick an unused pass code and mark it reserved ───────────────────────────
 async function reservePassCode(buyerEmail) {
   const codesRef = db.ref("hmwfc/passCodes");
   const snapshot = await codesRef.once("value");
@@ -44,7 +41,6 @@ async function reservePassCode(buyerEmail) {
   return code;
 }
 
-// ── Send the activation email to the buyer ───────────────────────────────────
 async function sendPassEmail(buyerEmail, buyerName, code) {
   const appUrl = "https://hemsworthmwfc.co.uk";
   await resend.emails.send({
@@ -89,7 +85,6 @@ async function sendPassEmail(buyerEmail, buyerName, code) {
   });
 }
 
-// ── Main handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -109,6 +104,15 @@ export default async function handler(req, res) {
   }
 
   const session = event.data.object;
+
+  // ── Only process Season Pass purchases ───────────────────────────────────
+  // Add metadata key "product" = "season_pass" to your Stripe Season Pass payment link
+  const isSeasonPass = session.metadata?.product === "season_pass";
+  if (!isSeasonPass) {
+    console.log("Skipping non-season-pass purchase:", session.metadata);
+    return res.status(200).json({ received: true, skipped: true });
+  }
+
   const buyerEmail = session.customer_details?.email || session.customer_email;
   const buyerName  = session.customer_details?.name  || "";
 
@@ -121,7 +125,6 @@ export default async function handler(req, res) {
     const code = await reservePassCode(buyerEmail);
 
     if (!code) {
-      // Email admin — no codes left
       await resend.emails.send({
         from: "Hemsworth Miners Welfare FC <noreply@hemsworthmwfc.co.uk>",
         to: process.env.ADMIN_EMAIL,
