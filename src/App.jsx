@@ -1676,6 +1676,7 @@ export default function App() {
   const [squadSearchOpen, setSquadSearchOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
   const [trophyTab, setTrophyTab] = useState("todo");
@@ -1779,9 +1780,22 @@ export default function App() {
         return;
       }
       // Admin check -- only opens admin panel for the admin email
-      if (user.email === process.env.REACT_APP_ADMIN_EMAIL) {
+      const adminEmails = (process.env.REACT_APP_ADMIN_EMAILS || process.env.REACT_APP_ADMIN_EMAIL || "").split(",").map(e => e.trim().toLowerCase());
+      if (adminEmails.includes(user.email.toLowerCase())) {
+        setFanUser(user);
+        // Load fan profile for admin too (they can have a fan account)
+        const profileRef = ref(db, `users/${user.uid}`);
+        onValue(profileRef, (snap) => {
+          if (snap.exists()) setFanProfile(snap.val());
+          else {
+            const newProfile = { displayName: user.displayName || "", email: user.email, passUnlocked: false, trophies: {} };
+            set(profileRef, newProfile);
+            setFanProfile(newProfile);
+          }
+        }, { onlyOnce: false });
         setShowLogin(false);
-        setAdminOpen(true);
+        setIsAdmin(true);
+        // Default to fan mode — admin can re-enter admin panel from profile menu
         return;
       }
       // Fan account -- store user, load their profile
@@ -2038,12 +2052,14 @@ export default function App() {
                 </button>
               ))}
             </div>
+            {!isAdmin && (
             <div style={{ padding: "16px 20px", borderTop: "1px solid #ffffff0f" }}>
               <button onClick={() => { setMenuOpen(false); setShowLogin(true); }} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffff0a", border: "1px solid #ffffff15", borderRadius: 8, color: "#8899bb", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "8px 16px", cursor: "pointer", fontFamily: "Barlow Condensed, sans-serif", width: "100%" }}>
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M18 8l2 2 4-4"/></svg>
                 Admin Panel
               </button>
             </div>
+            )}
           </div>
         </>
       )}
@@ -2071,7 +2087,8 @@ export default function App() {
                     <div style={{ position: "absolute", top: 44, right: 0, background: "#191740", border: "1px solid #347ebf33", borderRadius: 10, overflow: "hidden", zIndex: 400, minWidth: 160, boxShadow: "0 8px 30px #00000066" }}>
                       <button onClick={() => { navigate("My Account"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left" }}>👤 My Account</button>
                       {fanProfile?.passUnlocked && <button onClick={() => { navigate("Wells Season Pass"); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#aabbcc", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>🎟️ My Season Pass</button>}
-                      <button onClick={() => { signOut(auth); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>Sign out</button>
+                      {isAdmin && <button onClick={() => { setAdminOpen(true); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#f59e0b", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>⚙ Admin Panel</button>}
+                      <button onClick={() => { signOut(auth); setIsAdmin(false); setProfileMenuOpen(false); }} style={{ display: "block", width: "100%", background: "none", border: "none", color: "#ef4444", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: 1, padding: "12px 16px", cursor: "pointer", textAlign: "left", borderTop: "1px solid #ffffff0f" }}>Sign out</button>
                     </div>
                   )}
                 </div>
@@ -3579,7 +3596,7 @@ export default function App() {
               </div>
 
               {/* Sign out */}
-              <button onClick={() => { signOut(auth); navigate("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
+              <button onClick={() => { signOut(auth); setIsAdmin(false); navigate("Home"); }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", border: "1px solid #ef444444" }}>Sign out</button>
             </div>
           );
         })()}
