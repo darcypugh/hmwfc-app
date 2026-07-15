@@ -1855,6 +1855,19 @@ function PredictionForm({ homeName, awayName, onSubmit }) {
   );
 }
 
+const formatFixtureDateShort = (d) => {
+  if (!d) return "";
+  if (d.includes("-")) {
+    const [y, m, day] = d.split("-");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${parseInt(day)} ${months[parseInt(m)-1]} ${y.slice(2)}`;
+  }
+  // Legacy "18 May" — parse and reformat
+  const parts = d.match(/(\d+)\s+(\w+)/);
+  if (!parts) return d;
+  return `${parts[1]} ${parts[2].slice(0,3)}`;
+};
+
 const formatFixtureDate = (d) => {
   if (!d) return "No date";
   if (d.includes("-")) {
@@ -2470,7 +2483,7 @@ export default function App() {
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
                             {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
-                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{formatFixtureDate(latestResult.date)}</div>
+                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{formatFixtureDateShort(latestResult.date)}</div>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
@@ -2652,7 +2665,7 @@ export default function App() {
                         <button onClick={() => navigate("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
                       </div>
                       <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 16px" }}>
-                        <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{formatFixtureDate(next.date)} · {next.time} · {next.venue}</div>
+                        <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{formatFixtureDateShort(next.date)} · {next.time} · {next.venue}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
                             {homeBadge ? <img src={homeBadge} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🛡</span>}
