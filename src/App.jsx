@@ -348,9 +348,8 @@ function AdminFixtures({ items, tableData, onSave }) {
     return t?.badge ? `data:image/png;base64,${t.badge}` : null;
   };
 
-  const parseDate = (d) => { if (!d) return 0; const parts = d.match(/(\d+)\s+(\w+)/); if (!parts) return 0; const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12}; return (months[parts[2]] || 0) * 100 + parseInt(parts[1]); };
-  const upcoming = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "upcoming").sort((a, b) => parseDate(a.date) - parseDate(b.date));
-  const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => parseDate(b.date) - parseDate(a.date) || b.id - a.id);
+  const upcoming = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "upcoming").sort((a, b) => parseFixtureDate(a.date) - parseFixtureDate(b.date));
+  const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => parseFixtureDate(b.date) - parseFixtureDate(a.date) || Number(b.id) - Number(a.id));
   const shown = tab === "upcoming" ? upcoming : results;
 
   const MatchCard = ({ f }) => {
@@ -372,7 +371,7 @@ function AdminFixtures({ items, tableData, onSave }) {
               {f.result
                 ? <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#347ebf" }}>{f.result}</span>
                 : <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, color: "#8899bb" }}>{f.time || "TBC"}</span>}
-              <div style={{ fontSize: 10, color: "#8899bb66", marginTop: 1 }}>{f.date || "No date"}</div>
+              <div style={{ fontSize: 10, color: "#8899bb66", marginTop: 1 }}>{formatFixtureDate(f.date)}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
               <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.away.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>{f.away.includes("Hemsworth") ? "The Wells" : f.away}</span>
@@ -392,7 +391,7 @@ function AdminFixtures({ items, tableData, onSave }) {
           <div style={{ borderTop: "1px solid #ffffff0f", padding: "14px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
             {/* Date / time / venue row */}
             <div style={S.row}>
-              <div style={{ flex: 1 }}><label style={S.label}>Date</label><input style={S.input} value={f.date} onChange={e => update(idx, "date", e.target.value)} placeholder="18 May" /></div>
+              <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={f.date} onChange={e => update(idx, "date", e.target.value)} /></div>
               {f.type === "upcoming" && <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update(idx, "time", e.target.value)} placeholder="15:00" /></div>}
               <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update(idx, "venue", e.target.value)} /></div>
             </div>
@@ -1736,6 +1735,30 @@ function PredictionForm({ homeName, awayName, onSubmit }) {
   );
 }
 
+const formatFixtureDate = (d) => {
+  if (!d) return "No date";
+  if (d.includes("-")) {
+    // YYYY-MM-DD format from date picker
+    const [y, m, day] = d.split("-");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${parseInt(day)} ${months[parseInt(m)-1]}`;
+  }
+  return d; // legacy text format passthrough
+};
+
+const parseFixtureDate = (d) => {
+  if (!d) return 0;
+  if (d.includes("-")) {
+    // YYYY-MM-DD — convert directly to sortable number
+    return parseInt(d.replace(/-/g, ""));
+  }
+  // Legacy text "18 May" format
+  const parts = d.match(/(\d+)\s+(\w+)/);
+  if (!parts) return 0;
+  const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+  return (months[parts[2]] || 0) * 100 + parseInt(parts[1]);
+};
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -2199,7 +2222,7 @@ export default function App() {
           };
           const zoneColor = { champions: "#f59e0b", playoff: "#10b981", relegation: "#ef4444", mid: "#8899bb" };
           const fixturesList = data.fixtures ? (Array.isArray(data.fixtures) ? data.fixtures : Object.values(data.fixtures)).filter(Boolean) : [];
-          const latestResult = fixturesList.filter(f => f && f.type === "result" && f.result).sort((a,b) => (Number(b.id)||0) - (Number(a.id)||0))[0];
+          const latestResult = fixturesList.filter(f => f && f.type === "result" && f.result).sort((a,b) => parseFixtureDate(b.date) - parseFixtureDate(a.date) || (Number(b.id)||0) - (Number(a.id)||0))[0];
           const getBadge = (teamName, fixture) => {
             if (fixture) {
               if (teamName === fixture.home && fixture.homeBadge) return fixture.homeBadge;
@@ -2234,7 +2257,7 @@ export default function App() {
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
                             {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
-                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{latestResult.date}</div>
+                            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{formatFixtureDate(latestResult.date)}</div>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
@@ -2416,7 +2439,7 @@ export default function App() {
                         <button onClick={() => navigate("Fixtures")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>ALL →</button>
                       </div>
                       <div style={{ background: "#191740", border: "1px solid #ffffff0f", borderRadius: 12, padding: "14px 16px" }}>
-                        <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{next.date} · {next.time} · {next.venue}</div>
+                        <div style={{ fontSize: 10, color: "#8899bb", marginBottom: 10, letterSpacing: 0.5 }}>{formatFixtureDate(next.date)} · {next.time} · {next.venue}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flex: 1 }}>
                             {homeBadge ? <img src={homeBadge} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} /> : <span style={{ fontSize: 22 }}>🛡</span>}
@@ -2621,7 +2644,7 @@ export default function App() {
                         </div>
                       )}
                       <div className="fixture-card-inner">
-                        <div className="fixture-date">{f.date}</div>
+                        <div className="fixture-date">{formatFixtureDate(f.date)}</div>
                         <div className="fixture-teams">
                           {/* Home */}
                           <div className="fixture-team-home" style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }}>
