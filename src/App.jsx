@@ -1568,7 +1568,8 @@ function AdminPanel({ data, onUpdate, onClose }) {
   const adminScrollRef = useRef(null);
   const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column", overscrollBehavior: "none" }}>
+      <style>{`body { overscroll-behavior: none; }`}</style>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <img src={"/logo.png"} alt="HMWFC" style={{ height: 36, filter: "drop-shadow(0 0 8px #347ebf66)" }} />
         <div>
