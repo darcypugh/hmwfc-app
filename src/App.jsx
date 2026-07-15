@@ -352,13 +352,7 @@ function AdminFixtures({ items, tableData, onSave }) {
   const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => parseFixtureDate(b.date) - parseFixtureDate(a.date) || Number(b.id) - Number(a.id));
   const shown = tab === "upcoming" ? upcoming : results;
 
-  const MatchCard = ({ f }) => {
-    const idx = f._idx;
-    const homeBadge = getTeamBadge(f.home, f, "home");
-    const awayBadge = getTeamBadge(f.away, f, "away");
-    const isEditing = editing === idx;
-    const isLeague = !f.friendly && !f.cup;
-    return (
+
       <div style={{ background: "#0d0c22", border: `1px solid ${isEditing ? "#347ebf44" : "#ffffff0f"}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
         {/* Summary row */}
         <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => setEditing(isEditing ? null : idx)}>
@@ -474,9 +468,6 @@ function AdminFixtures({ items, tableData, onSave }) {
           </div>
         )}
       </div>
-    );
-  };
-
   return (
     <div>
       <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 20, fontWeight: 900, marginBottom: 16 }}>Fixtures & Results</div>
@@ -496,7 +487,121 @@ function AdminFixtures({ items, tableData, onSave }) {
       </div>
 
       {shown.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0", textAlign: "center" }}>No {tab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
-      {shown.map(f => <MatchCard key={f.id} f={f} />)}
+      {shown.map(f => {
+        const idx = f._idx;
+        const homeBadge = getTeamBadge(f.home, f, "home");
+        const awayBadge = getTeamBadge(f.away, f, "away");
+        const isEditing = editing === idx;
+        const isLeague = !f.friendly && !f.cup;
+        return (
+          <div key={f.id} style={{ background: "#0d0c22", border: `1px solid ${isEditing ? "#347ebf44" : "#ffffff0f"}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+            {/* Summary row */}
+            <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => setEditing(isEditing ? null : idx)}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                  {homeBadge ? <img src={homeBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 14, flexShrink: 0 }}>🛡</span>}
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.home.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.home.includes("Hemsworth") ? "The Wells" : f.home}</span>
+                </div>
+                <div style={{ width: 90, textAlign: "center", flexShrink: 0 }}>
+                  {f.result
+                    ? <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#347ebf" }}>{f.result}</span>
+                    : <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, color: "#8899bb" }}>{f.time || "TBC"}</span>}
+                  <div style={{ fontSize: 10, color: "#8899bb66", marginTop: 1 }}>{formatFixtureDate(f.date)}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.away.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>{f.away.includes("Hemsworth") ? "The Wells" : f.away}</span>
+                  {awayBadge ? <img src={awayBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 14, flexShrink: 0 }}>🛡</span>}
+                </div>
+                <span style={{ fontSize: 10, color: "#8899bb", flexShrink: 0, marginLeft: 4 }}>{isEditing ? "▲" : "▼"}</span>
+              </div>
+              {!isLeague && (
+                <div style={{ marginTop: 4, paddingLeft: 28 }}>
+                  <span style={{ fontSize: 9, color: f.friendly ? "#f59e0b" : "#8b5cf6", background: f.friendly ? "#f59e0b18" : "#8b5cf622", padding: "2px 6px", borderRadius: 3, fontWeight: 700 }}>{f.friendly ? "FRIENDLY" : f.cupType || "CUP"}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Edit form */}
+            {isEditing && (
+              <div style={{ borderTop: "1px solid #ffffff0f", padding: "14px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={S.row}>
+                  <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={f.date} onChange={e => update(idx, "date", e.target.value)} /></div>
+                  {f.type === "upcoming" && <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update(idx, "time", e.target.value)} placeholder="15:00" /></div>}
+                  <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update(idx, "venue", e.target.value)} /></div>
+                </div>
+                <div style={{ display: "flex", gap: 16, background: "#191740", borderRadius: 8, padding: "10px 14px", flexWrap: "wrap", alignItems: "center" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>
+                    <input type="checkbox" checked={!!f.friendly} onChange={e => update(idx, "friendly", e.target.checked)} style={{ accentColor: "#f59e0b" }} /> Friendly
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#8b5cf6", fontWeight: 700 }}>
+                    <input type="checkbox" checked={!!f.cup} onChange={e => update(idx, "cup", e.target.checked)} style={{ accentColor: "#8b5cf6" }} /> Cup
+                  </label>
+                  {f.cup && (
+                    <select value={f.cupType || ""} onChange={e => update(idx, "cupType", e.target.value)} style={{ ...S.input, width: "auto", color: "#8b5cf6", borderColor: "#8b5cf644" }}>
+                      <option value="">Select cup...</option>
+                      <option value="FA Cup">FA Cup</option>
+                      <option value="FA Vase">FA Vase</option>
+                      <option value="League Cup">League Cup</option>
+                      <option value="S&H Senior">S&H Senior</option>
+                    </select>
+                  )}
+                </div>
+                <div style={S.row}>
+                  {["home","away"].map(side => {
+                    const teamVal = f[side];
+                    const badgeFromTable = (() => { const t = (tableData||[]).find(r => r.team === teamVal); return t?.badge ? `data:image/png;base64,${t.badge}` : null; })();
+                    const manualBadge = f[side + "Badge"];
+                    const badge = badgeFromTable || manualBadge;
+                    return (
+                      <div key={side} style={{ flex: 1 }}>
+                        <label style={S.label}>{side === "home" ? "Home" : "Away"} Team</label>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          {badge ? <img src={badge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
+                          <select style={{ ...S.input, flex: 1 }} value={teamVal} onChange={e => update(idx, side, e.target.value)}>
+                            <option value="">Select or type...</option>
+                            <option value="Hemsworth Miners Welfare FC">Hemsworth Miners Welfare FC</option>
+                            {(tableData||[]).filter(t => !t.team.includes("Hemsworth")).sort((a,b) => a.team.localeCompare(b.team)).map(t => <option key={t.team} value={t.team}>{t.team}</option>)}
+                          </select>
+                        </div>
+                        <input style={{ ...S.input, marginBottom: 6 }} value={teamVal} onChange={e => update(idx, side, e.target.value)} placeholder="Or type team name..." />
+                        {!badgeFromTable && (
+                          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: "#191740", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
+                            {manualBadge ? <img src={manualBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} /> : <span style={{ fontSize: 16 }}>🛡</span>}
+                            <span style={{ fontSize: 11, color: "#8899bb" }}>{manualBadge ? "Change badge" : "Upload badge"}</span>
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, side, e.target.files[0])} />
+                          </label>
+                        )}
+                        {badgeFromTable && <div style={{ fontSize: 10, color: "#10b981" }}>✓ Badge from table</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+                {f.type === "result" && (
+                  <div style={{ background: "#191740", borderRadius: 8, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={S.row}>
+                      <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update(idx, "result", e.target.value)} placeholder="2 – 1" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="1 – 0" /></div>
+                    </div>
+                    <div style={S.row}>
+                      <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update(idx, "homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update(idx, "awayScorers", e.target.value)} placeholder="Brown 67" /></div>
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {f.type === "upcoming"
+                    ? <button style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 12 }} onClick={() => update(idx, "type", "result")}>Mark as played →</button>
+                    : <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", fontSize: 12 }} onClick={() => update(idx, "type", "upcoming")}>← Move back to upcoming</button>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444" }} onClick={() => del(idx)}>Delete</button>
+                    <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1357,6 +1462,7 @@ function AdminSeasonPass({ spData, onSave }) {
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{u.displayName || "(no name)"}</div>
                     <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                       <span style={{ background: u.passUnlocked ? "#10b98122" : "#ffffff0f", color: u.passUnlocked ? "#10b981" : "#8899bb", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>{u.passUnlocked ? "✓ Pass" : "No Pass"}</span>
+                      <span style={{ background: u.seasonTicket ? "#f59e0b22" : "#ffffff0f", color: u.seasonTicket ? "#f59e0b" : "#8899bb", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>{u.seasonTicket ? "🎫 Season Ticket" : "No Ticket"}</span>
                       <span>{unlockedTrophyIds.length}/{trophies.filter(t => t.active).length} trophies</span>
                       {pendingCount > 0 && <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "1px 6px", borderRadius: 3, fontWeight: 700 }}>⏳ {pendingCount} pending</span>}
                     </div>
@@ -1368,6 +1474,20 @@ function AdminSeasonPass({ spData, onSave }) {
                 {isExpanded && (
                   <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
                     <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{u.email}</div>
+                    {/* Season Ticket toggle */}
+                    <div style={{ background: "#191740", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: u.seasonTicket ? "#f59e0b" : "#8899bb" }}>🎫 Season Ticket Holder</div>
+                        <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{u.seasonTicket ? "Marked as season ticket holder" : "Not a season ticket holder"}</div>
+                      </div>
+                      <button onClick={async () => {
+                        const newVal = !u.seasonTicket;
+                        setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, seasonTicket: newVal } : usr));
+                        await adminAction("setSeasonTicket", { uid: u.uid, value: newVal });
+                      }} style={{ ...S.btn, background: u.seasonTicket ? "#f59e0b22" : "#ffffff0f", color: u.seasonTicket ? "#f59e0b" : "#8899bb", border: `1px solid ${u.seasonTicket ? "#f59e0b44" : "#ffffff15"}`, flexShrink: 0 }}>
+                        {u.seasonTicket ? "Remove" : "Mark as Holder"}
+                      </button>
+                    </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {trophies.filter(t => t.active && t.name).map(t => {
                         const has = !!(u.trophies || {})[t.id];
@@ -1809,6 +1929,7 @@ export default function App() {
   const [likes, setLikes] = useState({});
   const [views, setViews] = useState({});
   const [fanUser, setFanUser] = useState(null);
+  const [matchdayCard, setMatchdayCard] = useState(null); // fixture to show, or null
   const [fanProfile, setFanProfile] = useState(null);
   const [seasonPassData, setSeasonPassData] = useState(null);
   const [codeInput, setCodeInput] = useState("");
@@ -1944,6 +2065,35 @@ export default function App() {
     return () => unsub();
   }, []);
 
+  // ── Matchday card — show once per day for league fixtures only ─────────────
+  useEffect(() => {
+    if (!fanProfile?.seasonTicket) return;
+    if (!data?.fixtures) return;
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) return;
+    const fixturesList = Array.isArray(data.fixtures) ? data.fixtures : Object.values(data.fixtures);
+    const todayFixture = fixturesList.find(f =>
+      f && f.date === today && f.type === "upcoming" && !f.friendly && !f.cup && f.home && f.home.includes("Hemsworth")
+    );
+    if (todayFixture) setMatchdayCard(todayFixture);
+  }, [fanProfile, data]);
+
+  // Auto-apply season ticket if email is in hmwfc/seasonTickets
+  useEffect(() => {
+    if (!fanUser) return;
+    const emailKey = fanUser.email.toLowerCase().replace(/[.@]/g, "_");
+    const ticketRef = ref(db, `hmwfc/seasonTickets/${emailKey}`);
+    const unsub = onValue(ticketRef, (snap) => {
+      if (snap.exists() && snap.val() === true) {
+        // Mark this user as a season ticket holder
+        update(ref(db, `users/${fanUser.uid}`), { seasonTicket: true });
+        setFanProfile(prev => prev ? { ...prev, seasonTicket: true } : prev);
+      }
+    });
+    return () => unsub();
+  }, [fanUser]);
+
   // Load fan's own predictions
   useEffect(() => {
     if (!fanUser) return;
@@ -2035,6 +2185,69 @@ export default function App() {
       </div>
     </div>
   );
+
+  // ── Matchday card overlay ──────────────────────────────────────────────────
+  if (matchdayCard) {
+    const f = matchdayCard;
+    const homeTeam = (data.table || []).find(t => t.team === f.home);
+    const awayTeam = (data.table || []).find(t => t.team === f.away);
+    const homeBadge = f.homeBadge || (homeTeam?.badge ? `data:image/png;base64,${homeTeam.badge}` : null);
+    const awayBadge = f.awayBadge || (awayTeam?.badge ? `data:image/png;base64,${awayTeam.badge}` : null);
+    const weHome = f.home.includes("Hemsworth");
+    const dismiss = () => {
+      setMatchdayCard(null);
+    };
+    return (
+      <div style={{ minHeight: "100vh", background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Barlow, sans-serif" }}>
+        <style>{`
+          @keyframes matchdayFadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes matchdayPulse { 0%,100% { box-shadow: 0 0 0 0 #347ebf44; } 50% { box-shadow: 0 0 0 16px #347ebf00; } }
+        `}</style>
+        <div style={{ width: "100%", maxWidth: 380, animation: "matchdayFadeIn 0.5s ease-out" }}>
+          {/* Card */}
+          <div style={{ background: "linear-gradient(160deg, #191740 0%, #0d0c22 100%)", border: "1px solid #347ebf44", borderRadius: 20, overflow: "hidden", boxShadow: "0 24px 60px #00000099" }}>
+            {/* Top strip */}
+            <div style={{ background: "linear-gradient(90deg, #347ebf, #1a5f9e)", padding: "10px 20px", textAlign: "center" }}>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 4, color: "#fff" }}>MATCHDAY</div>
+            </div>
+            {/* Logo */}
+            <div style={{ textAlign: "center", padding: "24px 20px 12px" }}>
+              <img src="/logo.png" alt="HMWFC" style={{ height: 72, filter: "drop-shadow(0 4px 16px #347ebf66)" }} />
+            </div>
+            {/* Teams */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 28px 20px", gap: 8 }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                {homeBadge ? <img src={homeBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{weHome ? "The Wells" : f.home}</div>
+              </div>
+              <div style={{ textAlign: "center", flexShrink: 0 }}>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: "#8899bb" }}>vs</div>
+                {f.time && <div style={{ fontSize: 12, color: "#347ebf", fontWeight: 700, marginTop: 2 }}>{f.time}</div>}
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                {awayBadge ? <img src={awayBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{!weHome ? "The Wells" : f.away}</div>
+              </div>
+            </div>
+            {/* Venue */}
+            {f.venue && <div style={{ textAlign: "center", fontSize: 11, color: "#8899bb", paddingBottom: 16, letterSpacing: 0.5 }}>📍 {f.venue}</div>}
+            {/* Fan greeting */}
+            <div style={{ margin: "0 20px 20px", background: "#347ebf11", border: "1px solid #347ebf33", borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
+              <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 2 }}>Welcome,</div>
+              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#fff" }}>{fanProfile?.displayName || "Wells Fan"} 🎟️</div>
+              <div style={{ fontSize: 11, color: "#10b981", marginTop: 3, fontWeight: 700, letterSpacing: 1 }}>SEASON PASS HOLDER</div>
+            </div>
+            {/* CTA */}
+            <div style={{ padding: "0 20px 24px" }}>
+              <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", borderRadius: 12, color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 20, letterSpacing: 3, padding: "16px 0", cursor: "pointer", animation: "matchdayPulse 2s ease-in-out infinite" }}>
+                UP THE WELLS! ⚽
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0d0c22", fontFamily: "Barlow, sans-serif", color: "#fff" }}>
