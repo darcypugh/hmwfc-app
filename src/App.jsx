@@ -1739,7 +1739,7 @@ const formatFixtureDate = (d) => {
   if (!d) return "No date";
   if (d.includes("-")) {
     // YYYY-MM-DD format from date picker
-    const [y, m, day] = d.split("-");
+    const [, m, day] = d.split("-");
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return `${parseInt(day)} ${months[parseInt(m)-1]}`;
   }
