@@ -1364,18 +1364,13 @@ function AdminSeasonPass({ spData, onSave }) {
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, color: u.seasonTicket ? "#f59e0b" : "#8899bb" }}>🎫 Season Ticket Holder</div>
                         <div style={{ fontSize: 11, color: "#8899bb", marginTop: 2 }}>{u.seasonTicket ? "Marked as season ticket holder" : "Not a season ticket holder"}</div>
                       </div>
-                      <button onClick={async () => {
+                      <button onClick={() => {
                         const newVal = !u.seasonTicket;
-                        // Optimistic local update
-                        setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, seasonTicket: newVal } : usr));
-                        // Write directly to Firebase (rules allow auth != null)
                         if (newVal) {
                           update(ref(db, `users/${u.uid}`), { seasonTicket: true });
                         } else {
                           set(ref(db, `users/${u.uid}/seasonTicket`), null);
                         }
-                        // Also try server route
-                        adminAction("setSeasonTicket", { uid: u.uid, value: newVal });
                       }} style={{ ...S.btn, background: u.seasonTicket ? "#f59e0b22" : "#ffffff0f", color: u.seasonTicket ? "#f59e0b" : "#8899bb", border: `1px solid ${u.seasonTicket ? "#f59e0b44" : "#ffffff15"}`, flexShrink: 0 }}>
                         {u.seasonTicket ? "Remove" : "Mark as Holder"}
                       </button>
