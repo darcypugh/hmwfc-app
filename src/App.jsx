@@ -348,8 +348,9 @@ function AdminFixtures({ items, tableData, onSave }) {
     return t?.badge ? `data:image/png;base64,${t.badge}` : null;
   };
 
-  const upcoming = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "upcoming").sort((a, b) => a.date.localeCompare(b.date));
-  const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => b.id - a.id);
+  const parseDate = (d) => { if (!d) return 0; const parts = d.match(/(\d+)\s+(\w+)/); if (!parts) return 0; const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12}; return (months[parts[2]] || 0) * 100 + parseInt(parts[1]); };
+  const upcoming = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "upcoming").sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => parseDate(b.date) - parseDate(a.date) || b.id - a.id);
   const shown = tab === "upcoming" ? upcoming : results;
 
   const MatchCard = ({ f }) => {
@@ -361,25 +362,29 @@ function AdminFixtures({ items, tableData, onSave }) {
     return (
       <div style={{ background: "#0d0c22", border: `1px solid ${isEditing ? "#347ebf44" : "#ffffff0f"}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
         {/* Summary row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer" }} onClick={() => setEditing(isEditing ? null : idx)}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 16 }}>🛡</span>}
-            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.home.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.home.includes("Hemsworth") ? "The Wells" : f.home}</span>
+        <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => setEditing(isEditing ? null : idx)}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+              {homeBadge ? <img src={homeBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 14, flexShrink: 0 }}>🛡</span>}
+              <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.home.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.home.includes("Hemsworth") ? "The Wells" : f.home}</span>
+            </div>
+            <div style={{ width: 90, textAlign: "center", flexShrink: 0 }}>
+              {f.result
+                ? <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#347ebf" }}>{f.result}</span>
+                : <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, color: "#8899bb" }}>{f.time || "TBC"}</span>}
+              <div style={{ fontSize: 10, color: "#8899bb66", marginTop: 1 }}>{f.date || "No date"}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
+              <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.away.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>{f.away.includes("Hemsworth") ? "The Wells" : f.away}</span>
+              {awayBadge ? <img src={awayBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 14, flexShrink: 0 }}>🛡</span>}
+            </div>
+            <span style={{ fontSize: 10, color: "#8899bb", flexShrink: 0, marginLeft: 4 }}>{isEditing ? "▲" : "▼"}</span>
           </div>
-          <div style={{ textAlign: "center", flexShrink: 0 }}>
-            {f.result
-              ? <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#347ebf" }}>{f.result}</span>
-              : <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, color: "#8899bb" }}>{f.time || "TBC"}</span>}
-            <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{f.date || "No date"}</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
-            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: f.away.includes("Hemsworth") ? "#fff" : "#aabbcc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "right" }}>{f.away.includes("Hemsworth") ? "The Wells" : f.away}</span>
-            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 16 }}>🛡</span>}
-          </div>
-          <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 8 }}>
-            {!isLeague && <span style={{ fontSize: 9, color: f.friendly ? "#f59e0b" : "#8b5cf6", background: f.friendly ? "#f59e0b18" : "#8b5cf622", padding: "2px 5px", borderRadius: 3, fontWeight: 700 }}>{f.friendly ? "FRIENDLY" : f.cupType || "CUP"}</span>}
-            <span style={{ fontSize: 10, color: "#8899bb" }}>{isEditing ? "▲" : "▼"}</span>
-          </div>
+          {!isLeague && (
+            <div style={{ marginTop: 4, paddingLeft: 28 }}>
+              <span style={{ fontSize: 9, color: f.friendly ? "#f59e0b" : "#8b5cf6", background: f.friendly ? "#f59e0b18" : "#8b5cf622", padding: "2px 6px", borderRadius: 3, fontWeight: 700 }}>{f.friendly ? "FRIENDLY" : f.cupType || "CUP"}</span>
+            </div>
+          )}
         </div>
 
         {/* Edit form */}
@@ -2193,8 +2198,8 @@ export default function App() {
             return "mid";
           };
           const zoneColor = { champions: "#f59e0b", playoff: "#10b981", relegation: "#ef4444", mid: "#8899bb" };
-          const fixturesList = data.fixtures ? (Array.isArray(data.fixtures) ? data.fixtures : Object.values(data.fixtures)) : [];
-          const latestResult = fixturesList.filter(f => f.type === "result").sort((a,b) => (b.id||0) - (a.id||0))[0];
+          const fixturesList = data.fixtures ? (Array.isArray(data.fixtures) ? data.fixtures : Object.values(data.fixtures)).filter(Boolean) : [];
+          const latestResult = fixturesList.filter(f => f && f.type === "result" && f.result).sort((a,b) => (Number(b.id)||0) - (Number(a.id)||0))[0];
           const getBadge = (teamName, fixture) => {
             if (fixture) {
               if (teamName === fixture.home && fixture.homeBadge) return fixture.homeBadge;
@@ -2399,7 +2404,7 @@ export default function App() {
               <div style={{ minWidth: 0 }}>
                 {/* Next fixture */}
                 {(() => {
-                  const next = fixturesList.filter(f => f.type === "upcoming")[0];
+                  const next = fixturesList.filter(f => f && f.type === "upcoming").sort((a,b) => (Number(a.id)||0) - (Number(b.id)||0))[0];
                   if (!next) return null;
                   const homeBadge = getBadge(next.home, next);
                   const awayBadge = getBadge(next.away, next);
@@ -2588,7 +2593,7 @@ export default function App() {
         })()}
 
         {active === "Fixtures" && (() => {
-          const fixtures = data.fixtures || [];
+          const fixtures = data.fixtures ? (Array.isArray(data.fixtures) ? data.fixtures : Object.values(data.fixtures)).filter(Boolean) : [];
           const filtered = fixtures.filter(f => f.type === fixtureTab);
           const getBadgeForFixture = (f, teamName) => {
             if (f.homeBadge && teamName === f.home) return f.homeBadge;
