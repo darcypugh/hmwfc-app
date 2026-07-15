@@ -2104,53 +2104,77 @@ export default function App() {
     const dismiss = () => {
       setMatchdayCard(null);
     };
+    const oppBadge = weHome ? awayBadge : homeBadge;
+    const oppName = weHome ? f.away : f.home;
     return (
-      <div style={{ minHeight: "100vh", background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Barlow, sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #0a0918 0%, #0d0c22 60%, #101830 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 24px", fontFamily: "Barlow, sans-serif" }}>
         <style>{`
-          @keyframes matchdayFadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-          @keyframes matchdayPulse { 0%,100% { box-shadow: 0 0 0 0 #347ebf44; } 50% { box-shadow: 0 0 0 16px #347ebf00; } }
+          @keyframes matchdayFadeIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes matchdayGlow { 0%,100% { filter: drop-shadow(0 0 18px #347ebf66); } 50% { filter: drop-shadow(0 0 36px #347ebfaa); } }
+          @keyframes matchdayPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.85; } }
         `}</style>
-        <div style={{ width: "100%", maxWidth: 380, animation: "matchdayFadeIn 0.5s ease-out" }}>
-          {/* Card */}
-          <div style={{ background: "linear-gradient(160deg, #191740 0%, #0d0c22 100%)", border: "1px solid #347ebf44", borderRadius: 20, overflow: "hidden", boxShadow: "0 24px 60px #00000099" }}>
-            {/* Top strip */}
-            <div style={{ background: "linear-gradient(90deg, #347ebf, #1a5f9e)", padding: "10px 20px", textAlign: "center" }}>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 4, color: "#fff" }}>MATCHDAY</div>
-            </div>
-            {/* Logo */}
-            <div style={{ textAlign: "center", padding: "24px 20px 12px" }}>
-              <img src="/logo.png" alt="HMWFC" style={{ height: 72, filter: "drop-shadow(0 4px 16px #347ebf66)" }} />
-            </div>
-            {/* Teams */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 28px 20px", gap: 8 }}>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                {homeBadge ? <img src={homeBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{weHome ? "The Wells" : f.home}</div>
+        <div style={{ width: "100%", maxWidth: 400, animation: "matchdayFadeIn 0.5s ease-out" }}>
+
+          {/* MATCHDAY pill */}
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <span style={{ background: "linear-gradient(90deg,#347ebf,#1a5f9e)", fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, letterSpacing: 5, color: "#fff", padding: "6px 20px", borderRadius: 20 }}>MATCHDAY</span>
+          </div>
+
+          {/* Club crest — large */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <img src="/logo.png" alt="HMWFC" style={{ height: 120, animation: "matchdayGlow 3s ease-in-out infinite" }} />
+          </div>
+
+          {/* Fan welcome */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", letterSpacing: 2, marginBottom: 4 }}>WELCOME BACK</div>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{fanProfile?.displayName || "Wells Fan"}</div>
+            <div style={{ display: "inline-block", marginTop: 8, background: "#f59e0b22", border: "1px solid #f59e0b44", borderRadius: 20, padding: "3px 12px", fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: "#f59e0b", letterSpacing: 2 }}>🎫 SEASON TICKET HOLDER</div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #347ebf44, transparent)", marginBottom: 24 }} />
+
+          {/* Match info */}
+          <div style={{ background: "#ffffff08", border: "1px solid #ffffff0f", borderRadius: 16, padding: "20px 24px", marginBottom: 24 }}>
+            {/* Opponent */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+              <div style={{ width: 56, height: 56, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {oppBadge ? <img src={oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
               </div>
-              <div style={{ textAlign: "center", flexShrink: 0 }}>
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: "#8899bb" }}>vs</div>
-                {f.time && <div style={{ fontSize: 12, color: "#347ebf", fontWeight: 700, marginTop: 2 }}>{f.time}</div>}
-              </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                {awayBadge ? <img src={awayBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{!weHome ? "The Wells" : f.away}</div>
+              <div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, color: "#8899bb", letterSpacing: 1, marginBottom: 2 }}>{weHome ? "HOME · VS" : "AWAY · VS"}</div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>{oppName}</div>
               </div>
             </div>
-            {/* Venue */}
-            {f.venue && <div style={{ textAlign: "center", fontSize: 11, color: "#8899bb", paddingBottom: 16, letterSpacing: 0.5 }}>📍 {f.venue}</div>}
-            {/* Fan greeting */}
-            <div style={{ margin: "0 20px 20px", background: "#347ebf11", border: "1px solid #347ebf33", borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
-              <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 2 }}>Welcome,</div>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#fff" }}>{fanProfile?.displayName || "Wells Fan"} 🎟️</div>
-              <div style={{ fontSize: 11, color: "#10b981", marginTop: 3, fontWeight: 700, letterSpacing: 1 }}>SEASON PASS HOLDER</div>
-            </div>
-            {/* CTA */}
-            <div style={{ padding: "0 20px 24px" }}>
-              <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", borderRadius: 12, color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 20, letterSpacing: 3, padding: "16px 0", cursor: "pointer", animation: "matchdayPulse 2s ease-in-out infinite" }}>
-                UP THE WELLS! ⚽
-              </button>
+            {/* Details row */}
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {f.time && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14 }}>🕒</span>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, color: "#fff" }}>{f.time}</span>
+                </div>
+              )}
+              {f.venue && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>📍</span>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.venue}</span>
+                </div>
+              )}
+              {f.date && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14 }}>📅</span>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{formatFixtureDateShort(f.date)}</span>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* CTA */}
+          <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", borderRadius: 14, color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 22, letterSpacing: 4, padding: "18px 0", cursor: "pointer", animation: "matchdayPulse 2s ease-in-out infinite" }}>
+            UP THE WELLS! ⚽
+          </button>
+
         </div>
       </div>
     );
