@@ -1056,8 +1056,14 @@ function AdminSeasonPass({ spData, onSave }) {
 
   useEffect(() => {
     const unsub = onValue(ref(db, "users"), (snap) => {
-      if (snap.exists()) setUsers(Object.entries(snap.val()).map(([uid, data]) => ({ uid, ...data })));
-      else setUsers([]);
+      if (snap.exists()) {
+        const incoming = Object.entries(snap.val()).map(([uid, data]) => ({ uid, ...data }));
+        setUsers(prev => incoming.map(u => {
+          const existing = prev.find(p => p.uid === u.uid);
+          // Keep any local-only fields that Firebase hasn't confirmed yet
+          return existing ? { ...u, ...Object.fromEntries(Object.entries(existing).filter(([k]) => u[k] === undefined)) } : u;
+        }));
+      } else setUsers([]);
     });
     const unsub2 = onValue(ref(db, "hmwfc/passCodes"), (snap) => {
       if (snap.exists()) setPassCodes(snap.val());
@@ -1366,6 +1372,7 @@ function AdminSeasonPass({ spData, onSave }) {
                       </div>
                       <button onClick={() => {
                         const newVal = !u.seasonTicket;
+                        setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, seasonTicket: newVal } : usr));
                         if (newVal) {
                           update(ref(db, `users/${u.uid}`), { seasonTicket: true });
                         } else {
