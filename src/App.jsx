@@ -2151,19 +2151,19 @@ export default function App() {
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               {f.time && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 14 }}>🕒</span>
-                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, color: "#fff" }}>{f.time}</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8899bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{f.time}</span>
                 </div>
               )}
               {f.venue && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 14, flexShrink: 0 }}>📍</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8899bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
                   <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.venue}</span>
                 </div>
               )}
               {f.date && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 14 }}>📅</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8899bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                   <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{formatFixtureDateShort(f.date)}</span>
                 </div>
               )}
@@ -2172,7 +2172,7 @@ export default function App() {
 
           {/* CTA */}
           <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", borderRadius: 14, color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 22, letterSpacing: 4, padding: "18px 0", cursor: "pointer", animation: "matchdayPulse 2s ease-in-out infinite" }}>
-            UP THE WELLS! ⚽
+            UP THE WELLS!
           </button>
 
         </div>
