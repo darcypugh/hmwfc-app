@@ -1366,8 +1366,16 @@ function AdminSeasonPass({ spData, onSave }) {
                       </div>
                       <button onClick={async () => {
                         const newVal = !u.seasonTicket;
+                        // Optimistic local update
                         setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, seasonTicket: newVal } : usr));
-                        await adminAction("setSeasonTicket", { uid: u.uid, value: newVal });
+                        // Write directly to Firebase (rules allow auth != null)
+                        if (newVal) {
+                          update(ref(db, `users/${u.uid}`), { seasonTicket: true });
+                        } else {
+                          set(ref(db, `users/${u.uid}/seasonTicket`), null);
+                        }
+                        // Also try server route
+                        adminAction("setSeasonTicket", { uid: u.uid, value: newVal });
                       }} style={{ ...S.btn, background: u.seasonTicket ? "#f59e0b22" : "#ffffff0f", color: u.seasonTicket ? "#f59e0b" : "#8899bb", border: `1px solid ${u.seasonTicket ? "#f59e0b44" : "#ffffff15"}`, flexShrink: 0 }}>
                         {u.seasonTicket ? "Remove" : "Mark as Holder"}
                       </button>
