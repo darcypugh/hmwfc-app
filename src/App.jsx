@@ -1574,15 +1574,18 @@ function AdminPanel({ data, onUpdate, onClose }) {
   const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
 
   useEffect(() => {
-    // Block pull-to-refresh only — allow normal horizontal/vertical scrolling within panel
+    // Block pull-to-refresh across the whole admin panel
+    // Allow scrolling inside data-admin-scroll, block everything else pulling down
     let startY = 0;
     const onStart = (e) => { startY = e.touches[0].clientY; };
     const onMove = (e) => {
       const dy = e.touches[0].clientY - startY;
-      const el = e.target.closest("[data-admin-scroll]");
-      if (!el) return; // not inside scrollable area — block
-      const atTop = el.scrollTop <= 0;
-      if (atTop && dy > 0) e.preventDefault(); // pulling down at top — block refresh
+      if (dy <= 0) return; // scrolling up or horizontal — always allow
+      // Check if inside a scrollable area that isn't at the top
+      const scrollEl = e.target.closest("[data-admin-scroll]");
+      if (scrollEl && scrollEl.scrollTop > 0) return; // scrollable area not at top — allow
+      // Otherwise block: header, tabs, or scrollable area at top pulling down
+      e.preventDefault();
     };
     document.addEventListener("touchstart", onStart, { passive: true });
     document.addEventListener("touchmove", onMove, { passive: false });
