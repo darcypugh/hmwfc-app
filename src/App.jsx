@@ -1574,13 +1574,21 @@ function AdminPanel({ data, onUpdate, onClose }) {
   const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
 
   useEffect(() => {
-    // Prevent pull-to-refresh on iOS Safari
-    const prevent = (e) => { if (e.touches.length === 1) e.preventDefault(); };
-    document.body.style.overflow = "hidden";
-    document.addEventListener("touchmove", prevent, { passive: false });
+    // Block pull-to-refresh only — allow normal horizontal/vertical scrolling within panel
+    let startY = 0;
+    const onStart = (e) => { startY = e.touches[0].clientY; };
+    const onMove = (e) => {
+      const dy = e.touches[0].clientY - startY;
+      const el = e.target.closest("[data-admin-scroll]");
+      if (!el) return; // not inside scrollable area — block
+      const atTop = el.scrollTop <= 0;
+      if (atTop && dy > 0) e.preventDefault(); // pulling down at top — block refresh
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
     return () => {
-      document.body.style.overflow = "";
-      document.removeEventListener("touchmove", prevent);
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
     };
   }, []);
 
