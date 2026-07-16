@@ -1373,10 +1373,15 @@ function AdminSeasonPass({ spData, onSave }) {
                       <button onClick={() => {
                         const newVal = !u.seasonTicket;
                         setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, seasonTicket: newVal } : usr));
+                        // Write to hmwfc/seasonTickets (always writable) AND try direct user write
+                        const emailKey = (u.email || "").toLowerCase().replace(/[.@]/g, "_");
                         if (newVal) {
-                          update(ref(db, `users/${u.uid}`), { seasonTicket: true });
+                          update(ref(db, `hmwfc/seasonTickets`), { [emailKey]: true, [u.uid]: true });
+                          try { update(ref(db, `users/${u.uid}`), { seasonTicket: true }); } catch(e) {}
                         } else {
-                          set(ref(db, `users/${u.uid}/seasonTicket`), null);
+                          set(ref(db, `hmwfc/seasonTickets/${emailKey}`), null);
+                          set(ref(db, `hmwfc/seasonTickets/${u.uid}`), null);
+                          try { set(ref(db, `users/${u.uid}/seasonTicket`), null); } catch(e) {}
                         }
                       }} style={{ ...S.btn, background: u.seasonTicket ? "#f59e0b22" : "#ffffff0f", color: u.seasonTicket ? "#f59e0b" : "#8899bb", border: `1px solid ${u.seasonTicket ? "#f59e0b44" : "#ffffff15"}`, flexShrink: 0 }}>
                         {u.seasonTicket ? "Remove" : "Mark as Holder"}
@@ -1567,9 +1572,20 @@ function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
   const adminScrollRef = useRef(null);
   const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
+
+  useEffect(() => {
+    // Prevent pull-to-refresh on iOS Safari
+    const prevent = (e) => { if (e.touches.length === 1) e.preventDefault(); };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("touchmove", prevent, { passive: false });
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("touchmove", prevent);
+    };
+  }, []);
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column", overscrollBehavior: "none" }}>
-      <style>{`body { overscroll-behavior: none; }`}</style>
+    <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <img src={"/logo.png"} alt="HMWFC" style={{ height: 36, filter: "drop-shadow(0 0 8px #347ebf66)" }} />
         <div>
@@ -1991,14 +2007,18 @@ export default function App() {
   useEffect(() => {
     if (!fanUser) return;
     const emailKey = fanUser.email.toLowerCase().replace(/[.@]/g, "_");
-    const ticketRef = ref(db, `hmwfc/seasonTickets/${emailKey}`);
-    const unsub = onValue(ticketRef, (snap) => {
+    // Check both email key and uid key
+    const ticketRefEmail = ref(db, `hmwfc/seasonTickets/${emailKey}`);
+    const ticketRefUid = ref(db, `hmwfc/seasonTickets/${fanUser.uid}`);
+    const applyTicket = (snap) => {
       if (snap.exists() && snap.val() === true) {
-        // Mark this user as a season ticket holder
-        update(ref(db, `users/${fanUser.uid}`), { seasonTicket: true });
+        try { update(ref(db, `users/${fanUser.uid}`), { seasonTicket: true }); } catch(e) {}
         setFanProfile(prev => prev ? { ...prev, seasonTicket: true } : prev);
       }
-    });
+    };
+    const unsub1 = onValue(ticketRefEmail, applyTicket);
+    const unsub2 = onValue(ticketRefUid, applyTicket);
+    const unsub = () => { unsub1(); unsub2(); };
     return () => unsub();
   }, [fanUser]);
 
