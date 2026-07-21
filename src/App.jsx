@@ -282,13 +282,13 @@ function AdminTable({ items, onSave }) {
                     <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, e.target.files[0])} />
                   </label>
                 </td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r.pos} onChange={e => update("pos", +e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update("team", e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update("stadium", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update(idx, "stadium", e.target.value)} /></td>
                 {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update("gd", e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update("pts", +e.target.value)} /></td>
-                <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update("highlight", e.target.checked)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update(idx, "pts", +e.target.value)} /></td>
+                <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update(idx, "highlight", e.target.checked)} /></td>
                 <td style={{ padding: "4px 6px" }}><button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "4px 10px" }} onClick={() => del(idx)}>✕</button></td>
               </tr>
             ))}
@@ -1820,6 +1820,12 @@ function PredictionForm({ homeName, awayName, onSubmit }) {
   );
 }
 
+const shortTeamName = (name) => {
+  if (!name) return name;
+  if (name.includes("Hemsworth")) return "Hemsworth MWFC";
+  return name;
+};
+
 const formatFixtureDateShort = (d) => {
   if (!d) return "";
   if (d.includes("-")) {
@@ -2882,7 +2888,7 @@ export default function App() {
                   {/* Teams + score centre column */}
                   <div className="fixture-teams">
                     <div className="fixture-team-home">
-                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700, textAlign: "right" }}>{f.home}</span>
+                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700, textAlign: "right" }}>{shortTeamName(f.home)}</span>
                       {homeBadge ? <img src={homeBadge} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>}
                     </div>
                     <div className="fixture-score">
@@ -2895,7 +2901,7 @@ export default function App() {
                     </div>
                     <div className="fixture-team-away">
                       {awayBadge ? <img src={awayBadge} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>}
-                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700 }}>{f.away}</span>
+                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700 }}>{shortTeamName(f.away)}</span>
                     </div>
                   </div>
                   {/* Venue right column */}
