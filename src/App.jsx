@@ -2284,7 +2284,7 @@ export default function App() {
           .bottom-tab-icon { font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
           .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; white-space: nowrap; }
           .bottom-tab.active .bottom-tab-label { color: #347ebf; }
-          .main-content-pad { padding-bottom: 100px; }
+          .main-content-pad { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
         }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
@@ -2841,7 +2841,7 @@ export default function App() {
             return t && t.badge ? `data:image/png;base64,${t.badge}` : null;
           };
           return (
-            <div>
+            <div style={{ paddingBottom: 40 }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>Fixtures & Results</div>
               <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
                 <button className={`tab-btn ${fixtureTab === "upcoming" ? "active" : ""}`} onClick={() => setFixtureTab("upcoming")}>Upcoming</button>
