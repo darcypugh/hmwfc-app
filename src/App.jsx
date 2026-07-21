@@ -1654,7 +1654,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
           <button key={s} onClick={() => setSection(s)} style={{ ...S.btn, borderRadius: 0, borderBottom: section === s ? "2px solid #347ebf" : "2px solid transparent", color: section === s ? "#347ebf" : "#8899bb", background: "none", padding: "12px 16px", flexShrink: 0, whiteSpace: "nowrap" }}>{s}</button>
         ))}
       </div>
-      <div ref={adminScrollRef} data-admin-scroll style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <div ref={adminScrollRef} data-admin-scroll style={{ flex: 1, overflowY: "auto", padding: 24, paddingBottom: 80 }}>
         {section === "News" && <AdminNews items={data.news} onSave={v => onUpdate("news", v)} />}
         {section === "Table" && <AdminTable items={data.table} onSave={v => onUpdate("table", v)} />}
         {section === "Fixtures" && <AdminFixtures items={data.fixtures} tableData={data.table} onSave={v => onUpdate("fixtures", v)} />}
