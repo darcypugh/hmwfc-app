@@ -2874,7 +2874,7 @@ export default function App() {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "#ffffff05", borderBottom: "1px solid #ffffff07" }}>
                   <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: "#8899bb", letterSpacing: 0.5 }}>{formatFixtureDate(f.date)}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {f.venue && <div style={{ fontSize: 11, color: "#8899bb55", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{f.venue}</div>}
+                    {f.venue && <div style={{ fontSize: 11, color: "#8899bb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{f.venue}</div>}
                     {tag && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 20, background: tag.bg, color: tag.color }}>{tag.label}</span>}
                   </div>
                 </div>
@@ -2898,7 +2898,7 @@ export default function App() {
                         </>
                       : <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
-                          <div style={{ fontSize: 10, color: "#8899bb55", marginTop: 4, letterSpacing: 1 }}>K.O.</div>
+                          <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>K.O.</div>
                         </>}
                   </div>
 
