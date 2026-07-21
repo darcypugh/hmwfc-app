@@ -480,7 +480,7 @@ function AdminFixtures({ items, tableData, onSave }) {
                       <div key={side} style={{ flex: 1 }}>
                         <label style={S.label}>{side === "home" ? "Home" : "Away"} Team</label>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                          {badge ? <img src={badge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
+                          <div style={{ width: 28, height: 28, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge ? <img src={badge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>🛡</span>}</div>
                           <select style={{ ...S.input, flex: 1 }} value={teamVal} onChange={e => update(side, e.target.value)}>
                             <option value="">Select or type...</option>
                             <option value="Hemsworth Miners Welfare FC">Hemsworth Miners Welfare FC</option>
@@ -2284,7 +2284,7 @@ export default function App() {
           .bottom-tab-icon { font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
           .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; white-space: nowrap; }
           .bottom-tab.active .bottom-tab-label { color: #347ebf; }
-          .main-content-pad { padding-bottom: 80px; }
+          .main-content-pad { padding-bottom: 100px; }
         }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
@@ -2422,7 +2422,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="main-content-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
+      <div className="main-content-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px" }}>
 
         {active === "Home" && (() => {
 
