@@ -2298,11 +2298,21 @@ export default function App() {
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
         td { padding: 11px 12px; font-size: 14px; border-bottom: 1px solid #ffffff07; }
+        .fixture-card-inner { display: grid; grid-template-columns: 70px 1fr 140px; align-items: center; gap: 8px; }
+        .fixture-teams { display: flex; align-items: center; gap: 8px; }
+        .fixture-team-home { flex: 1; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+        .fixture-team-away { flex: 1; display: flex; align-items: center; gap: 6px; justify-content: flex-start; }
+        .fixture-score { flex-shrink: 0; text-align: center; min-width: 80px; }
+        .fixture-venue { font-size: 11px; color: #8899bb; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fixture-date { font-size: 12px; color: #8899bb; font-weight: 600; }
         .fixture-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; }
         .tbl-hide { }
         @media (max-width: 600px) { .tbl-hide { display: none; } }
         @media (max-width: 520px) {
-
+          .fixture-card-inner { grid-template-columns: 50px 1fr; grid-template-rows: auto auto; }
+          .fixture-venue { grid-column: 2; text-align: left; }
+          .fixture-teams { flex-wrap: nowrap; }
+          .fixture-score { min-width: 60px; }
           .home-merch-strip { padding-bottom: 8px; scroll-padding-right: 20px; }
         }
         @media (max-width: 680px) {
@@ -2866,59 +2876,44 @@ export default function App() {
           const FixtureCard = ({ f }) => {
             const homeBadge = getBadgeForFixture(f, f.home);
             const awayBadge = getBadgeForFixture(f, f.away);
-            const isResult = f.type === "result";
-            const tag = f.friendly ? { label: "Friendly", bg: "#f59e0b18", color: "#f59e0b" } : f.cup ? { label: f.cupType || "Cup", bg: "#8b5cf622", color: "#8b5cf6" } : null;
             return (
-              <div style={{ background: "#191740", borderRadius: 14, overflow: "hidden", border: "1px solid #ffffff0f" }}>
-                {/* Top strip — date + tag */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "#ffffff05", borderBottom: "1px solid #ffffff07" }}>
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: "#8899bb", letterSpacing: 0.5 }}>{formatFixtureDate(f.date)}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {f.venue && <div style={{ fontSize: 11, color: "#8899bb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{f.venue}</div>}
-                    {tag && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 20, background: tag.bg, color: tag.color }}>{tag.label}</span>}
+              <div className="card" style={{ padding: "12px 16px" }}>
+                <div className="fixture-card-inner">
+                  {/* Date + optional tag stacked in left column */}
+                  <div>
+                    <div className="fixture-date">{formatFixtureDate(f.date)}</div>
+                    {f.friendly && <span className="fixture-tag" style={{ background: "#f59e0b18", color: "#f59e0b", marginTop: 3 }}>Friendly</span>}
+                    {f.cup && <span className="fixture-tag" style={{ background: "#8b5cf622", color: "#8b5cf6", marginTop: 3 }}>{f.cupType || "Cup"}</span>}
                   </div>
+                  {/* Teams + score centre column */}
+                  <div className="fixture-teams">
+                    <div className="fixture-team-home">
+                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700, textAlign: "right" }}>{shortTeamName(f.home)}</span>
+                      {homeBadge ? <img src={homeBadge} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>}
+                    </div>
+                    <div className="fixture-score">
+                      {f.result
+                        ? <div style={{ textAlign: "center" }}>
+                            <span style={{ display: "block", background: "#347ebf22", border: "1px solid #347ebf44", padding: "3px 10px", borderRadius: 7, fontFamily: "Barlow Condensed, sans-serif", fontSize: 17, fontWeight: 900, color: "#347ebf" }}>{f.result}</span>
+                            {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, marginTop: 2 }}>HT {f.halftime}</div>}
+                          </div>
+                        : <span style={{ background: "#ffffff0f", padding: "3px 10px", borderRadius: 7, fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700, display: "block", textAlign: "center" }}>{f.time}</span>}
+                    </div>
+                    <div className="fixture-team-away">
+                      {awayBadge ? <img src={awayBadge} alt="" style={{ width: 24, height: 24, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 16, flexShrink: 0 }}>🛡</span>}
+                      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 700 }}>{shortTeamName(f.away)}</span>
+                    </div>
+                  </div>
+                  {/* Venue right column */}
+                  <div className="fixture-venue">{f.venue}</div>
                 </div>
-
-                {/* Main row — teams + score */}
-                <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: 8 }}>
-                  {/* Home */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                    {homeBadge
-                      ? <img src={homeBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
-                      : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.home)}</div>
-                  </div>
-
-                  {/* Centre — score or time */}
-                  <div style={{ flexShrink: 0, textAlign: "center", minWidth: 90 }}>
-                    {isResult
-                      ? <>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
-                          {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
-                        </>
-                      : <>
-                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
-                          <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>K.O.</div>
-                        </>}
-                  </div>
-
-                  {/* Away */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                    {awayBadge
-                      ? <img src={awayBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
-                      : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.away)}</div>
-                  </div>
-                </div>
-
-                {/* Scorers */}
-                {isResult && (f.homeScorers || f.awayScorers) && (
-                  <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
-                    <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "right" }}>
+                {f.type === "result" && (f.homeScorers || f.awayScorers) && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
+                    <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "right" }}>
                       {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>{s.trim()} ⚽</div>)}
                     </div>
-                    <div style={{ width: 90, flexShrink: 0 }} />
-                    <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "left" }}>
+                    <div style={{ width: 80, flexShrink: 0 }} />
+                    <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
                       {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>⚽ {s.trim()}</div>)}
                     </div>
                   </div>
