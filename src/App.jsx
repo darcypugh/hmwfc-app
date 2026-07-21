@@ -213,11 +213,11 @@ function AdminNews({ items, onSave }) {
           {editing === idx && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={S.row}>
-                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Date</label><input style={S.input} value={n.date} onChange={e => update(idx, "date", e.target.value)} /></div>
-                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Tag</label><input style={S.input} value={n.tag} onChange={e => update(idx, "tag", e.target.value)} /></div>
-                <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
+                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Date</label><input style={S.input} value={n.date} onChange={e => update("date", e.target.value)} /></div>
+                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Tag</label><input style={S.input} value={n.tag} onChange={e => update("tag", e.target.value)} /></div>
+                <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update("emoji", e.target.value)} /></div>
               </div>
-              <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update(idx, "title", e.target.value)} /></div>
+              <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update("title", e.target.value)} /></div>
               <div><label style={S.label}>Body</label><RichEditor value={n.body} onChange={val => update(idx, "body", val)} /></div>
               <div>
                 <label style={S.label}>Article Image</label>
@@ -282,13 +282,13 @@ function AdminTable({ items, onSave }) {
                     <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, e.target.files[0])} />
                   </label>
                 </td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update(idx, "stadium", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r.pos} onChange={e => update("pos", +e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update("team", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update("stadium", e.target.value)} /></td>
                 {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update(idx, "pts", +e.target.value)} /></td>
-                <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update(idx, "highlight", e.target.checked)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update("gd", e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update("pts", +e.target.value)} /></td>
+                <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update("highlight", e.target.checked)} /></td>
                 <td style={{ padding: "4px 6px" }}><button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "4px 10px" }} onClick={() => del(idx)}>✕</button></td>
               </tr>
             ))}
@@ -303,41 +303,77 @@ function AdminFixtures({ items, tableData, onSave }) {
   const [list, setList] = useState(Array.isArray(items) ? items : items ? Object.values(items) : []);
   useEffect(() => { setList(Array.isArray(items) ? items : items ? Object.values(items) : []); }, [items]);
   const [editing, setEditing] = useState(null);
+  const [draft, setDraft] = useState(null); // local edits — only applied on Save
   const [tab, setTab] = useState("upcoming");
 
-  const update = (idx, field, val) => {
-    const updated = list.map((x, i) => {
-      if (i !== idx) return x;
-      const next = { ...x, [field]: val };
+  // Update draft only — never touches list until Save
+  const update = (field, val) => {
+    setDraft(prev => {
+      const next = { ...prev, [field]: val };
       if (field === "home") {
         const match = (tableData || []).find(t => t.team === val);
         if (match?.stadium) next.venue = match.stadium;
       }
       return next;
     });
-    setList(updated);
   };
 
-  const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
+  // Open editor — copy fixture into draft
+  const startEditing = (idx) => {
+    setEditing(idx);
+    setDraft({ ...list[idx] });
+  };
+
+  // Close with unsaved changes warning
+  const tryClose = (idx) => {
+    if (draft && editing === idx) {
+      const original = JSON.stringify(list[idx]);
+      const current = JSON.stringify(draft);
+      if (original !== current) {
+        if (!window.confirm("You have unsaved changes — discard them?")) return;
+      }
+    }
+    setEditing(null);
+    setDraft(null);
+  };
+
+  // Save draft into list then persist
+  const save = () => {
+    if (draft === null || editing === null) return;
+    const updated = list.map((x, i) => i === editing ? draft : x);
+    setList(updated);
+    onSave(updated);
+    setEditing(null);
+    setDraft(null);
+  };
+
+  const del = (idx) => {
+    if (!window.confirm("Delete this fixture?")) return;
+    const l = list.filter((_, i) => i !== idx);
+    setList(l);
+    onSave(l);
+    if (editing === idx) { setEditing(null); setDraft(null); }
+  };
+
   const getStadium = (t) => { const r = (tableData||[]).find(x => x.team === t); return r?.stadium || ""; };
 
   const addFixture = () => {
     const venue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
-    const l = [...list, { id: Date.now(), type: "upcoming", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" }];
-    setList(l); setEditing(l.length - 1); setTab("upcoming");
+    const newF = { id: Date.now(), type: "upcoming", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" };
+    const l = [...list, newF];
+    setList(l); setEditing(l.length - 1); setDraft(newF); setTab("upcoming");
   };
 
   const addResult = () => {
-    const l = [...list, { id: Date.now(), type: "result", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "", venue: "", result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" }];
-    setList(l); setEditing(l.length - 1); setTab("results");
+    const newF = { id: Date.now(), type: "result", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "", venue: "", result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" };
+    const l = [...list, newF];
+    setList(l); setEditing(l.length - 1); setDraft(newF); setTab("results");
   };
 
-  const save = () => { onSave(list); setEditing(null); };
-
-  const uploadBadge = (idx, side, file) => {
+  const uploadBadge = (side, file) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => update(idx, side === "home" ? "homeBadge" : "awayBadge", e.target.result);
+    reader.onload = e => update(side === "home" ? "homeBadge" : "awayBadge", e.target.result);
     reader.readAsDataURL(file);
   };
 
@@ -347,6 +383,9 @@ function AdminFixtures({ items, tableData, onSave }) {
     const t = (tableData || []).find(r => r.team === teamName);
     return t?.badge ? `data:image/png;base64,${t.badge}` : null;
   };
+
+  // Use draft for the currently-editing fixture in the sorted list display
+  const getDisplayFixture = (f, idx) => (editing === idx && draft) ? draft : f;
 
   const upcoming = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "upcoming").sort((a, b) => parseFixtureDate(a.date) - parseFixtureDate(b.date));
   const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => parseFixtureDate(b.date) - parseFixtureDate(a.date) || Number(b.id) - Number(a.id));
@@ -371,8 +410,9 @@ function AdminFixtures({ items, tableData, onSave }) {
       </div>
 
       {shown.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0", textAlign: "center" }}>No {tab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
-      {shown.map(f => {
-        const idx = f._idx;
+      {shown.map(rawF => {
+        const idx = rawF._idx;
+        const f = getDisplayFixture(rawF, idx);
         const homeBadge = getTeamBadge(f.home, f, "home");
         const awayBadge = getTeamBadge(f.away, f, "away");
         const isEditing = editing === idx;
@@ -380,7 +420,7 @@ function AdminFixtures({ items, tableData, onSave }) {
         return (
           <div key={f.id} style={{ background: "#0d0c22", border: `1px solid ${isEditing ? "#347ebf44" : "#ffffff0f"}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
             {/* Summary row */}
-            <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => setEditing(isEditing ? null : idx)}>
+            <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => isEditing ? tryClose(idx) : startEditing(idx)}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
                   {homeBadge ? <img src={homeBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 14, flexShrink: 0 }}>🛡</span>}
@@ -409,19 +449,19 @@ function AdminFixtures({ items, tableData, onSave }) {
             {isEditing && (
               <div style={{ borderTop: "1px solid #ffffff0f", padding: "14px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={S.row}>
-                  <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={f.date} onChange={e => update(idx, "date", e.target.value)} /></div>
-                  {f.type === "upcoming" && <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update(idx, "time", e.target.value)} placeholder="15:00" /></div>}
-                  <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update(idx, "venue", e.target.value)} /></div>
+                  <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={f.date} onChange={e => update("date", e.target.value)} /></div>
+                  {f.type === "upcoming" && <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update("time", e.target.value)} placeholder="15:00" /></div>}
+                  <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update("venue", e.target.value)} /></div>
                 </div>
                 <div style={{ display: "flex", gap: 16, background: "#191740", borderRadius: 8, padding: "10px 14px", flexWrap: "wrap", alignItems: "center" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>
-                    <input type="checkbox" checked={!!f.friendly} onChange={e => update(idx, "friendly", e.target.checked)} style={{ accentColor: "#f59e0b" }} /> Friendly
+                    <input type="checkbox" checked={!!f.friendly} onChange={e => update("friendly", e.target.checked)} style={{ accentColor: "#f59e0b" }} /> Friendly
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#8b5cf6", fontWeight: 700 }}>
-                    <input type="checkbox" checked={!!f.cup} onChange={e => update(idx, "cup", e.target.checked)} style={{ accentColor: "#8b5cf6" }} /> Cup
+                    <input type="checkbox" checked={!!f.cup} onChange={e => update("cup", e.target.checked)} style={{ accentColor: "#8b5cf6" }} /> Cup
                   </label>
                   {f.cup && (
-                    <select value={f.cupType || ""} onChange={e => update(idx, "cupType", e.target.value)} style={{ ...S.input, width: "auto", color: "#8b5cf6", borderColor: "#8b5cf644" }}>
+                    <select value={f.cupType || ""} onChange={e => update("cupType", e.target.value)} style={{ ...S.input, width: "auto", color: "#8b5cf6", borderColor: "#8b5cf644" }}>
                       <option value="">Select cup...</option>
                       <option value="FA Cup">FA Cup</option>
                       <option value="FA Vase">FA Vase</option>
@@ -441,18 +481,18 @@ function AdminFixtures({ items, tableData, onSave }) {
                         <label style={S.label}>{side === "home" ? "Home" : "Away"} Team</label>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                           {badge ? <img src={badge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
-                          <select style={{ ...S.input, flex: 1 }} value={teamVal} onChange={e => update(idx, side, e.target.value)}>
+                          <select style={{ ...S.input, flex: 1 }} value={teamVal} onChange={e => update(side, e.target.value)}>
                             <option value="">Select or type...</option>
                             <option value="Hemsworth Miners Welfare FC">Hemsworth Miners Welfare FC</option>
                             {(tableData||[]).filter(t => !t.team.includes("Hemsworth")).sort((a,b) => a.team.localeCompare(b.team)).map(t => <option key={t.team} value={t.team}>{t.team}</option>)}
                           </select>
                         </div>
-                        <input style={{ ...S.input, marginBottom: 6 }} value={teamVal} onChange={e => update(idx, side, e.target.value)} placeholder="Or type team name..." />
+                        <input style={{ ...S.input, marginBottom: 6 }} value={teamVal} onChange={e => update(side, e.target.value)} placeholder="Or type team name..." />
                         {!badgeFromTable && (
                           <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: "#191740", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
                             {manualBadge ? <img src={manualBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} /> : <span style={{ fontSize: 16 }}>🛡</span>}
                             <span style={{ fontSize: 11, color: "#8899bb" }}>{manualBadge ? "Change badge" : "Upload badge"}</span>
-                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, side, e.target.files[0])} />
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(side, e.target.files[0])} />
                           </label>
                         )}
                         {badgeFromTable && <div style={{ fontSize: 10, color: "#10b981" }}>✓ Badge from table</div>}
@@ -463,19 +503,19 @@ function AdminFixtures({ items, tableData, onSave }) {
                 {f.type === "result" && (
                   <div style={{ background: "#191740", borderRadius: 8, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={S.row}>
-                      <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update(idx, "result", e.target.value)} placeholder="2 – 1" /></div>
-                      <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="1 – 0" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update("result", e.target.value)} placeholder="2 – 1" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update("halftime", e.target.value)} placeholder="1 – 0" /></div>
                     </div>
                     <div style={S.row}>
-                      <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update(idx, "homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
-                      <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update(idx, "awayScorers", e.target.value)} placeholder="Brown 67" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update("homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update("awayScorers", e.target.value)} placeholder="Brown 67" /></div>
                     </div>
                   </div>
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   {f.type === "upcoming"
-                    ? <button style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 12 }} onClick={() => update(idx, "type", "result")}>Mark as played →</button>
-                    : <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", fontSize: 12 }} onClick={() => update(idx, "type", "upcoming")}>← Move back to upcoming</button>}
+                    ? <button style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 12 }} onClick={() => update("type", "result")}>Mark as played →</button>
+                    : <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", fontSize: 12 }} onClick={() => update("type", "upcoming")}>← Move back to upcoming</button>}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444" }} onClick={() => del(idx)}>Delete</button>
                     <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save</button>
@@ -584,12 +624,12 @@ function AdminSquad({ items, onSave, scrollRef }) {
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
-            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update(idx, "name", e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update(idx, "pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update("name", e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update("pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
                 <span style={{ fontSize: 10, color: p.playing ? "#10b981" : "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>PLAYING?</span>
-                <input type="checkbox" checked={!!p.playing} onChange={e => update(idx, "playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
+                <input type="checkbox" checked={!!p.playing} onChange={e => update("playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
               </label>
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
             </div>
@@ -642,7 +682,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* About */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>About this player</label>
-            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
+            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update("about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
         );
@@ -715,10 +755,10 @@ function AdminMerch({ items, onSave }) {
           {expanded === idx && (
             <div style={{ borderTop: "1px solid #ffffff0f", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={S.row}>
-                <div style={{ flex: 0.3, minWidth: 55 }}><label style={S.label}>Icon</label><input style={S.input} value={m.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
-                <div style={{ flex: 2, minWidth: 130 }}><label style={S.label}>Item Name</label><input style={S.input} value={m.name} onChange={e => update(idx, "name", e.target.value)} /></div>
-                <div style={{ flex: 0.7, minWidth: 70 }}><label style={S.label}>Price</label><input style={S.input} value={m.price} onChange={e => update(idx, "price", e.target.value)} /></div>
-                <div style={{ flex: 0.7, minWidth: 80 }}><label style={S.label}>Badge</label><select style={S.input} value={m.tag} onChange={e => update(idx, "tag", e.target.value)}>{["","NEW","SALE","LIMITED"].map(o => <option key={o} value={o}>{o||"None"}</option>)}</select></div>
+                <div style={{ flex: 0.3, minWidth: 55 }}><label style={S.label}>Icon</label><input style={S.input} value={m.emoji} onChange={e => update("emoji", e.target.value)} /></div>
+                <div style={{ flex: 2, minWidth: 130 }}><label style={S.label}>Item Name</label><input style={S.input} value={m.name} onChange={e => update("name", e.target.value)} /></div>
+                <div style={{ flex: 0.7, minWidth: 70 }}><label style={S.label}>Price</label><input style={S.input} value={m.price} onChange={e => update("price", e.target.value)} /></div>
+                <div style={{ flex: 0.7, minWidth: 80 }}><label style={S.label}>Badge</label><select style={S.input} value={m.tag} onChange={e => update("tag", e.target.value)}>{["","NEW","SALE","LIMITED"].map(o => <option key={o} value={o}>{o||"None"}</option>)}</select></div>
               </div>
               {/* Image upload */}
               <div>
@@ -731,15 +771,15 @@ function AdminMerch({ items, onSave }) {
                 {m.image && <button onClick={() => update(idx, "image", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove image</button>}
               </div>
               {/* Stripe link — for non-clothing items */}
-              {!m.isClothing && <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update(idx, "stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>}
+              {!m.isClothing && <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update("stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>}
               {/* Clothing toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
-                <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update(idx, "isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
+                <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update("isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
                 <label htmlFor={`clothing-${idx}`} style={{ fontSize: 13, color: "#347ebf", fontWeight: 700, cursor: "pointer" }}>👕 This item has sizes (XS–3XL)</label>
               </div>
               {/* Sold out toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
-                <input type="checkbox" id={`soldout-${idx}`} checked={!!m.soldOut} onChange={e => update(idx, "soldOut", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ef4444" }} />
+                <input type="checkbox" id={`soldout-${idx}`} checked={!!m.soldOut} onChange={e => update("soldOut", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ef4444" }} />
                 <label htmlFor={`soldout-${idx}`} style={{ fontSize: 13, color: "#ef4444", fontWeight: 700, cursor: "pointer" }}>🚫 Mark as sold out</label>
               </div>
               {/* Size stock manager */}
