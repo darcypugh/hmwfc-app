@@ -2926,7 +2926,7 @@ export default function App() {
               {months.length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No {fixtureTab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
               {months.map(month => (
                 <div key={month} style={{ marginBottom: 28 }}>
-                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 10, paddingLeft: 2, borderLeft: "3px solid #347ebf", paddingLeft: 10 }}>{month}</div>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 10, paddingLeft: 10, borderLeft: "3px solid #347ebf" }}>{month}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {grouped[month].map(f => <FixtureCard key={f.id} f={f} />)}
                   </div>
