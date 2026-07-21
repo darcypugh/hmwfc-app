@@ -213,11 +213,11 @@ function AdminNews({ items, onSave }) {
           {editing === idx && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={S.row}>
-                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Date</label><input style={S.input} value={n.date} onChange={e => update(idx, "date", e.target.value)} /></div>
-                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Tag</label><input style={S.input} value={n.tag} onChange={e => update(idx, "tag", e.target.value)} /></div>
-                <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
+                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Date</label><input style={S.input} value={n.date} onChange={e => update("date", e.target.value)} /></div>
+                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Tag</label><input style={S.input} value={n.tag} onChange={e => update("tag", e.target.value)} /></div>
+                <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update("emoji", e.target.value)} /></div>
               </div>
-              <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update(idx, "title", e.target.value)} /></div>
+              <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update("title", e.target.value)} /></div>
               <div><label style={S.label}>Body</label><RichEditor value={n.body} onChange={val => update(idx, "body", val)} /></div>
               <div>
                 <label style={S.label}>Article Image</label>
@@ -303,41 +303,77 @@ function AdminFixtures({ items, tableData, onSave }) {
   const [list, setList] = useState(Array.isArray(items) ? items : items ? Object.values(items) : []);
   useEffect(() => { setList(Array.isArray(items) ? items : items ? Object.values(items) : []); }, [items]);
   const [editing, setEditing] = useState(null);
+  const [draft, setDraft] = useState(null); // local edits — only applied on Save
   const [tab, setTab] = useState("upcoming");
 
-  const update = (idx, field, val) => {
-    const updated = list.map((x, i) => {
-      if (i !== idx) return x;
-      const next = { ...x, [field]: val };
+  // Update draft only — never touches list until Save
+  const update = (field, val) => {
+    setDraft(prev => {
+      const next = { ...prev, [field]: val };
       if (field === "home") {
         const match = (tableData || []).find(t => t.team === val);
         if (match?.stadium) next.venue = match.stadium;
       }
       return next;
     });
-    setList(updated);
   };
 
-  const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
+  // Open editor — copy fixture into draft
+  const startEditing = (idx) => {
+    setEditing(idx);
+    setDraft({ ...list[idx] });
+  };
+
+  // Close with unsaved changes warning
+  const tryClose = (idx) => {
+    if (draft && editing === idx) {
+      const original = JSON.stringify(list[idx]);
+      const current = JSON.stringify(draft);
+      if (original !== current) {
+        if (!window.confirm("You have unsaved changes — discard them?")) return;
+      }
+    }
+    setEditing(null);
+    setDraft(null);
+  };
+
+  // Save draft into list then persist
+  const save = () => {
+    if (draft === null || editing === null) return;
+    const updated = list.map((x, i) => i === editing ? draft : x);
+    setList(updated);
+    onSave(updated);
+    setEditing(null);
+    setDraft(null);
+  };
+
+  const del = (idx) => {
+    if (!window.confirm("Delete this fixture?")) return;
+    const l = list.filter((_, i) => i !== idx);
+    setList(l);
+    onSave(l);
+    if (editing === idx) { setEditing(null); setDraft(null); }
+  };
+
   const getStadium = (t) => { const r = (tableData||[]).find(x => x.team === t); return r?.stadium || ""; };
 
   const addFixture = () => {
     const venue = getStadium("Hemsworth Miners Welfare FC") || "Welfare Ground";
-    const l = [...list, { id: Date.now(), type: "upcoming", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" }];
-    setList(l); setEditing(l.length - 1); setTab("upcoming");
+    const newF = { id: Date.now(), type: "upcoming", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "15:00", venue, result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" };
+    const l = [...list, newF];
+    setList(l); setEditing(l.length - 1); setDraft(newF); setTab("upcoming");
   };
 
   const addResult = () => {
-    const l = [...list, { id: Date.now(), type: "result", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "", venue: "", result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" }];
-    setList(l); setEditing(l.length - 1); setTab("results");
+    const newF = { id: Date.now(), type: "result", date: "", home: "Hemsworth Miners Welfare FC", away: "", time: "", venue: "", result: "", halftime: "", homeScorers: "", awayScorers: "", friendly: false, cup: false, cupType: "", homeBadge: "", awayBadge: "" };
+    const l = [...list, newF];
+    setList(l); setEditing(l.length - 1); setDraft(newF); setTab("results");
   };
 
-  const save = () => { onSave(list); setEditing(null); };
-
-  const uploadBadge = (idx, side, file) => {
+  const uploadBadge = (side, file) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => update(idx, side === "home" ? "homeBadge" : "awayBadge", e.target.result);
+    reader.onload = e => update(side === "home" ? "homeBadge" : "awayBadge", e.target.result);
     reader.readAsDataURL(file);
   };
 
@@ -347,6 +383,9 @@ function AdminFixtures({ items, tableData, onSave }) {
     const t = (tableData || []).find(r => r.team === teamName);
     return t?.badge ? `data:image/png;base64,${t.badge}` : null;
   };
+
+  // Use draft for the currently-editing fixture in the sorted list display
+  const getDisplayFixture = (f, idx) => (editing === idx && draft) ? draft : f;
 
   const upcoming = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "upcoming").sort((a, b) => parseFixtureDate(a.date) - parseFixtureDate(b.date));
   const results  = list.map((f, i) => ({ ...f, _idx: i })).filter(f => f.type === "result").sort((a, b) => parseFixtureDate(b.date) - parseFixtureDate(a.date) || Number(b.id) - Number(a.id));
@@ -371,8 +410,9 @@ function AdminFixtures({ items, tableData, onSave }) {
       </div>
 
       {shown.length === 0 && <div style={{ color: "#8899bb", fontSize: 13, padding: "16px 0", textAlign: "center" }}>No {tab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
-      {shown.map(f => {
-        const idx = f._idx;
+      {shown.map(rawF => {
+        const idx = rawF._idx;
+        const f = getDisplayFixture(rawF, idx);
         const homeBadge = getTeamBadge(f.home, f, "home");
         const awayBadge = getTeamBadge(f.away, f, "away");
         const isEditing = editing === idx;
@@ -380,7 +420,7 @@ function AdminFixtures({ items, tableData, onSave }) {
         return (
           <div key={f.id} style={{ background: "#0d0c22", border: `1px solid ${isEditing ? "#347ebf44" : "#ffffff0f"}`, borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
             {/* Summary row */}
-            <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => setEditing(isEditing ? null : idx)}>
+            <div style={{ padding: "10px 14px", cursor: "pointer" }} onClick={() => isEditing ? tryClose(idx) : startEditing(idx)}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
                   {homeBadge ? <img src={homeBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 14, flexShrink: 0 }}>🛡</span>}
@@ -409,19 +449,19 @@ function AdminFixtures({ items, tableData, onSave }) {
             {isEditing && (
               <div style={{ borderTop: "1px solid #ffffff0f", padding: "14px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={S.row}>
-                  <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={f.date} onChange={e => update(idx, "date", e.target.value)} /></div>
-                  {f.type === "upcoming" && <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update(idx, "time", e.target.value)} placeholder="15:00" /></div>}
-                  <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update(idx, "venue", e.target.value)} /></div>
+                  <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={f.date} onChange={e => update("date", e.target.value)} /></div>
+                  {f.type === "upcoming" && <div style={{ flex: 1 }}><label style={S.label}>Kick-off</label><input style={S.input} value={f.time} onChange={e => update("time", e.target.value)} placeholder="15:00" /></div>}
+                  <div style={{ flex: 1 }}><label style={S.label}>Venue</label><input style={S.input} value={f.venue} onChange={e => update("venue", e.target.value)} /></div>
                 </div>
                 <div style={{ display: "flex", gap: 16, background: "#191740", borderRadius: 8, padding: "10px 14px", flexWrap: "wrap", alignItems: "center" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>
-                    <input type="checkbox" checked={!!f.friendly} onChange={e => update(idx, "friendly", e.target.checked)} style={{ accentColor: "#f59e0b" }} /> Friendly
+                    <input type="checkbox" checked={!!f.friendly} onChange={e => update("friendly", e.target.checked)} style={{ accentColor: "#f59e0b" }} /> Friendly
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, color: "#8b5cf6", fontWeight: 700 }}>
-                    <input type="checkbox" checked={!!f.cup} onChange={e => update(idx, "cup", e.target.checked)} style={{ accentColor: "#8b5cf6" }} /> Cup
+                    <input type="checkbox" checked={!!f.cup} onChange={e => update("cup", e.target.checked)} style={{ accentColor: "#8b5cf6" }} /> Cup
                   </label>
                   {f.cup && (
-                    <select value={f.cupType || ""} onChange={e => update(idx, "cupType", e.target.value)} style={{ ...S.input, width: "auto", color: "#8b5cf6", borderColor: "#8b5cf644" }}>
+                    <select value={f.cupType || ""} onChange={e => update("cupType", e.target.value)} style={{ ...S.input, width: "auto", color: "#8b5cf6", borderColor: "#8b5cf644" }}>
                       <option value="">Select cup...</option>
                       <option value="FA Cup">FA Cup</option>
                       <option value="FA Vase">FA Vase</option>
@@ -437,25 +477,28 @@ function AdminFixtures({ items, tableData, onSave }) {
                     const manualBadge = f[side + "Badge"];
                     const badge = badgeFromTable || manualBadge;
                     return (
-                      <div key={side} style={{ flex: 1 }}>
+                      <div key={side} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                         <label style={S.label}>{side === "home" ? "Home" : "Away"} Team</label>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                          {badge ? <img src={badge} alt="" style={{ width: 28, height: 28, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 20, flexShrink: 0 }}>🛡</span>}
-                          <select style={{ ...S.input, flex: 1 }} value={teamVal} onChange={e => update(idx, side, e.target.value)}>
+                          <div style={{ width: 28, height: 28, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge ? <img src={badge} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> : <span style={{ fontSize: 20 }}>🛡</span>}</div>
+                          <select style={{ ...S.input, flex: 1 }} value={teamVal} onChange={e => update(side, e.target.value)}>
                             <option value="">Select or type...</option>
                             <option value="Hemsworth Miners Welfare FC">Hemsworth Miners Welfare FC</option>
                             {(tableData||[]).filter(t => !t.team.includes("Hemsworth")).sort((a,b) => a.team.localeCompare(b.team)).map(t => <option key={t.team} value={t.team}>{t.team}</option>)}
                           </select>
                         </div>
-                        <input style={{ ...S.input, marginBottom: 6 }} value={teamVal} onChange={e => update(idx, side, e.target.value)} placeholder="Or type team name..." />
-                        {!badgeFromTable && (
-                          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: "#191740", border: "1px dashed #ffffff22", borderRadius: 6, padding: "6px 10px" }}>
-                            {manualBadge ? <img src={manualBadge} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} /> : <span style={{ fontSize: 16 }}>🛡</span>}
-                            <span style={{ fontSize: 11, color: "#8899bb" }}>{manualBadge ? "Change badge" : "Upload badge"}</span>
-                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(idx, side, e.target.files[0])} />
-                          </label>
-                        )}
-                        {badgeFromTable && <div style={{ fontSize: 10, color: "#10b981" }}>✓ Badge from table</div>}
+                        <input style={{ ...S.input, marginBottom: 6 }} value={teamVal} onChange={e => update(side, e.target.value)} placeholder="Or type team name..." />
+                        <div style={{ height: 32, display: "flex", alignItems: "center" }}>
+                          {!badgeFromTable ? (
+                            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: "#191740", border: "1px dashed #ffffff22", borderRadius: 6, padding: "4px 10px" }}>
+                              {manualBadge ? <img src={manualBadge} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} /> : <span style={{ fontSize: 14 }}>🛡</span>}
+                              <span style={{ fontSize: 11, color: "#8899bb" }}>{manualBadge ? "Change badge" : "Upload badge"}</span>
+                              <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => uploadBadge(side, e.target.files[0])} />
+                            </label>
+                          ) : (
+                            <div style={{ fontSize: 10, color: "#10b981" }}>✓ Badge from table</div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -463,19 +506,19 @@ function AdminFixtures({ items, tableData, onSave }) {
                 {f.type === "result" && (
                   <div style={{ background: "#191740", borderRadius: 8, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={S.row}>
-                      <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update(idx, "result", e.target.value)} placeholder="2 – 1" /></div>
-                      <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update(idx, "halftime", e.target.value)} placeholder="1 – 0" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update("result", e.target.value)} placeholder="2 – 1" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update("halftime", e.target.value)} placeholder="1 – 0" /></div>
                     </div>
                     <div style={S.row}>
-                      <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update(idx, "homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
-                      <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update(idx, "awayScorers", e.target.value)} placeholder="Brown 67" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update("homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
+                      <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update("awayScorers", e.target.value)} placeholder="Brown 67" /></div>
                     </div>
                   </div>
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   {f.type === "upcoming"
-                    ? <button style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 12 }} onClick={() => update(idx, "type", "result")}>Mark as played →</button>
-                    : <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", fontSize: 12 }} onClick={() => update(idx, "type", "upcoming")}>← Move back to upcoming</button>}
+                    ? <button style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 12 }} onClick={() => update("type", "result")}>Mark as played →</button>
+                    : <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", fontSize: 12 }} onClick={() => update("type", "upcoming")}>← Move back to upcoming</button>}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444" }} onClick={() => del(idx)}>Delete</button>
                     <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save</button>
@@ -584,12 +627,12 @@ function AdminSquad({ items, onSave, scrollRef }) {
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
-            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update(idx, "name", e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update(idx, "pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update("name", e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update("pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
                 <span style={{ fontSize: 10, color: p.playing ? "#10b981" : "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>PLAYING?</span>
-                <input type="checkbox" checked={!!p.playing} onChange={e => update(idx, "playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
+                <input type="checkbox" checked={!!p.playing} onChange={e => update("playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
               </label>
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
             </div>
@@ -642,7 +685,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* About */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>About this player</label>
-            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
+            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update("about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
         );
@@ -715,10 +758,10 @@ function AdminMerch({ items, onSave }) {
           {expanded === idx && (
             <div style={{ borderTop: "1px solid #ffffff0f", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={S.row}>
-                <div style={{ flex: 0.3, minWidth: 55 }}><label style={S.label}>Icon</label><input style={S.input} value={m.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
-                <div style={{ flex: 2, minWidth: 130 }}><label style={S.label}>Item Name</label><input style={S.input} value={m.name} onChange={e => update(idx, "name", e.target.value)} /></div>
-                <div style={{ flex: 0.7, minWidth: 70 }}><label style={S.label}>Price</label><input style={S.input} value={m.price} onChange={e => update(idx, "price", e.target.value)} /></div>
-                <div style={{ flex: 0.7, minWidth: 80 }}><label style={S.label}>Badge</label><select style={S.input} value={m.tag} onChange={e => update(idx, "tag", e.target.value)}>{["","NEW","SALE","LIMITED"].map(o => <option key={o} value={o}>{o||"None"}</option>)}</select></div>
+                <div style={{ flex: 0.3, minWidth: 55 }}><label style={S.label}>Icon</label><input style={S.input} value={m.emoji} onChange={e => update("emoji", e.target.value)} /></div>
+                <div style={{ flex: 2, minWidth: 130 }}><label style={S.label}>Item Name</label><input style={S.input} value={m.name} onChange={e => update("name", e.target.value)} /></div>
+                <div style={{ flex: 0.7, minWidth: 70 }}><label style={S.label}>Price</label><input style={S.input} value={m.price} onChange={e => update("price", e.target.value)} /></div>
+                <div style={{ flex: 0.7, minWidth: 80 }}><label style={S.label}>Badge</label><select style={S.input} value={m.tag} onChange={e => update("tag", e.target.value)}>{["","NEW","SALE","LIMITED"].map(o => <option key={o} value={o}>{o||"None"}</option>)}</select></div>
               </div>
               {/* Image upload */}
               <div>
@@ -731,15 +774,15 @@ function AdminMerch({ items, onSave }) {
                 {m.image && <button onClick={() => update(idx, "image", "")} style={{ ...S.btn, background: "#ef444411", color: "#ef4444", padding: "4px 10px", fontSize: 11, marginTop: 6 }}>Remove image</button>}
               </div>
               {/* Stripe link — for non-clothing items */}
-              {!m.isClothing && <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update(idx, "stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>}
+              {!m.isClothing && <div><label style={S.label}>Stripe Payment Link</label><input style={S.input} value={m.stripeLink || ""} onChange={e => update("stripeLink", e.target.value)} placeholder="https://buy.stripe.com/..." /></div>}
               {/* Clothing toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
-                <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update(idx, "isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
+                <input type="checkbox" id={`clothing-${idx}`} checked={!!m.isClothing} onChange={e => update("isClothing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#347ebf" }} />
                 <label htmlFor={`clothing-${idx}`} style={{ fontSize: 13, color: "#347ebf", fontWeight: 700, cursor: "pointer" }}>👕 This item has sizes (XS–3XL)</label>
               </div>
               {/* Sold out toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#191740", borderRadius: 8, padding: "10px 14px" }}>
-                <input type="checkbox" id={`soldout-${idx}`} checked={!!m.soldOut} onChange={e => update(idx, "soldOut", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ef4444" }} />
+                <input type="checkbox" id={`soldout-${idx}`} checked={!!m.soldOut} onChange={e => update("soldOut", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#ef4444" }} />
                 <label htmlFor={`soldout-${idx}`} style={{ fontSize: 13, color: "#ef4444", fontWeight: 700, cursor: "pointer" }}>🚫 Mark as sold out</label>
               </div>
               {/* Size stock manager */}
@@ -1373,10 +1416,15 @@ function AdminSeasonPass({ spData, onSave }) {
                       <button onClick={() => {
                         const newVal = !u.seasonTicket;
                         setUsers(prev => prev.map(usr => usr.uid === u.uid ? { ...usr, seasonTicket: newVal } : usr));
+                        // Write to hmwfc/seasonTickets (always writable) AND try direct user write
+                        const emailKey = (u.email || "").toLowerCase().replace(/[.@]/g, "_");
                         if (newVal) {
-                          update(ref(db, `users/${u.uid}`), { seasonTicket: true });
+                          update(ref(db, `hmwfc/seasonTickets`), { [emailKey]: true, [u.uid]: true });
+                          try { update(ref(db, `users/${u.uid}`), { seasonTicket: true }); } catch(e) {}
                         } else {
-                          set(ref(db, `users/${u.uid}/seasonTicket`), null);
+                          set(ref(db, `hmwfc/seasonTickets/${emailKey}`), null);
+                          set(ref(db, `hmwfc/seasonTickets/${u.uid}`), null);
+                          try { set(ref(db, `users/${u.uid}/seasonTicket`), null); } catch(e) {}
                         }
                       }} style={{ ...S.btn, background: u.seasonTicket ? "#f59e0b22" : "#ffffff0f", color: u.seasonTicket ? "#f59e0b" : "#8899bb", border: `1px solid ${u.seasonTicket ? "#f59e0b44" : "#ffffff15"}`, flexShrink: 0 }}>
                         {u.seasonTicket ? "Remove" : "Mark as Holder"}
@@ -1567,6 +1615,29 @@ function AdminPanel({ data, onUpdate, onClose }) {
   const [section, setSection] = useState("News");
   const adminScrollRef = useRef(null);
   const SECTIONS = ["News", "Table", "Fixtures", "Squad", "Merch", "Gallery", "Fundraising", "Season Pass", "Clubhouse"];
+
+  useEffect(() => {
+    // Block pull-to-refresh across the whole admin panel
+    // Allow scrolling inside data-admin-scroll, block everything else pulling down
+    let startY = 0;
+    const onStart = (e) => { startY = e.touches[0].clientY; };
+    const onMove = (e) => {
+      const dy = e.touches[0].clientY - startY;
+      if (dy <= 0) return; // scrolling up or horizontal — always allow
+      // Check if inside a scrollable area that isn't at the top
+      const scrollEl = e.target.closest("[data-admin-scroll]");
+      if (scrollEl && scrollEl.scrollTop > 0) return; // scrollable area not at top — allow
+      // Otherwise block: header, tabs, or scrollable area at top pulling down
+      e.preventDefault();
+    };
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    return () => {
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+    };
+  }, []);
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#060514", zIndex: 100, display: "flex", flexDirection: "column" }}>
       <div style={{ background: "#191740", borderBottom: "2px solid #347ebf44", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -1586,7 +1657,7 @@ function AdminPanel({ data, onUpdate, onClose }) {
           <button key={s} onClick={() => setSection(s)} style={{ ...S.btn, borderRadius: 0, borderBottom: section === s ? "2px solid #347ebf" : "2px solid transparent", color: section === s ? "#347ebf" : "#8899bb", background: "none", padding: "12px 16px", flexShrink: 0, whiteSpace: "nowrap" }}>{s}</button>
         ))}
       </div>
-      <div ref={adminScrollRef} data-admin-scroll style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <div ref={adminScrollRef} data-admin-scroll style={{ flex: 1, overflowY: "auto", padding: 24, paddingBottom: 80 }}>
         {section === "News" && <AdminNews items={data.news} onSave={v => onUpdate("news", v)} />}
         {section === "Table" && <AdminTable items={data.table} onSave={v => onUpdate("table", v)} />}
         {section === "Fixtures" && <AdminFixtures items={data.fixtures} tableData={data.table} onSave={v => onUpdate("fixtures", v)} />}
@@ -1748,6 +1819,12 @@ function PredictionForm({ homeName, awayName, onSubmit }) {
     </div>
   );
 }
+
+const shortTeamName = (name) => {
+  if (!name) return name;
+  if (name.includes("Hemsworth")) return "Hemsworth MWFC";
+  return name;
+};
 
 const formatFixtureDateShort = (d) => {
   if (!d) return "";
@@ -1990,14 +2067,18 @@ export default function App() {
   useEffect(() => {
     if (!fanUser) return;
     const emailKey = fanUser.email.toLowerCase().replace(/[.@]/g, "_");
-    const ticketRef = ref(db, `hmwfc/seasonTickets/${emailKey}`);
-    const unsub = onValue(ticketRef, (snap) => {
+    // Check both email key and uid key
+    const ticketRefEmail = ref(db, `hmwfc/seasonTickets/${emailKey}`);
+    const ticketRefUid = ref(db, `hmwfc/seasonTickets/${fanUser.uid}`);
+    const applyTicket = (snap) => {
       if (snap.exists() && snap.val() === true) {
-        // Mark this user as a season ticket holder
-        update(ref(db, `users/${fanUser.uid}`), { seasonTicket: true });
+        try { update(ref(db, `users/${fanUser.uid}`), { seasonTicket: true }); } catch(e) {}
         setFanProfile(prev => prev ? { ...prev, seasonTicket: true } : prev);
       }
-    });
+    };
+    const unsub1 = onValue(ticketRefEmail, applyTicket);
+    const unsub2 = onValue(ticketRefUid, applyTicket);
+    const unsub = () => { unsub1(); unsub2(); };
     return () => unsub();
   }, [fanUser]);
 
@@ -2104,53 +2185,77 @@ export default function App() {
     const dismiss = () => {
       setMatchdayCard(null);
     };
+    const oppBadge = weHome ? awayBadge : homeBadge;
+    const oppName = weHome ? f.away : f.home;
     return (
-      <div style={{ minHeight: "100vh", background: "#0d0c22", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "Barlow, sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #0a0918 0%, #0d0c22 60%, #101830 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 24px", fontFamily: "Barlow, sans-serif" }}>
         <style>{`
-          @keyframes matchdayFadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-          @keyframes matchdayPulse { 0%,100% { box-shadow: 0 0 0 0 #347ebf44; } 50% { box-shadow: 0 0 0 16px #347ebf00; } }
+          @keyframes matchdayFadeIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes matchdayGlow { 0%,100% { filter: drop-shadow(0 0 18px #347ebf66); } 50% { filter: drop-shadow(0 0 36px #347ebfaa); } }
+          @keyframes matchdayPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.85; } }
         `}</style>
-        <div style={{ width: "100%", maxWidth: 380, animation: "matchdayFadeIn 0.5s ease-out" }}>
-          {/* Card */}
-          <div style={{ background: "linear-gradient(160deg, #191740 0%, #0d0c22 100%)", border: "1px solid #347ebf44", borderRadius: 20, overflow: "hidden", boxShadow: "0 24px 60px #00000099" }}>
-            {/* Top strip */}
-            <div style={{ background: "linear-gradient(90deg, #347ebf, #1a5f9e)", padding: "10px 20px", textAlign: "center" }}>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, letterSpacing: 4, color: "#fff" }}>MATCHDAY</div>
-            </div>
-            {/* Logo */}
-            <div style={{ textAlign: "center", padding: "24px 20px 12px" }}>
-              <img src="/logo.png" alt="HMWFC" style={{ height: 72, filter: "drop-shadow(0 4px 16px #347ebf66)" }} />
-            </div>
-            {/* Teams */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 28px 20px", gap: 8 }}>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                {homeBadge ? <img src={homeBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{weHome ? "The Wells" : f.home}</div>
+        <div style={{ width: "100%", maxWidth: 400, animation: "matchdayFadeIn 0.5s ease-out" }}>
+
+          {/* MATCHDAY pill */}
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <span style={{ background: "linear-gradient(90deg,#347ebf,#1a5f9e)", fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, letterSpacing: 5, color: "#fff", padding: "6px 20px", borderRadius: 20 }}>MATCHDAY</span>
+          </div>
+
+          {/* Club crest — large */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <img src="/logo.png" alt="HMWFC" style={{ height: 120, animation: "matchdayGlow 3s ease-in-out infinite" }} />
+          </div>
+
+          {/* Fan welcome */}
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", letterSpacing: 2, marginBottom: 4 }}>WELCOME BACK</div>
+            <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{fanProfile?.displayName || "Wells Fan"}</div>
+            <div style={{ display: "inline-block", marginTop: 8, background: "#f59e0b22", border: "1px solid #f59e0b44", borderRadius: 20, padding: "3px 12px", fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 900, color: "#f59e0b", letterSpacing: 2 }}>🎫 SEASON TICKET HOLDER</div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #347ebf44, transparent)", marginBottom: 24 }} />
+
+          {/* Match info */}
+          <div style={{ background: "#ffffff08", border: "1px solid #ffffff0f", borderRadius: 16, padding: "20px 24px", marginBottom: 24 }}>
+            {/* Opponent */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+              <div style={{ width: 56, height: 56, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {oppBadge ? <img src={oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
               </div>
-              <div style={{ textAlign: "center", flexShrink: 0 }}>
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, color: "#8899bb" }}>vs</div>
-                {f.time && <div style={{ fontSize: 12, color: "#347ebf", fontWeight: 700, marginTop: 2 }}>{f.time}</div>}
-              </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                {awayBadge ? <img src={awayBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <span style={{ fontSize: 40 }}>🛡</span>}
-                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{!weHome ? "The Wells" : f.away}</div>
+              <div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, color: "#8899bb", letterSpacing: 1, marginBottom: 2 }}>{weHome ? "HOME · VS" : "AWAY · VS"}</div>
+                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>{oppName}</div>
               </div>
             </div>
-            {/* Venue */}
-            {f.venue && <div style={{ textAlign: "center", fontSize: 11, color: "#8899bb", paddingBottom: 16, letterSpacing: 0.5 }}>📍 {f.venue}</div>}
-            {/* Fan greeting */}
-            <div style={{ margin: "0 20px 20px", background: "#347ebf11", border: "1px solid #347ebf33", borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
-              <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 2 }}>Welcome,</div>
-              <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 900, color: "#fff" }}>{fanProfile?.displayName || "Wells Fan"} 🎟️</div>
-              <div style={{ fontSize: 11, color: "#10b981", marginTop: 3, fontWeight: 700, letterSpacing: 1 }}>SEASON PASS HOLDER</div>
-            </div>
-            {/* CTA */}
-            <div style={{ padding: "0 20px 24px" }}>
-              <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", borderRadius: 12, color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 20, letterSpacing: 3, padding: "16px 0", cursor: "pointer", animation: "matchdayPulse 2s ease-in-out infinite" }}>
-                UP THE WELLS! ⚽
-              </button>
+            {/* Details row */}
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {f.time && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8899bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{f.time}</span>
+                </div>
+              )}
+              {f.venue && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8899bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.venue}</span>
+                </div>
+              )}
+              {f.date && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#8899bb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{formatFixtureDateShort(f.date)}</span>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* CTA */}
+          <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, #347ebf, #1a5f9e)", border: "none", borderRadius: 14, color: "#fff", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 22, letterSpacing: 4, padding: "18px 0", cursor: "pointer", animation: "matchdayPulse 2s ease-in-out infinite" }}>
+            UP THE WELLS!
+          </button>
+
         </div>
       </div>
     );
@@ -2188,25 +2293,16 @@ export default function App() {
           .bottom-tab-icon { font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
           .bottom-tab-label { font-family: "Barlow Condensed", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #8899bb; white-space: nowrap; }
           .bottom-tab.active .bottom-tab-label { color: #347ebf; }
-          .main-content-pad { padding-bottom: 80px; }
+          .main-content-pad { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
         }
         table { width: 100%; border-collapse: collapse; }
         th { font-family: Barlow Condensed, sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #8899bb; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 1px solid #ffffff0f; }
         td { padding: 11px 12px; font-size: 14px; border-bottom: 1px solid #ffffff07; }
-        .fixture-card-inner { display: flex; align-items: center; gap: 10px; }
-        .fixture-teams { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .fixture-venue { min-width: 110px; font-size: 11px; color: #8899bb; text-align: right; flex-shrink: 0; }
-        .fixture-date { min-width: 60px; font-size: 12px; color: #8899bb; font-weight: 600; flex-shrink: 0; }
+        .fixture-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; }
         .tbl-hide { }
         @media (max-width: 600px) { .tbl-hide { display: none; } }
         @media (max-width: 520px) {
-          .fixture-card-inner { flex-direction: column; align-items: stretch; gap: 8px; }
-          .fixture-teams { flex-direction: column; gap: 6px; }
-          .fixture-venue { min-width: unset; text-align: left; }
-          .fixture-date { min-width: unset; }
-          .fixture-team-home { justify-content: flex-start !important; flex-direction: row-reverse; }
-          .fixture-team-away { justify-content: flex-start !important; }
-          .fixture-score { align-self: center; }
+
           .home-merch-strip { padding-bottom: 8px; scroll-padding-right: 20px; }
         }
         @media (max-width: 680px) {
@@ -2326,7 +2422,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="main-content-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px", overflow: "hidden" }}>
+      <div className="main-content-pad" style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 20px 60px" }}>
 
         {active === "Home" && (() => {
 
@@ -2744,67 +2840,109 @@ export default function App() {
             const t = (data.table || []).find(r => r.team === teamName);
             return t && t.badge ? `data:image/png;base64,${t.badge}` : null;
           };
+          // Group filtered fixtures by month
+          const getMonthKey = (date) => {
+            if (!date) return "Unknown";
+            if (date.includes("-")) {
+              const [y, m] = date.split("-");
+              const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+              return `${months[parseInt(m)-1]} ${y}`;
+            }
+            return date;
+          };
+          const sorted = [...filtered].sort((a, b) =>
+            fixtureTab === "upcoming"
+              ? parseFixtureDate(a.date) - parseFixtureDate(b.date)
+              : parseFixtureDate(b.date) - parseFixtureDate(a.date)
+          );
+          const grouped = sorted.reduce((acc, f) => {
+            const key = getMonthKey(f.date);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(f);
+            return acc;
+          }, {});
+          const months = Object.keys(grouped);
+
+          const FixtureCard = ({ f }) => {
+            const homeBadge = getBadgeForFixture(f, f.home);
+            const awayBadge = getBadgeForFixture(f, f.away);
+            const isResult = f.type === "result";
+            const tag = f.friendly ? { label: "Friendly", bg: "#f59e0b18", color: "#f59e0b" } : f.cup ? { label: f.cupType || "Cup", bg: "#8b5cf622", color: "#8b5cf6" } : null;
+            return (
+              <div style={{ background: "#191740", borderRadius: 14, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                {/* Top strip — date + tag */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "#ffffff05", borderBottom: "1px solid #ffffff07" }}>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 700, color: "#8899bb", letterSpacing: 0.5 }}>{formatFixtureDate(f.date)}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {f.venue && <div style={{ fontSize: 11, color: "#8899bb55", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{f.venue}</div>}
+                    {tag && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 20, background: tag.bg, color: tag.color }}>{tag.label}</span>}
+                  </div>
+                </div>
+
+                {/* Main row — teams + score */}
+                <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: 8 }}>
+                  {/* Home */}
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    {homeBadge
+                      ? <img src={homeBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
+                      : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.home)}</div>
+                  </div>
+
+                  {/* Centre — score or time */}
+                  <div style={{ flexShrink: 0, textAlign: "center", minWidth: 90 }}>
+                    {isResult
+                      ? <>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
+                          {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
+                        </>
+                      : <>
+                          <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
+                          <div style={{ fontSize: 10, color: "#8899bb55", marginTop: 4, letterSpacing: 1 }}>K.O.</div>
+                        </>}
+                  </div>
+
+                  {/* Away */}
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    {awayBadge
+                      ? <img src={awayBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
+                      : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.away)}</div>
+                  </div>
+                </div>
+
+                {/* Scorers */}
+                {isResult && (f.homeScorers || f.awayScorers) && (
+                  <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
+                    <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "right" }}>
+                      {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>{s.trim()} ⚽</div>)}
+                    </div>
+                    <div style={{ width: 90, flexShrink: 0 }} />
+                    <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "left" }}>
+                      {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>⚽ {s.trim()}</div>)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          };
+
           return (
-            <div>
+            <div style={{ paddingBottom: 40 }}>
               <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 28, fontWeight: 900, marginBottom: 16 }}>Fixtures & Results</div>
               <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
                 <button className={`tab-btn ${fixtureTab === "upcoming" ? "active" : ""}`} onClick={() => setFixtureTab("upcoming")}>Upcoming</button>
                 <button className={`tab-btn ${fixtureTab === "result" ? "active" : ""}`} onClick={() => setFixtureTab("result")}>Results</button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {filtered.map(f => {
-                  const homeBadge = getBadgeForFixture(f, f.home);
-                  const awayBadge = getBadgeForFixture(f, f.away);
-                  return (
-                    <div key={f.id} className="card" style={{ padding: "14px 16px" }}>
-                      {(f.friendly || f.cup) && (
-                        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                          {f.friendly && <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 700, letterSpacing: 1, background: "#f59e0b18", padding: "2px 8px", borderRadius: 4 }}>⭐ Friendly</span>}
-                          {f.cup && <span style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, letterSpacing: 1, background: "#8b5cf622", padding: "2px 8px", borderRadius: 4 }}>🏆 {f.cupType || "Cup"}</span>}
-                        </div>
-                      )}
-                      <div className="fixture-card-inner">
-                        <div className="fixture-date">{formatFixtureDate(f.date)}</div>
-                        <div className="fixture-teams">
-                          {/* Home */}
-                          <div className="fixture-team-home" style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }}>
-                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, textAlign: "right" }}>{f.home}</span>
-                            {homeBadge ? <img src={homeBadge} alt="" style={{ width: 26, height: 26, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 18, flexShrink: 0 }}>🛡</span>}
-                          </div>
-                          {/* Score/Time */}
-                          <div className="fixture-score" style={{ flexShrink: 0, textAlign: "center" }}>
-                            {f.result
-                              ? <div>
-                                  <span style={{ display: "block", background: "#347ebf22", border: "1px solid #347ebf44", padding: "4px 12px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#347ebf", minWidth: 72, textAlign: "center" }}>{f.result}</span>
-                                  {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", fontWeight: 700, marginTop: 3 }}>HT {f.halftime}</div>}
-                                </div>
-                              : <span style={{ background: "#ffffff0f", padding: "4px 12px", borderRadius: 8, fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700, minWidth: 72, display: "inline-block", textAlign: "center" }}>{f.time}</span>}
-                          </div>
-                          {/* Away */}
-                          <div className="fixture-team-away" style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-start" }}>
-                            {awayBadge ? <img src={awayBadge} alt="" style={{ width: 26, height: 26, objectFit: "contain", flexShrink: 0 }} /> : <span style={{ fontSize: 18, flexShrink: 0 }}>🛡</span>}
-                            <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 15, fontWeight: 700 }}>{f.away}</span>
-                          </div>
-                        </div>
-                        <div className="fixture-venue">📍 {f.venue}</div>
-                      </div>
-                      {/* Scorers */}
-                      {f.type === "result" && (f.homeScorers || f.awayScorers) && (
-                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
-                          <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "right" }}>
-                            {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>{s.trim()} ⚽</div>)}
-                          </div>
-                          <div style={{ width: 72, flexShrink: 0 }} />
-                          <div style={{ flex: 1, fontSize: 11, color: "#aabbcc", lineHeight: 1.9, textAlign: "left" }}>
-                            {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>⚽ {s.trim()}</div>)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {filtered.length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No {fixtureTab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
-              </div>
+              {months.length === 0 && <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No {fixtureTab === "upcoming" ? "upcoming fixtures" : "results"} yet.</div>}
+              {months.map(month => (
+                <div key={month} style={{ marginBottom: 28 }}>
+                  <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, letterSpacing: 2, color: "#347ebf", textTransform: "uppercase", marginBottom: 10, paddingLeft: 10, borderLeft: "3px solid #347ebf" }}>{month}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {grouped[month].map(f => <FixtureCard key={f.id} f={f} />)}
+                  </div>
+                </div>
+              ))}
             </div>
           );
         })()}
