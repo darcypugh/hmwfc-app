@@ -1832,6 +1832,16 @@ const shortTeamName = (name) => {
   return name;
 };
 
+const formatGalleryDate = (d) => {
+  if (!d) return "";
+  if (d.includes("-")) {
+    const [y, m, day] = d.split("-");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+  }
+  return d;
+};
+
 const formatFixtureDateShort = (d) => {
   if (!d) return "";
   if (d.includes("-")) {
@@ -1915,6 +1925,23 @@ export default function App() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null); // { photos, idx }
+
+  useEffect(() => {
+    if (galleryLightbox) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [galleryLightbox]);
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
@@ -3275,7 +3302,7 @@ export default function App() {
               <div>
                 <button onClick={() => { setSelectedAlbum(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, marginBottom: 4 }}>{selectedAlbum.name}</div>
-                {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: selectedAlbum.author ? 4 : 20 }}>📅 {formatFixtureDate(selectedAlbum.date)}</div>}
+                {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: selectedAlbum.author ? 4 : 20 }}>📅 {formatGalleryDate(selectedAlbum.date)}</div>}
                 {selectedAlbum.author && (
                   <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 20 }}>
                     📸 Photos by {selectedAlbum.authorLink
@@ -3294,9 +3321,10 @@ export default function App() {
                         const next = () => setGalleryLightbox(lb => ({ ...lb, idx: (lb.idx + 1) % photos.length }));
                         let touchStartX = 0;
                         return (
-                          <div style={{ position: "fixed", inset: 0, background: "#000000f0", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
-                            onTouchStart={e => { touchStartX = e.touches[0].clientX; }}
-                            onTouchEnd={e => { const dx = e.changedTouches[0].clientX - touchStartX; if (dx > 50) prev(); else if (dx < -50) next(); }}>
+                          <div style={{ position: "fixed", inset: 0, background: "#000000f0", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", touchAction: "none" }}
+                            onTouchStart={e => { e.stopPropagation(); touchStartX = e.touches[0].clientX; }}
+                            onTouchEnd={e => { e.stopPropagation(); const dx = e.changedTouches[0].clientX - touchStartX; if (dx > 50) prev(); else if (dx < -50) next(); }}
+                            onTouchMove={e => e.preventDefault()}>
                             {/* Close */}
                             <button onClick={() => setGalleryLightbox(null)} style={{ position: "absolute", top: 20, right: 20, background: "#ffffff22", border: "none", borderRadius: "50%", width: 40, height: 40, color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>✕</button>
                             {/* Counter */}
@@ -3333,7 +3361,7 @@ export default function App() {
                           <div style={{ padding: "12px 14px 14px" }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{a.name}</div>
                             <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 10, marginBottom: a.author ? 4 : 0 }}>
-                              {a.date && <span>{formatFixtureDate(a.date)}</span>}
+                              {a.date && <span>{formatGalleryDate(a.date)}</span>}
                               <span>{(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</span>
                             </div>
                             {a.author && <div style={{ fontSize: 11, color: "#8899bb77" }}>📸 {a.authorLink ? <a href={a.authorLink} target="_blank" rel="noopener noreferrer" style={{ color: "#347ebf88", textDecoration: "none" }} onClick={e => e.stopPropagation()}>{a.author}</a> : a.author}</div>}
