@@ -1888,12 +1888,20 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
 
   // Block pull-to-refresh and background scroll on iOS
   useEffect(() => {
-    const prevent = (e) => e.preventDefault();
+    const prevent = (e) => { e.preventDefault(); return false; };
+    const preventStart = (e) => { e.preventDefault(); };
+    // Must add to document AND window with passive:false to beat iOS Safari
     document.addEventListener("touchmove", prevent, { passive: false });
+    document.addEventListener("touchstart", preventStart, { passive: false });
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
     return () => {
       document.removeEventListener("touchmove", prevent);
+      document.removeEventListener("touchstart", preventStart);
+      document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, []);
 
