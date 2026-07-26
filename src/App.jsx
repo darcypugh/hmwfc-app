@@ -1914,6 +1914,7 @@ export default function App() {
   const [selectedMerch, setSelectedMerch] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [galleryLightbox, setGalleryLightbox] = useState(null); // { photos, idx }
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
@@ -2292,6 +2293,7 @@ export default function App() {
         .buy-btn { background: linear-gradient(135deg, #347ebf, #1a5f9e); border: none; color: #fff; font-family: Barlow Condensed, sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 13px; padding: 9px 22px; border-radius: 8px; cursor: pointer; width: 100%; }
         .buy-btn:hover { opacity: 0.85; }
         .squad-row:hover { background: #347ebf11 !important; }
+        @media (max-width: 768px) { .gallery-arrow { display: none !important; } }
         .bottom-tab-bar { display: none; }
         @media (max-width: 768px) {
           .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: env(safe-area-inset-bottom); }
@@ -2514,16 +2516,30 @@ export default function App() {
                       <button onClick={() => navigate("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
                     </div>
                     <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                      {/* Header */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderBottom: "1px solid #ffffff0f" }}>
+                        <div style={{ width: 3, flexShrink: 0 }} />
+                        <div style={{ width: 20 }} />
+                        <div style={{ width: 20 }} />
+                        <div style={{ flex: 1 }} />
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 24, textAlign: "center" }}>P</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>GD</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>Pts</div>
+                      </div>
                       {nearbyRows.map(r => {
                         const zone = getZone(r.pos);
                         const isOurs = r.highlight;
+                        const gd = String(r.gd||0);
+                        const gdColor = gd.startsWith("-") ? "#ef4444" : gd === "0" ? "#8899bb" : "#10b981";
                         return (
                           <div key={r.pos} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: isOurs ? "#347ebf14" : "transparent", borderBottom: "1px solid #ffffff07" }}>
                             <div style={{ width: 3, height: 28, background: isOurs ? "#347ebf" : zoneColor[zone], borderRadius: 2, flexShrink: 0 }} />
                             <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
                             <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{Number(r.pts)||0}pts</div>
+                            <div style={{ fontSize: 12, color: "#8899bb", width: 24, textAlign: "center" }}>{Number(r.p)||0}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: gdColor, width: 28, textAlign: "center" }}>{r.gd||0}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb", width: 28, textAlign: "center" }}>{Number(r.pts)||0}</div>
                           </div>
                         );
                       })}
@@ -3269,13 +3285,39 @@ export default function App() {
                 )}
                 {(selectedAlbum.photos || []).length === 0
                   ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No photos in this album yet.</div>
-                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-                      {selectedAlbum.photos.map(p => (
-                        <div key={p.id} style={{ paddingTop: "75%", position: "relative", borderRadius: 10, overflow: "hidden" }}>
-                          <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                        </div>
-                      ))}
-                    </div>}
+                  : <>
+                      {/* Lightbox */}
+                      {galleryLightbox && (() => {
+                        const photos = galleryLightbox.photos;
+                        const idx = galleryLightbox.idx;
+                        const prev = () => setGalleryLightbox(lb => ({ ...lb, idx: (lb.idx - 1 + photos.length) % photos.length }));
+                        const next = () => setGalleryLightbox(lb => ({ ...lb, idx: (lb.idx + 1) % photos.length }));
+                        let touchStartX = 0;
+                        return (
+                          <div style={{ position: "fixed", inset: 0, background: "#000000f0", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+                            onTouchStart={e => { touchStartX = e.touches[0].clientX; }}
+                            onTouchEnd={e => { const dx = e.changedTouches[0].clientX - touchStartX; if (dx > 50) prev(); else if (dx < -50) next(); }}>
+                            {/* Close */}
+                            <button onClick={() => setGalleryLightbox(null)} style={{ position: "absolute", top: 20, right: 20, background: "#ffffff22", border: "none", borderRadius: "50%", width: 40, height: 40, color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>✕</button>
+                            {/* Counter */}
+                            <div style={{ position: "absolute", top: 22, left: "50%", transform: "translateX(-50%)", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{idx + 1} / {photos.length}</div>
+                            {/* Image */}
+                            <img src={photos[idx].src} alt="" style={{ maxWidth: "95vw", maxHeight: "85vh", objectFit: "contain", borderRadius: 8 }} />
+                            {/* Arrows — hidden on touch devices */}
+                            <button onClick={prev} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 44, height: 44, color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} className="gallery-arrow">‹</button>
+                            <button onClick={next} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 44, height: 44, color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} className="gallery-arrow">›</button>
+                          </div>
+                        );
+                      })()}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+                        {selectedAlbum.photos.map((p, pi) => (
+                          <div key={p.id} onClick={() => setGalleryLightbox({ photos: selectedAlbum.photos, idx: pi })}
+                            style={{ paddingTop: "75%", position: "relative", borderRadius: 10, overflow: "hidden", cursor: "pointer" }}>
+                            <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s" }} />
+                          </div>
+                        ))}
+                      </div>
+                    </>}
               </div>
             ) : (
               <div>
@@ -3290,10 +3332,11 @@ export default function App() {
                             : <div style={{ height: 140, background: "linear-gradient(135deg,#191740,#0d0c22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📸</div>}
                           <div style={{ padding: "12px 14px 14px" }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{a.name}</div>
-                            <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 10 }}>
-                              {a.date && <span>📅 {a.date}</span>}
-                              <span>📷 {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</span>
+                            <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 10, marginBottom: a.author ? 4 : 0 }}>
+                              {a.date && <span>{formatFixtureDate(a.date)}</span>}
+                              <span>{(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</span>
                             </div>
+                            {a.author && <div style={{ fontSize: 11, color: "#8899bb77" }}>📸 {a.authorLink ? <a href={a.authorLink} target="_blank" rel="noopener noreferrer" style={{ color: "#347ebf88", textDecoration: "none" }} onClick={e => e.stopPropagation()}>{a.author}</a> : a.author}</div>}
                           </div>
                         </div>
                       ))}
