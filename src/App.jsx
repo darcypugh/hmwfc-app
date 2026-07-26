@@ -1881,13 +1881,13 @@ const parseFixtureDate = (d) => {
 
 
 function GalleryLightbox({ photos, startIdx, onClose }) {
-  const [idx, setIdx] = React.useState(startIdx);
-  const [dragX, setDragX] = React.useState(0);
-  const [dragging, setDragging] = React.useState(false);
-  const startXRef = React.useRef(0);
+  const [idx, setIdx] = useState(startIdx);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startXRef = useRef(0);
 
   // Block pull-to-refresh and background scroll on iOS
-  React.useEffect(() => {
+  useEffect(() => {
     const prevent = (e) => e.preventDefault();
     document.addEventListener("touchmove", prevent, { passive: false });
     document.body.style.overflow = "hidden";
@@ -1917,7 +1917,7 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
   };
 
   // Keyboard navigation
-  React.useEffect(() => {
+  useEffect(() => {
     const onKey = (e) => { if (e.key === "ArrowLeft") prev(); if (e.key === "ArrowRight") next(); if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
