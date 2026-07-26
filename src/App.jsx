@@ -1879,6 +1879,75 @@ const parseFixtureDate = (d) => {
   return (months[parts[2]] || 0) * 100 + parseInt(parts[1]);
 };
 
+
+function GalleryLightbox({ photos, startIdx, onClose }) {
+  const [idx, setIdx] = React.useState(startIdx);
+  const [dragX, setDragX] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const startXRef = React.useRef(0);
+
+  // Block pull-to-refresh and background scroll on iOS
+  React.useEffect(() => {
+    const prevent = (e) => e.preventDefault();
+    document.addEventListener("touchmove", prevent, { passive: false });
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("touchmove", prevent);
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  const prev = () => setIdx(i => (i - 1 + photos.length) % photos.length);
+  const next = () => setIdx(i => (i + 1) % photos.length);
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX;
+    setDragging(true);
+    setDragX(0);
+  };
+  const onTouchMove = (e) => {
+    if (!dragging) return;
+    setDragX(e.touches[0].clientX - startXRef.current);
+  };
+  const onTouchEnd = () => {
+    if (dragX > 60) prev();
+    else if (dragX < -60) next();
+    setDragX(0);
+    setDragging(false);
+  };
+
+  // Keyboard navigation
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === "ArrowLeft") prev(); if (e.key === "ArrowRight") next(); if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000f2", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", overflow: "hidden", touchAction: "none" }}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      <style>{`@keyframes glFadeIn { from { opacity:0; } to { opacity:1; } }`}</style>
+      {/* Close */}
+      <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "#ffffff22", border: "none", borderRadius: "50%", width: 44, height: 44, color: "#fff", fontSize: 22, cursor: "pointer", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+      {/* Counter */}
+      <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", letterSpacing: 1 }}>{idx + 1} / {photos.length}</div>
+      {/* Image strip — translates based on drag */}
+      <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 0.25s ease-out" }}>
+        <img key={idx} src={photos[idx].src} alt="" style={{ maxWidth: "95vw", maxHeight: "82vh", objectFit: "contain", borderRadius: 8, userSelect: "none", animation: "glFadeIn 0.2s ease-out", pointerEvents: "none" }} draggable={false} />
+      </div>
+      {/* Dot indicators */}
+      {photos.length > 1 && (
+        <div style={{ position: "absolute", bottom: 24, display: "flex", gap: 6 }}>
+          {photos.map((_, i) => <div key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 3, background: i === idx ? "#fff" : "#ffffff44", transition: "all 0.2s" }} />)}
+        </div>
+      )}
+      {/* Arrows — desktop only */}
+      <button onClick={prev} className="gallery-arrow" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 48, height: 48, color: "#fff", fontSize: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+      <button onClick={next} className="gallery-arrow" style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 48, height: 48, color: "#fff", fontSize: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -1926,22 +1995,7 @@ export default function App() {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [galleryLightbox, setGalleryLightbox] = useState(null); // { photos, idx }
 
-  useEffect(() => {
-    if (galleryLightbox) {
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    };
-  }, [galleryLightbox]);
+
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
@@ -3314,29 +3368,7 @@ export default function App() {
                   ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No photos in this album yet.</div>
                   : <>
                       {/* Lightbox */}
-                      {galleryLightbox && (() => {
-                        const photos = galleryLightbox.photos;
-                        const idx = galleryLightbox.idx;
-                        const prev = () => setGalleryLightbox(lb => ({ ...lb, idx: (lb.idx - 1 + photos.length) % photos.length }));
-                        const next = () => setGalleryLightbox(lb => ({ ...lb, idx: (lb.idx + 1) % photos.length }));
-                        let touchStartX = 0;
-                        return (
-                          <div style={{ position: "fixed", inset: 0, background: "#000000f0", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", touchAction: "none" }}
-                            onTouchStart={e => { e.stopPropagation(); touchStartX = e.touches[0].clientX; }}
-                            onTouchEnd={e => { e.stopPropagation(); const dx = e.changedTouches[0].clientX - touchStartX; if (dx > 50) prev(); else if (dx < -50) next(); }}
-                            onTouchMove={e => e.preventDefault()}>
-                            {/* Close */}
-                            <button onClick={() => setGalleryLightbox(null)} style={{ position: "absolute", top: 20, right: 20, background: "#ffffff22", border: "none", borderRadius: "50%", width: 40, height: 40, color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>✕</button>
-                            {/* Counter */}
-                            <div style={{ position: "absolute", top: 22, left: "50%", transform: "translateX(-50%)", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb" }}>{idx + 1} / {photos.length}</div>
-                            {/* Image */}
-                            <img src={photos[idx].src} alt="" style={{ maxWidth: "95vw", maxHeight: "85vh", objectFit: "contain", borderRadius: 8 }} />
-                            {/* Arrows — hidden on touch devices */}
-                            <button onClick={prev} style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 44, height: 44, color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} className="gallery-arrow">‹</button>
-                            <button onClick={next} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 44, height: 44, color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} className="gallery-arrow">›</button>
-                          </div>
-                        );
-                      })()}
+                      {galleryLightbox && <GalleryLightbox photos={galleryLightbox.photos} startIdx={galleryLightbox.idx} onClose={() => setGalleryLightbox(null)} />}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
                         {selectedAlbum.photos.map((p, pi) => (
                           <div key={p.id} onClick={() => setGalleryLightbox({ photos: selectedAlbum.photos, idx: pi })}
