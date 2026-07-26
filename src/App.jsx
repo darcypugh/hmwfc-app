@@ -243,8 +243,9 @@ function AdminNews({ items, onSave }) {
 }
 
 function AdminTable({ items, onSave }) {
-  const [list, setList] = useState(items);
-  useEffect(() => { setList(items); }, [items]);
+  const toArray = (v) => Array.isArray(v) ? v : v ? Object.values(v) : [];
+  const [list, setList] = useState(toArray(items));
+  useEffect(() => { setList(toArray(items)); }, [items]);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addRow = () => setList([...list, { pos: list.length + 1, team: "", stadium: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
@@ -930,7 +931,8 @@ function AdminGallery({ items, onSave }) {
               : <div style={{ width: 52, height: 52, background: "#191740", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📸</div>}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{a.name || "(unnamed)"}</div>
-              <div style={{ fontSize: 12, color: "#8899bb" }}>{a.date || "No date"} · {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{formatFixtureDate(a.date) || "No date"} · {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</div>
+              {a.author && <div style={{ fontSize: 11, color: "#8899bb77", marginTop: 1 }}>📸 {a.authorLink ? <a href={a.authorLink} target="_blank" rel="noopener noreferrer" style={{ color: "#347ebf77", textDecoration: "none" }}>{a.author}</a> : a.author}</div>}
             </div>
             <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setExpanded(expanded === idx ? null : idx)}>{expanded === idx ? "Close" : "Edit"}</button>
             <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 10px" }} onClick={() => delAlbum(idx)}>✕</button>
@@ -2521,7 +2523,7 @@ export default function App() {
                             <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
                             <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{r.pts}pts</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{Number(r.pts)||0}pts</div>
                           </div>
                         );
                       })}
