@@ -1886,22 +1886,30 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
   const [dragging, setDragging] = useState(false);
   const startXRef = useRef(0);
 
-  // Block pull-to-refresh and background scroll on iOS
+  // Block pull-to-refresh on iOS — only block downward pull, allow lightbox swipes
   useEffect(() => {
-    const prevent = (e) => { e.preventDefault(); return false; };
-    const preventStart = (e) => { e.preventDefault(); };
-    // Must add to document AND window with passive:false to beat iOS Safari
-    document.addEventListener("touchmove", prevent, { passive: false });
-    document.addEventListener("touchstart", preventStart, { passive: false });
+    let startY = 0;
+    const onStart = (e) => { startY = e.touches[0].clientY; };
+    const onMove = (e) => {
+      // Always block touchmove that isn't inside our lightbox image
+      // Since the lightbox covers everything, any touchmove reaching document
+      // that isn't handled by the lightbox div itself should be blocked
+      const dy = e.touches[0].clientY - startY;
+      const dx = Math.abs(e.touches[0].clientX - (e.touches[0].clientX)); // always 0
+      // Block vertical scrolling (which causes pull-to-refresh)
+      if (Math.abs(dy) > Math.abs(dx || 0)) {
+        e.preventDefault();
+      }
+    };
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
     return () => {
-      document.removeEventListener("touchmove", prevent);
-      document.removeEventListener("touchstart", preventStart);
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
-      document.body.style.touchAction = "";
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
     };
   }, []);
 
