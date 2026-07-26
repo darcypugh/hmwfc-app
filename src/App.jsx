@@ -1921,7 +1921,7 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
     const onKey = (e) => { if (e.key === "ArrowLeft") prev(); if (e.key === "ArrowRight") next(); if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [idx, photos.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000f2", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", overflow: "hidden", touchAction: "none" }}
