@@ -243,8 +243,9 @@ function AdminNews({ items, onSave }) {
 }
 
 function AdminTable({ items, onSave }) {
-  const [list, setList] = useState(items);
-  useEffect(() => { setList(items); }, [items]);
+  const toArray = (v) => Array.isArray(v) ? v : v ? Object.values(v) : [];
+  const [list, setList] = useState(toArray(items));
+  useEffect(() => { setList(toArray(items)); }, [items]);
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addRow = () => setList([...list, { pos: list.length + 1, team: "", stadium: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
@@ -930,7 +931,8 @@ function AdminGallery({ items, onSave }) {
               : <div style={{ width: 52, height: 52, background: "#191740", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>📸</div>}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{a.name || "(unnamed)"}</div>
-              <div style={{ fontSize: 12, color: "#8899bb" }}>{a.date || "No date"} · {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</div>
+              <div style={{ fontSize: 12, color: "#8899bb" }}>{formatFixtureDate(a.date) || "No date"} · {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</div>
+              {a.author && <div style={{ fontSize: 11, color: "#8899bb77", marginTop: 1 }}>📸 {a.authorLink ? <a href={a.authorLink} target="_blank" rel="noopener noreferrer" style={{ color: "#347ebf77", textDecoration: "none" }}>{a.author}</a> : a.author}</div>}
             </div>
             <button style={{ ...S.btn, background: "#347ebf22", color: "#347ebf", padding: "5px 12px" }} onClick={() => setExpanded(expanded === idx ? null : idx)}>{expanded === idx ? "Close" : "Edit"}</button>
             <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "5px 10px" }} onClick={() => delAlbum(idx)}>✕</button>
@@ -940,7 +942,11 @@ function AdminGallery({ items, onSave }) {
             <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
               <div style={S.row}>
                 <div style={{ flex: 2 }}><label style={S.label}>Album Name</label><input style={S.input} value={a.name} onChange={e => updateAlbum(idx, "name", e.target.value)} placeholder="e.g. vs Frickley Athletic -- 3 Aug" /></div>
-                <div style={{ flex: 1 }}><label style={S.label}>Date</label><input style={S.input} value={a.date} onChange={e => updateAlbum(idx, "date", e.target.value)} placeholder="3 Aug 2026" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Date</label><input type="date" style={S.input} value={a.date} onChange={e => updateAlbum(idx, "date", e.target.value)} /></div>
+              </div>
+              <div style={S.row}>
+                <div style={{ flex: 1 }}><label style={S.label}>Photographer (optional)</label><input style={S.input} value={a.author || ""} onChange={e => updateAlbum(idx, "author", e.target.value)} placeholder="Name" /></div>
+                <div style={{ flex: 1 }}><label style={S.label}>Photographer Link (optional)</label><input style={S.input} value={a.authorLink || ""} onChange={e => updateAlbum(idx, "authorLink", e.target.value)} placeholder="https://instagram.com/..." /></div>
               </div>
               {/* Upload */}
               <div style={{ marginTop: 10 }}>
@@ -1826,6 +1832,16 @@ const shortTeamName = (name) => {
   return name;
 };
 
+const formatGalleryDate = (d) => {
+  if (!d) return "";
+  if (d.includes("-")) {
+    const [y, m, day] = d.split("-");
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+  }
+  return d;
+};
+
 const formatFixtureDateShort = (d) => {
   if (!d) return "";
   if (d.includes("-")) {
@@ -1862,6 +1878,91 @@ const parseFixtureDate = (d) => {
   const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
   return (months[parts[2]] || 0) * 100 + parseInt(parts[1]);
 };
+
+
+function GalleryLightbox({ photos, startIdx, onClose }) {
+  const [idx, setIdx] = useState(startIdx);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startXRef = useRef(0);
+
+  // Block pull-to-refresh on iOS — only block downward pull, allow lightbox swipes
+  useEffect(() => {
+    let startY = 0;
+    const onStart = (e) => { startY = e.touches[0].clientY; };
+    const onMove = (e) => {
+      // Always block touchmove that isn't inside our lightbox image
+      // Since the lightbox covers everything, any touchmove reaching document
+      // that isn't handled by the lightbox div itself should be blocked
+      const dy = e.touches[0].clientY - startY;
+      const dx = Math.abs(e.touches[0].clientX - (e.touches[0].clientX)); // always 0
+      // Block vertical scrolling (which causes pull-to-refresh)
+      if (Math.abs(dy) > Math.abs(dx || 0)) {
+        e.preventDefault();
+      }
+    };
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: false });
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+    };
+  }, []);
+
+  const prev = () => setIdx(i => (i - 1 + photos.length) % photos.length);
+  const next = () => setIdx(i => (i + 1) % photos.length);
+
+  const onTouchStart = (e) => {
+    startXRef.current = e.touches[0].clientX;
+    setDragging(true);
+    setDragX(0);
+  };
+  const onTouchMove = (e) => {
+    if (!dragging) return;
+    setDragX(e.touches[0].clientX - startXRef.current);
+  };
+  const onTouchEnd = () => {
+    if (dragX > 60) prev();
+    else if (dragX < -60) next();
+    setDragX(0);
+    setDragging(false);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "ArrowLeft") prev(); if (e.key === "ArrowRight") next(); if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [idx, photos.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000f2", zIndex: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", overflow: "hidden", touchAction: "none" }}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      <style>{`@keyframes glFadeIn { from { opacity:0; } to { opacity:1; } }`}</style>
+      {/* Close */}
+      <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "#ffffff22", border: "none", borderRadius: "50%", width: 44, height: 44, color: "#fff", fontSize: 22, cursor: "pointer", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+      {/* Counter */}
+      <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, color: "#8899bb", letterSpacing: 1 }}>{idx + 1} / {photos.length}</div>
+      {/* Image strip — translates based on drag */}
+      <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 0.25s ease-out" }}>
+        <img key={idx} src={photos[idx].src} alt="" style={{ maxWidth: "95vw", maxHeight: "82vh", objectFit: "contain", borderRadius: 8, userSelect: "none", animation: "glFadeIn 0.2s ease-out", pointerEvents: "none" }} draggable={false} />
+      </div>
+      {/* Dot indicators */}
+      {photos.length > 1 && (
+        <div style={{ position: "absolute", bottom: 24, display: "flex", gap: 6 }}>
+          {photos.map((_, i) => <div key={i} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 3, background: i === idx ? "#fff" : "#ffffff44", transition: "all 0.2s" }} />)}
+        </div>
+      )}
+      {/* Arrows — desktop only */}
+      <button onClick={prev} className="gallery-arrow" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 48, height: 48, color: "#fff", fontSize: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+      <button onClick={next} className="gallery-arrow" style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "#ffffff22", border: "none", borderRadius: "50%", width: 48, height: 48, color: "#fff", fontSize: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+    </div>
+  );
+}
 
 const parseNewsDate = (d) => {
   if (!d) return 0;
@@ -1908,6 +2009,9 @@ export default function App() {
   const [selectedMerch, setSelectedMerch] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [galleryLightbox, setGalleryLightbox] = useState(null); // { photos, idx }
+
+
   const [selectedSize, setSelectedSize] = useState("");
   const [qty, setQty] = useState(1);
   const [likes, setLikes] = useState({});
@@ -2286,6 +2390,7 @@ export default function App() {
         .buy-btn { background: linear-gradient(135deg, #347ebf, #1a5f9e); border: none; color: #fff; font-family: Barlow Condensed, sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 13px; padding: 9px 22px; border-radius: 8px; cursor: pointer; width: 100%; }
         .buy-btn:hover { opacity: 0.85; }
         .squad-row:hover { background: #347ebf11 !important; }
+        @media (max-width: 768px) { .gallery-arrow { display: none !important; } }
         .bottom-tab-bar { display: none; }
         @media (max-width: 768px) {
           .bottom-tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #191740; border-top: 1px solid #ffffff15; z-index: 250; padding-bottom: env(safe-area-inset-bottom); }
@@ -2451,9 +2556,10 @@ export default function App() {
           const oppName = latestResult ? (latestResult.home.includes("Hemsworth") ? latestResult.away : latestResult.home) : null;
           const oppBadge = latestResult && getBadge(oppName, latestResult);
           const weWereHome = latestResult && latestResult.home.includes("Hemsworth");
-          const oursRow = sorted.find(r => r.highlight);
+          const tableSorted = [...(data.table || [])].sort((a, b) => (a.pos||0) - (b.pos||0));
+          const oursRow = tableSorted.find(r => r.highlight);
           const oursPos = oursRow?.pos;
-          const nearbyRows = sorted.filter(r => Math.abs(r.pos - oursPos) <= 2);
+          const nearbyRows = tableSorted.filter(r => Math.abs((r.pos||0) - (oursPos||0)) <= 2);
           return (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 24, alignItems: "start" }} className="home-grid">
               <style>{`.home-grid { grid-template-columns: minmax(0,1fr) 340px; } @media(max-width:780px){ @media(max-width:780px){ .home-grid { grid-template-columns: 1fr !important; } } }`}</style>
@@ -2507,16 +2613,30 @@ export default function App() {
                       <button onClick={() => navigate("Table")} style={{ background: "none", border: "none", color: "#347ebf", fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: 1, cursor: "pointer", padding: 0 }}>FULL TABLE →</button>
                     </div>
                     <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
+                      {/* Header */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderBottom: "1px solid #ffffff0f" }}>
+                        <div style={{ width: 3, flexShrink: 0 }} />
+                        <div style={{ width: 20 }} />
+                        <div style={{ width: 20 }} />
+                        <div style={{ flex: 1 }} />
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 24, textAlign: "center" }}>P</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>GD</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>Pts</div>
+                      </div>
                       {nearbyRows.map(r => {
                         const zone = getZone(r.pos);
                         const isOurs = r.highlight;
+                        const gd = String(r.gd||0);
+                        const gdColor = gd.startsWith("-") ? "#ef4444" : gd === "0" ? "#8899bb" : "#10b981";
                         return (
                           <div key={r.pos} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: isOurs ? "#347ebf14" : "transparent", borderBottom: "1px solid #ffffff07" }}>
                             <div style={{ width: 3, height: 28, background: isOurs ? "#347ebf" : zoneColor[zone], borderRadius: 2, flexShrink: 0 }} />
                             <div style={{ fontSize: 12, fontWeight: 700, color: isOurs ? "#347ebf" : zoneColor[zone], width: 20, textAlign: "center" }}>{r.pos}</div>
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
                             <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb" }}>{r.pts}pts</div>
+                            <div style={{ fontSize: 12, color: "#8899bb", width: 24, textAlign: "center" }}>{Number(r.p)||0}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: gdColor, width: 28, textAlign: "center" }}>{r.gd||0}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb", width: 28, textAlign: "center" }}>{Number(r.pts)||0}</div>
                           </div>
                         );
                       })}
@@ -2818,7 +2938,7 @@ export default function App() {
                           <td className="tbl-hide" style={{ color: "#10b981" }}>{r.w}</td>
                           <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.d}</td>
                           <td className="tbl-hide" style={{ color: "#ef4444" }}>{r.l}</td>
-                          <td style={{ color: r.gd && r.gd.startsWith("+") ? "#10b981" : "#ef4444" }}>{r.gd}</td>
+                          <td style={{ color: String(r.gd||0).startsWith("-") ? "#ef4444" : (String(r.gd||0) === "0" ? "#8899bb" : "#10b981"), fontWeight: 700 }}>{r.gd}</td>
                           <td style={{ fontWeight: 700 }}>{r.pts}</td>
                         </tr>
                       );
@@ -3252,16 +3372,28 @@ export default function App() {
               <div>
                 <button onClick={() => { setSelectedAlbum(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ ...S.btn, background: "#ffffff11", color: "#aabbcc", marginBottom: 20 }}>← Back to Albums</button>
                 <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 26, fontWeight: 900, marginBottom: 4 }}>{selectedAlbum.name}</div>
-                {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 20 }}>📅 {selectedAlbum.date}</div>}
+                {selectedAlbum.date && <div style={{ fontSize: 12, color: "#8899bb", marginBottom: selectedAlbum.author ? 4 : 20 }}>📅 {formatGalleryDate(selectedAlbum.date)}</div>}
+                {selectedAlbum.author && (
+                  <div style={{ fontSize: 12, color: "#8899bb", marginBottom: 20 }}>
+                    📸 Photos by {selectedAlbum.authorLink
+                      ? <a href={selectedAlbum.authorLink} target="_blank" rel="noopener noreferrer" style={{ color: "#347ebf", textDecoration: "none" }}>{selectedAlbum.author}</a>
+                      : <span style={{ color: "#aabbcc" }}>{selectedAlbum.author}</span>}
+                  </div>
+                )}
                 {(selectedAlbum.photos || []).length === 0
                   ? <div style={{ color: "#8899bb", fontSize: 14, padding: 20, textAlign: "center" }}>No photos in this album yet.</div>
-                  : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
-                      {selectedAlbum.photos.map(p => (
-                        <div key={p.id} style={{ paddingTop: "75%", position: "relative", borderRadius: 10, overflow: "hidden" }}>
-                          <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                        </div>
-                      ))}
-                    </div>}
+                  : <>
+                      {/* Lightbox */}
+                      {galleryLightbox && <GalleryLightbox photos={galleryLightbox.photos} startIdx={galleryLightbox.idx} onClose={() => setGalleryLightbox(null)} />}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
+                        {selectedAlbum.photos.map((p, pi) => (
+                          <div key={p.id} onClick={() => setGalleryLightbox({ photos: selectedAlbum.photos, idx: pi })}
+                            style={{ paddingTop: "75%", position: "relative", borderRadius: 10, overflow: "hidden", cursor: "pointer" }}>
+                            <img src={p.src} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.2s" }} />
+                          </div>
+                        ))}
+                      </div>
+                    </>}
               </div>
             ) : (
               <div>
@@ -3276,10 +3408,11 @@ export default function App() {
                             : <div style={{ height: 140, background: "linear-gradient(135deg,#191740,#0d0c22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📸</div>}
                           <div style={{ padding: "12px 14px 14px" }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{a.name}</div>
-                            <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 10 }}>
-                              {a.date && <span>📅 {a.date}</span>}
-                              <span>📷 {(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</span>
+                            <div style={{ fontSize: 11, color: "#8899bb", display: "flex", gap: 10, marginBottom: a.author ? 4 : 0 }}>
+                              {a.date && <span>{formatGalleryDate(a.date)}</span>}
+                              <span>{(a.photos || []).length} photo{(a.photos||[]).length !== 1 ? "s" : ""}</span>
                             </div>
+                            {a.author && <div style={{ fontSize: 11, color: "#8899bb77" }}>📸 {a.authorLink ? <a href={a.authorLink} target="_blank" rel="noopener noreferrer" style={{ color: "#347ebf88", textDecoration: "none" }} onClick={e => e.stopPropagation()}>{a.author}</a> : a.author}</div>}
                           </div>
                         </div>
                       ))}
@@ -3502,7 +3635,7 @@ export default function App() {
                   {/* Check-in code — only show when season is active */}
                   {sp.locked === false && (
                   <div style={{ background: "#191740", border: "1px solid #347ebf33", borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
-                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>🔓 Enter a Check-In Code</div>
+                    <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 14, fontWeight: 900, marginBottom: 10 }}>🔓 Enter a code or upload evidence</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="Enter your code here" style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2, flex: 1 }} />
                       <button onClick={enterCheckInCode} style={{ ...S.btn, background: "#347ebf", color: "#fff", flexShrink: 0 }}>Unlock</button>
