@@ -2008,7 +2008,7 @@ function PenaltyDots({ seq, align = "left" }) {
       {kicks.map((k, i) => (
         <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: k === "G" ? "#10b981" : "#ef4444", flexShrink: 0 }} title={k === "G" ? "Goal" : "Miss"} />
       ))}
-      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: "#fff", marginLeft: 4 }}>{scored}</span>
+
     </div>
   );
 }
@@ -2624,6 +2624,7 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge) ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
+                            {weWereHome ? (latestResult.homePens && <PenaltyDots seq={latestResult.homePens} align="center" />) : (latestResult.awayPens && <PenaltyDots seq={latestResult.awayPens} align="center" />)}
                           </div>
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
@@ -2641,6 +2642,7 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
+                            {!weWereHome ? (latestResult.homePens && <PenaltyDots seq={latestResult.homePens} align="center" />) : (latestResult.awayPens && <PenaltyDots seq={latestResult.awayPens} align="center" />)}
                           </div>
                         </div>
                         <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
@@ -3074,7 +3076,6 @@ export default function App() {
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
                           {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
                           {f.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {f.extraTime}</div>}
-                          {(f.homePens || f.awayPens) && <div style={{ fontSize: 10, color: "#10b981", fontWeight: 700, marginTop: 3, letterSpacing: 1 }}>PENS</div>}
                           {(f.homePens || f.awayPens) && (() => {
                             const hGoals = (f.homePens || "").split("").filter(c => c === "G").length;
                             const aGoals = (f.awayPens || "").split("").filter(c => c === "G").length;
