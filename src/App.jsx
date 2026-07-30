@@ -512,8 +512,19 @@ function AdminFixtures({ items, tableData, onSave }) {
                     </div>
                     {f.cup && (
                       <div style={S.row}>
-                        <div style={{ flex: 1 }}><label style={S.label}>Extra time score (optional)</label><input style={S.input} value={f.extraTime || ""} onChange={e => update("extraTime", e.target.value)} placeholder="e.g. 3 – 3 (AET)" /></div>
-                        <div style={{ flex: 1 }}><label style={S.label}>Penalties (optional)</label><input style={S.input} value={f.penalties || ""} onChange={e => update("penalties", e.target.value)} placeholder="e.g. 5 – 4 pens" /></div>
+                        <div style={{ flex: 1 }}><label style={S.label}>Extra time score (optional)</label><input style={S.input} value={f.extraTime || ""} onChange={e => update("extraTime", e.target.value)} placeholder="e.g. 3-3" /></div>
+                      </div>
+                    )}
+                    {f.cup && (
+                      <div style={S.row}>
+                        <div style={{ flex: 1 }}>
+                          <label style={S.label}>Home penalties (G=goal, M=miss e.g. GGMGG)</label>
+                          <input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={f.homePens || ""} onChange={e => update("homePens", e.target.value.toUpperCase())} placeholder="GGMGG" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={S.label}>Away penalties (G=goal, M=miss e.g. GGMGM)</label>
+                          <input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={f.awayPens || ""} onChange={e => update("awayPens", e.target.value.toUpperCase())} placeholder="GGMGM" />
+                        </div>
                       </div>
                     )}
                     <div style={S.row}>
@@ -1114,25 +1125,25 @@ function AdminSeasonPass({ spData, onSave }) {
     const unsub = onValue(ref(db, "users"), (snap) => {
       if (snap.exists()) {
         const incoming = Object.entries(snap.val()).map(([uid, data]) => ({ uid, ...data }));
-        setUsers(prev => incoming.map(u => {
-          const existing = prev.find(p => p.uid === u.uid);
-          if (!existing) return u;
-          // Merge: keep Firebase data but override trophies if we have pending grants
-          const merged = { ...u };
-          const pending = pendingGrants.current;
-          const pendingForUser = Object.entries(pending).filter(([k]) => k.startsWith(u.uid + "_"));
-          if (pendingForUser.length > 0) {
-            const trophies = { ...(u.trophies || {}) };
-            pendingForUser.forEach(([k, val]) => {
-              const trophyId = k.slice(u.uid.length + 1);
-              if (val === true) trophies[trophyId] = true;
-              else delete trophies[trophyId];
-            });
-            merged.trophies = trophies;
-          }
-          // Keep local-only fields not yet in Firebase
-          return { ...merged, ...Object.fromEntries(Object.entries(existing).filter(([k]) => merged[k] === undefined)) };
-        }));
+        setUsers(prev => {
+          // If we have any locally-modified users (trophies changed by admin), keep their trophies
+          // Only update non-trophy fields from Firebase to avoid flash-of-reverted-state
+          return incoming.map(u => {
+            const existing = prev.find(p => p.uid === u.uid);
+            if (!existing) return u;
+            const hasPending = Object.keys(pendingGrants.current).some(k => k.startsWith(u.uid + "_"));
+            if (hasPending) {
+              // Keep local trophies while grant is in flight
+              return { ...u, trophies: existing.trophies };
+            }
+            // Check if local trophies differ from incoming — prefer local if admin touched them
+            const localModified = existing._adminModified;
+            if (localModified) {
+              return { ...u, trophies: existing.trophies, _adminModified: true };
+            }
+            return { ...u, ...Object.fromEntries(Object.entries(existing).filter(([k]) => u[k] === undefined)) };
+          });
+        });
       } else setUsers([]);
     });
     const unsub2 = onValue(ref(db, "hmwfc/passCodes"), (snap) => {
@@ -1198,18 +1209,11 @@ function AdminSeasonPass({ spData, onSave }) {
   const grantTrophy = async (uid, trophyId) => {
     const key = `${uid}_${trophyId}`;
     pendingGrants.current[key] = true;
-    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
-    const result = await adminAction("grantTrophy", { uid, trophyId });
+    setUsers(prev => prev.map(u => u.uid === uid
+      ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true }, _adminModified: true }
+      : u));
+    await adminAction("grantTrophy", { uid, trophyId });
     delete pendingGrants.current[key];
-    if (result.error) {
-      console.error("Grant failed:", result.error);
-      setUsers(prev => prev.map(u => {
-        if (u.uid !== uid) return u;
-        const trophies = { ...(u.trophies || {}) };
-        delete trophies[trophyId];
-        return { ...u, trophies };
-      }));
-    }
   };
 
   const revokeTrophy = async (uid, trophyId) => {
@@ -1219,14 +1223,10 @@ function AdminSeasonPass({ spData, onSave }) {
       if (u.uid !== uid) return u;
       const trophies = { ...(u.trophies || {}) };
       delete trophies[trophyId];
-      return { ...u, trophies };
+      return { ...u, trophies, _adminModified: true };
     }));
-    const result = await adminAction("revokeTrophy", { uid, trophyId });
+    await adminAction("revokeTrophy", { uid, trophyId });
     delete pendingGrants.current[key];
-    if (result.error) {
-      console.error("Revoke failed:", result.error);
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
-    }
   };
 
   const unusedCodes = Object.entries(passCodes).filter(([, v]) => !v.used);
@@ -1987,6 +1987,21 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
   );
 }
 
+
+function PenaltyDots({ seq, align = "left" }) {
+  if (!seq) return null;
+  const kicks = seq.toUpperCase().split("").filter(c => c === "G" || c === "M");
+  const scored = kicks.filter(c => c === "G").length;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: align === "right" ? "flex-end" : "flex-start", flexWrap: "wrap" }}>
+      {kicks.map((k, i) => (
+        <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: k === "G" ? "#10b981" : "#ef4444", flexShrink: 0 }} title={k === "G" ? "Goal" : "Miss"} />
+      ))}
+      <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 12, fontWeight: 900, color: "#fff", marginLeft: 4 }}>{scored}</span>
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -2602,6 +2617,14 @@ export default function App() {
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
                             {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
+                            {latestResult.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {latestResult.extraTime}</div>}
+                            {(latestResult.homePens || latestResult.awayPens) && (
+                              <div style={{ marginTop: 6 }}>
+                                <PenaltyDots seq={latestResult.homePens} align="center" />
+                                <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 1, textAlign: "center", margin: "2px 0" }}>PENS</div>
+                                <PenaltyDots seq={latestResult.awayPens} align="center" />
+                              </div>
+                            )}
                             <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{formatFixtureDateShort(latestResult.date)}</div>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
@@ -3039,7 +3062,13 @@ export default function App() {
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
                           {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
                           {f.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {f.extraTime}</div>}
-                          {f.penalties && <div style={{ fontSize: 10, color: "#10b981", marginTop: 2, fontWeight: 700 }}>{f.penalties}</div>}
+                          {(f.homePens || f.awayPens) && (
+                            <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3, alignItems: "center" }}>
+                              <PenaltyDots seq={f.homePens} align="center" />
+                              <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 1 }}>PENS</div>
+                              <PenaltyDots seq={f.awayPens} align="center" />
+                            </div>
+                          )}
                         </>
                       : <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
