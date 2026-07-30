@@ -2002,7 +2002,6 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
 function PenaltyDots({ seq, align = "left" }) {
   if (!seq) return null;
   const kicks = seq.toUpperCase().split("").filter(c => c === "G" || c === "M");
-  const scored = kicks.filter(c => c === "G").length;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: align === "right" ? "flex-end" : "flex-start", flexWrap: "wrap" }}>
       {kicks.map((k, i) => (
