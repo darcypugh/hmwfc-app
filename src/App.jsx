@@ -510,6 +510,23 @@ function AdminFixtures({ items, tableData, onSave }) {
                       <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update("result", e.target.value)} placeholder="2 – 1" /></div>
                       <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update("halftime", e.target.value)} placeholder="1 – 0" /></div>
                     </div>
+                    {f.cup && (
+                      <div style={S.row}>
+                        <div style={{ flex: 1 }}><label style={S.label}>Extra time score (optional)</label><input style={S.input} value={f.extraTime || ""} onChange={e => update("extraTime", e.target.value)} placeholder="e.g. 3-3" /></div>
+                      </div>
+                    )}
+                    {f.cup && (
+                      <div style={S.row}>
+                        <div style={{ flex: 1 }}>
+                          <label style={S.label}>Home penalties (G=goal, M=miss e.g. GGMGG)</label>
+                          <input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={f.homePens || ""} onChange={e => update("homePens", e.target.value.toUpperCase())} placeholder="GGMGG" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={S.label}>Away penalties (G=goal, M=miss e.g. GGMGM)</label>
+                          <input style={{ ...S.input, fontFamily: "monospace", letterSpacing: 2 }} value={f.awayPens || ""} onChange={e => update("awayPens", e.target.value.toUpperCase())} placeholder="GGMGM" />
+                        </div>
+                      </div>
+                    )}
                     <div style={S.row}>
                       <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update("homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
                       <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update("awayScorers", e.target.value)} placeholder="Brown 67" /></div>
@@ -1087,6 +1104,7 @@ function AdminSeasonPass({ spData, onSave }) {
   const [trophies, setTrophies] = useState(spData?.trophies || defaultTrophies);
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState("settings");
+  const pendingGrants = useRef({}); // { uid_trophyId: true/false } — in-flight grants
   const [userSearch, setUserSearch] = useState("");
   const [generatingCodes, setGeneratingCodes] = useState(false);
   const [expandedUser, setExpandedUser] = useState(null);
@@ -1107,11 +1125,25 @@ function AdminSeasonPass({ spData, onSave }) {
     const unsub = onValue(ref(db, "users"), (snap) => {
       if (snap.exists()) {
         const incoming = Object.entries(snap.val()).map(([uid, data]) => ({ uid, ...data }));
-        setUsers(prev => incoming.map(u => {
-          const existing = prev.find(p => p.uid === u.uid);
-          // Keep any local-only fields that Firebase hasn't confirmed yet
-          return existing ? { ...u, ...Object.fromEntries(Object.entries(existing).filter(([k]) => u[k] === undefined)) } : u;
-        }));
+        setUsers(prev => {
+          // If we have any locally-modified users (trophies changed by admin), keep their trophies
+          // Only update non-trophy fields from Firebase to avoid flash-of-reverted-state
+          return incoming.map(u => {
+            const existing = prev.find(p => p.uid === u.uid);
+            if (!existing) return u;
+            const hasPending = Object.keys(pendingGrants.current).some(k => k.startsWith(u.uid + "_"));
+            if (hasPending) {
+              // Keep local trophies while grant is in flight
+              return { ...u, trophies: existing.trophies };
+            }
+            // Check if local trophies differ from incoming — prefer local if admin touched them
+            const localModified = existing._adminModified;
+            if (localModified) {
+              return { ...u, trophies: existing.trophies, _adminModified: true };
+            }
+            return { ...u, ...Object.fromEntries(Object.entries(existing).filter(([k]) => u[k] === undefined)) };
+          });
+        });
       } else setUsers([]);
     });
     const unsub2 = onValue(ref(db, "hmwfc/passCodes"), (snap) => {
@@ -1175,35 +1207,37 @@ function AdminSeasonPass({ spData, onSave }) {
   };
 
   const grantTrophy = async (uid, trophyId) => {
-    // Optimistic local update
-    setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
-    const result = await adminAction("grantTrophy", { uid, trophyId });
-    if (result.error) {
-      console.error("Grant failed:", result.error);
-      // Revert on failure
-      setUsers(prev => prev.map(u => {
-        if (u.uid !== uid) return u;
-        const trophies = { ...(u.trophies || {}) };
-        delete trophies[trophyId];
-        return { ...u, trophies };
-      }));
+    const key = `${uid}_${trophyId}`;
+    pendingGrants.current[key] = true;
+    // Update local state immediately
+    setUsers(prev => prev.map(u => u.uid === uid
+      ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true }, _adminModified: true }
+      : u));
+    // Write directly to Firebase — rules allow auth != null
+    try {
+      await update(ref(db, `users/${uid}/trophies`), { [trophyId]: true });
+    } catch(e) {
+      // Fallback to server route
+      await adminAction("grantTrophy", { uid, trophyId });
     }
+    delete pendingGrants.current[key];
   };
 
   const revokeTrophy = async (uid, trophyId) => {
-    // Optimistic local update
+    const key = `${uid}_${trophyId}`;
+    pendingGrants.current[key] = false;
     setUsers(prev => prev.map(u => {
       if (u.uid !== uid) return u;
       const trophies = { ...(u.trophies || {}) };
       delete trophies[trophyId];
-      return { ...u, trophies };
+      return { ...u, trophies, _adminModified: true };
     }));
-    const result = await adminAction("revokeTrophy", { uid, trophyId });
-    if (result.error) {
-      console.error("Revoke failed:", result.error);
-      // Revert on failure
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
+    try {
+      await set(ref(db, `users/${uid}/trophies/${trophyId}`), null);
+    } catch(e) {
+      await adminAction("revokeTrophy", { uid, trophyId });
     }
+    delete pendingGrants.current[key];
   };
 
   const unusedCodes = Object.entries(passCodes).filter(([, v]) => !v.used);
@@ -1964,6 +1998,20 @@ function GalleryLightbox({ photos, startIdx, onClose }) {
   );
 }
 
+
+function PenaltyDots({ seq, align = "left" }) {
+  if (!seq) return null;
+  const kicks = seq.toUpperCase().split("").filter(c => c === "G" || c === "M");
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: align === "right" ? "flex-end" : "flex-start", flexWrap: "wrap" }}>
+      {kicks.map((k, i) => (
+        <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: k === "G" ? "#10b981" : "#ef4444", flexShrink: 0 }} title={k === "G" ? "Goal" : "Miss"} />
+      ))}
+
+    </div>
+  );
+}
+
 const parseNewsDate = (d) => {
   if (!d) return 0;
   const clean = d.replace(/(st|nd|rd|th)/g, "").replace(/\s+/g, " ").trim();
@@ -2575,15 +2623,25 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge) ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
+                            {latestResult.homePens && <PenaltyDots seq={latestResult.homePens} align="center" />}
                           </div>
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
                             {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
+                            {latestResult.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {latestResult.extraTime}</div>}
+                            {(latestResult.homePens || latestResult.awayPens) && (() => {
+                              const hGoals = (latestResult.homePens || "").split("").filter(c => c === "G").length;
+                              const aGoals = (latestResult.awayPens || "").split("").filter(c => c === "G").length;
+                              return (
+                                <div style={{ marginTop: 4, fontSize: 11, color: "#10b981", fontWeight: 700 }}>({hGoals}–{aGoals} pens)</div>
+                              );
+                            })()}
                             <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{formatFixtureDateShort(latestResult.date)}</div>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
+                            {latestResult.awayPens && <PenaltyDots seq={latestResult.awayPens} align="center" />}
                           </div>
                         </div>
                         <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
@@ -2592,11 +2650,11 @@ export default function App() {
                         <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
                           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                             <div style={{ flex: 1, textAlign: "right" }}>
-                              {(latestResult.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span><span style={{ fontSize: 12 }}>⚽</span></div>)}
+                              {(latestResult.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12, color: "#aabbcc" }}>{name}</span><span style={{ fontSize: 14 }}>⚽</span><span style={{ fontSize: 11, color: "#8899bb" }}>{time}</span></div>; })}
                             </div>
                             <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch" }} />
                             <div style={{ flex: 1 }}>
-                              {(latestResult.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12 }}>⚽</span><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span></div>)}
+                              {(latestResult.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 11, color: "#8899bb" }}>{time}</span><span style={{ fontSize: 14 }}>⚽</span><span style={{ fontSize: 12, color: "#aabbcc" }}>{name}</span></div>; })}
                             </div>
                           </div>
                         </div>
@@ -3002,11 +3060,12 @@ export default function App() {
                 {/* Main row — teams + score */}
                 <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: 8 }}>
                   {/* Home */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                     {homeBadge
                       ? <img src={homeBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
                       : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.home)}</div>
+                    {isResult && f.homePens && <PenaltyDots seq={f.homePens} align="center" />}
                   </div>
 
                   {/* Centre — score or time */}
@@ -3015,6 +3074,17 @@ export default function App() {
                       ? <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
                           {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
+                          {f.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {f.extraTime}</div>}
+                          {(f.homePens || f.awayPens) && (() => {
+                            const hGoals = (f.homePens || "").split("").filter(c => c === "G").length;
+                            const aGoals = (f.awayPens || "").split("").filter(c => c === "G").length;
+                            return (
+                              <div style={{ marginTop: 6, background: "#ffffff08", borderRadius: 6, padding: "6px 8px" }}>
+                                <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 1, textAlign: "center", marginBottom: 4 }}>PENALTIES</div>
+                                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#fff", textAlign: "center", marginBottom: 4 }}>{hGoals} – {aGoals}</div>
+                              </div>
+                            );
+                          })()}
                         </>
                       : <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
@@ -3023,11 +3093,12 @@ export default function App() {
                   </div>
 
                   {/* Away */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                     {awayBadge
                       ? <img src={awayBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
                       : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.away)}</div>
+                    {isResult && f.awayPens && <PenaltyDots seq={f.awayPens} align="center" />}
                   </div>
                 </div>
 
@@ -3035,11 +3106,11 @@ export default function App() {
                 {isResult && (f.homeScorers || f.awayScorers) && (
                   <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
                     <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "right" }}>
-                      {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>{s.trim()} ⚽</div>)}
+                      {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}><span style={{ fontSize: 11, color: "#aabbcc" }}>{name}</span><span>⚽</span><span style={{ fontSize: 10, color: "#8899bb" }}>{time}</span></div>; })}
                     </div>
                     <div style={{ width: 90, flexShrink: 0 }} />
                     <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "left" }}>
-                      {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>⚽ {s.trim()}</div>)}
+                      {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ fontSize: 10, color: "#8899bb" }}>{time}</span><span>⚽</span><span style={{ fontSize: 11, color: "#aabbcc" }}>{name}</span></div>; })}
                     </div>
                   </div>
                 )}
