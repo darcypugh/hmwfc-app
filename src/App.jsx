@@ -576,6 +576,7 @@ function StatRow({ prefix, p, onChange, label, color }) {
 function AdminSquad({ items, onSave, scrollRef }) {
   const [list, setList] = useState(items);
   const [adminSquadSearch, setAdminSquadSearch] = useState("");
+  const [adminSquadTab, setAdminSquadTab] = useState("current");
   useEffect(() => { setList(items); }, [items]);
   const update = (idx, field, val) => {
     const updated = list.map((x, i) => {
@@ -632,25 +633,36 @@ function AdminSquad({ items, onSave, scrollRef }) {
           <button style={{ ...S.btn, background: "#10b981", color: "#fff" }} onClick={save}>Save All</button>
         </div>
       </div>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 14, background: "#0d0c22", borderRadius: 8, padding: 4, border: "1px solid #ffffff0f" }}>
+        {[["current", `✅ Current Squad (${list.filter(p => p.playing).length})`], ["past", `📁 Past Players (${list.filter(p => !p.playing).length})`]].map(([key, label]) => (
+          <button key={key} onClick={() => setAdminSquadTab(key)} style={{ flex: 1, ...S.btn, background: adminSquadTab === key ? "#347ebf" : "none", color: adminSquadTab === key ? "#fff" : "#8899bb", border: "none", borderRadius: 6, fontFamily: "Barlow Condensed, sans-serif", fontWeight: 700, fontSize: 13 }}>{label}</button>
+        ))}
+      </div>
       <div style={{ marginBottom: 12 }}>
         <input value={adminSquadSearch} onChange={e => setAdminSquadSearch(e.target.value)} placeholder="🔍 Search players..." style={{ width: "100%", background: "#191740", border: "1px solid #ffffff15", borderRadius: 8, padding: "9px 14px", color: "#fff", fontSize: 13, fontFamily: "Barlow, sans-serif", outline: "none" }} />
       </div>
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>
-        Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses -- career totals update automatically.
-        Tick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> so the player appears in the Current Season view.
+        {adminSquadTab === "current"
+          ? <>Update <span style={{ color: "#347ebf", fontWeight: 700 }}>This Season</span> stats as the season progresses. Untick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> to move a player to Past Players.</>
+          : <>Past players — untick <span style={{ color: "#10b981", fontWeight: 700 }}>Playing?</span> keeps them here. Tick to move back to the current squad.</>}
       </div>
-      {list.filter(p => !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase())).map((p) => {
+      {list.filter(p => {
+        const matchesSearch = !adminSquadSearch.trim() || p.name.toLowerCase().includes(adminSquadSearch.toLowerCase());
+        const matchesTab = adminSquadTab === "current" ? !!p.playing : !p.playing;
+        return matchesSearch && matchesTab;
+      }).map((p) => {
         const idx = list.indexOf(p);
         return (
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
-            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update("name", e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update("pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update(idx, "name", e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update(idx, "pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
                 <span style={{ fontSize: 10, color: p.playing ? "#10b981" : "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>PLAYING?</span>
-                <input type="checkbox" checked={!!p.playing} onChange={e => update("playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
+                <input type="checkbox" checked={!!p.playing} onChange={e => update(idx, "playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
               </label>
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
             </div>
@@ -703,7 +715,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* About */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>About this player</label>
-            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update("about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
+            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
         );
