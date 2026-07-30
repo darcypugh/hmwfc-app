@@ -510,6 +510,12 @@ function AdminFixtures({ items, tableData, onSave }) {
                       <div style={{ flex: 1 }}><label style={S.label}>Full-time score</label><input style={S.input} value={f.result || ""} onChange={e => update("result", e.target.value)} placeholder="2 – 1" /></div>
                       <div style={{ flex: 1 }}><label style={S.label}>Half-time score</label><input style={S.input} value={f.halftime || ""} onChange={e => update("halftime", e.target.value)} placeholder="1 – 0" /></div>
                     </div>
+                    {f.cup && (
+                      <div style={S.row}>
+                        <div style={{ flex: 1 }}><label style={S.label}>Extra time score (optional)</label><input style={S.input} value={f.extraTime || ""} onChange={e => update("extraTime", e.target.value)} placeholder="e.g. 3 – 3 (AET)" /></div>
+                        <div style={{ flex: 1 }}><label style={S.label}>Penalties (optional)</label><input style={S.input} value={f.penalties || ""} onChange={e => update("penalties", e.target.value)} placeholder="e.g. 5 – 4 pens" /></div>
+                      </div>
+                    )}
                     <div style={S.row}>
                       <div style={{ flex: 1 }}><label style={S.label}>Home scorers</label><input style={S.input} value={f.homeScorers || ""} onChange={e => update("homeScorers", e.target.value)} placeholder="Smith 23, Jones 45" /></div>
                       <div style={{ flex: 1 }}><label style={S.label}>Away scorers</label><input style={S.input} value={f.awayScorers || ""} onChange={e => update("awayScorers", e.target.value)} placeholder="Brown 67" /></div>
@@ -1087,6 +1093,7 @@ function AdminSeasonPass({ spData, onSave }) {
   const [trophies, setTrophies] = useState(spData?.trophies || defaultTrophies);
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState("settings");
+  const pendingGrants = useRef({}); // { uid_trophyId: true/false } — in-flight grants
   const [userSearch, setUserSearch] = useState("");
   const [generatingCodes, setGeneratingCodes] = useState(false);
   const [expandedUser, setExpandedUser] = useState(null);
@@ -1109,8 +1116,22 @@ function AdminSeasonPass({ spData, onSave }) {
         const incoming = Object.entries(snap.val()).map(([uid, data]) => ({ uid, ...data }));
         setUsers(prev => incoming.map(u => {
           const existing = prev.find(p => p.uid === u.uid);
-          // Keep any local-only fields that Firebase hasn't confirmed yet
-          return existing ? { ...u, ...Object.fromEntries(Object.entries(existing).filter(([k]) => u[k] === undefined)) } : u;
+          if (!existing) return u;
+          // Merge: keep Firebase data but override trophies if we have pending grants
+          const merged = { ...u };
+          const pending = pendingGrants.current;
+          const pendingForUser = Object.entries(pending).filter(([k]) => k.startsWith(u.uid + "_"));
+          if (pendingForUser.length > 0) {
+            const trophies = { ...(u.trophies || {}) };
+            pendingForUser.forEach(([k, val]) => {
+              const trophyId = k.slice(u.uid.length + 1);
+              if (val === true) trophies[trophyId] = true;
+              else delete trophies[trophyId];
+            });
+            merged.trophies = trophies;
+          }
+          // Keep local-only fields not yet in Firebase
+          return { ...merged, ...Object.fromEntries(Object.entries(existing).filter(([k]) => merged[k] === undefined)) };
         }));
       } else setUsers([]);
     });
@@ -1175,12 +1196,13 @@ function AdminSeasonPass({ spData, onSave }) {
   };
 
   const grantTrophy = async (uid, trophyId) => {
-    // Optimistic local update
+    const key = `${uid}_${trophyId}`;
+    pendingGrants.current[key] = true;
     setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
     const result = await adminAction("grantTrophy", { uid, trophyId });
+    delete pendingGrants.current[key];
     if (result.error) {
       console.error("Grant failed:", result.error);
-      // Revert on failure
       setUsers(prev => prev.map(u => {
         if (u.uid !== uid) return u;
         const trophies = { ...(u.trophies || {}) };
@@ -1191,7 +1213,8 @@ function AdminSeasonPass({ spData, onSave }) {
   };
 
   const revokeTrophy = async (uid, trophyId) => {
-    // Optimistic local update
+    const key = `${uid}_${trophyId}`;
+    pendingGrants.current[key] = false;
     setUsers(prev => prev.map(u => {
       if (u.uid !== uid) return u;
       const trophies = { ...(u.trophies || {}) };
@@ -1199,9 +1222,9 @@ function AdminSeasonPass({ spData, onSave }) {
       return { ...u, trophies };
     }));
     const result = await adminAction("revokeTrophy", { uid, trophyId });
+    delete pendingGrants.current[key];
     if (result.error) {
       console.error("Revoke failed:", result.error);
-      // Revert on failure
       setUsers(prev => prev.map(u => u.uid === uid ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true } } : u));
     }
   };
@@ -3015,6 +3038,8 @@ export default function App() {
                       ? <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
                           {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
+                          {f.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {f.extraTime}</div>}
+                          {f.penalties && <div style={{ fontSize: 10, color: "#10b981", marginTop: 2, fontWeight: 700 }}>{f.penalties}</div>}
                         </>
                       : <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
