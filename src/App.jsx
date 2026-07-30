@@ -645,12 +645,12 @@ function AdminSquad({ items, onSave, scrollRef }) {
         <div key={p.id} style={{ background: "#0d0c22", border: "1px solid #ffffff0f", borderRadius: 10, padding: 12, marginBottom: 8 }}>
           {/* Name / pos / playing / delete */}
           <div style={S.row}>
-            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update("name", e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update("pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+            <div style={{ flex: 2, minWidth: 140 }}><label style={S.label}>Name</label><input style={S.input} value={p.name} onChange={e => update(idx, "name", e.target.value)} /></div>
+            <div style={{ flex: 1, minWidth: 90 }}><label style={S.label}>Position</label><select style={S.input} value={p.pos} onChange={e => update(idx, "pos", e.target.value)}>{POS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
             <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
                 <span style={{ fontSize: 10, color: p.playing ? "#10b981" : "#8899bb", fontWeight: 700, letterSpacing: 0.5 }}>PLAYING?</span>
-                <input type="checkbox" checked={!!p.playing} onChange={e => update("playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
+                <input type="checkbox" checked={!!p.playing} onChange={e => update(idx, "playing", e.target.checked)} style={{ width: 16, height: 16, accentColor: "#10b981" }} />
               </label>
               <button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "7px 12px" }} onClick={() => del(idx)}>✕</button>
             </div>
@@ -703,7 +703,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
           {/* About */}
           <div style={{ marginTop: 8 }}>
             <label style={S.label}>About this player</label>
-            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update("about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
+            <textarea style={{ ...S.input, height: 60, resize: "vertical" }} value={p.about || ""} onChange={e => update(idx, "about", e.target.value)} placeholder="Previous clubs, strengths, background..." />
           </div>
         </div>
         );
