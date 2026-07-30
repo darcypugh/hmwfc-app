@@ -2623,7 +2623,7 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(weWereHome ? oursBadge : oppBadge) ? <img src={weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{weWereHome ? "The Wells" : oppName}</div>
-                            {weWereHome ? (latestResult.homePens && <PenaltyDots seq={latestResult.homePens} align="center" />) : (latestResult.awayPens && <PenaltyDots seq={latestResult.awayPens} align="center" />)}
+                            {latestResult.homePens && <PenaltyDots seq={latestResult.homePens} align="center" />}
                           </div>
                           <div style={{ textAlign: "center", flexShrink: 0 }}>
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
@@ -2641,7 +2641,7 @@ export default function App() {
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
                             {(!weWereHome ? oursBadge : oppBadge) ? <img src={!weWereHome ? oursBadge : oppBadge} alt="" style={{ width: 56, height: 56, objectFit: "contain", filter: "drop-shadow(0 2px 8px #00000066)" }} /> : <div style={{ width: 56, height: 56, background: "#ffffff0f", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🛡</div>}
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 11, fontWeight: 700, textAlign: "center", color: "#fff", lineHeight: 1.2, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>{!weWereHome ? "The Wells" : oppName}</div>
-                            {!weWereHome ? (latestResult.homePens && <PenaltyDots seq={latestResult.homePens} align="center" />) : (latestResult.awayPens && <PenaltyDots seq={latestResult.awayPens} align="center" />)}
+                            {latestResult.awayPens && <PenaltyDots seq={latestResult.awayPens} align="center" />}
                           </div>
                         </div>
                         <div style={{ textAlign: "center", fontSize: 10, color: "#8899bb" }}>📍 {latestResult.venue}</div>
