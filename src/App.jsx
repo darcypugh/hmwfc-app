@@ -2650,11 +2650,11 @@ export default function App() {
                         <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff0f" }}>
                           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                             <div style={{ flex: 1, textAlign: "right" }}>
-                              {(latestResult.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span><span style={{ fontSize: 12 }}>⚽</span></div>)}
+                              {(latestResult.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12, color: "#aabbcc" }}>{name}</span><span style={{ fontSize: 14 }}>⚽</span><span style={{ fontSize: 11, color: "#8899bb" }}>{time}</span></div>; })}
                             </div>
                             <div style={{ width: 1, background: "#ffffff0f", alignSelf: "stretch" }} />
                             <div style={{ flex: 1 }}>
-                              {(latestResult.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 12 }}>⚽</span><span style={{ fontSize: 12, color: "#aabbcc" }}>{s.trim()}</span></div>)}
+                              {(latestResult.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}><span style={{ fontSize: 11, color: "#8899bb" }}>{time}</span><span style={{ fontSize: 14 }}>⚽</span><span style={{ fontSize: 12, color: "#aabbcc" }}>{name}</span></div>; })}
                             </div>
                           </div>
                         </div>
@@ -3106,11 +3106,11 @@ export default function App() {
                 {isResult && (f.homeScorers || f.awayScorers) && (
                   <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #ffffff07", display: "flex", gap: 8 }}>
                     <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "right" }}>
-                      {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>{s.trim()} ⚽</div>)}
+                      {(f.homeScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}><span style={{ fontSize: 11, color: "#aabbcc" }}>{name}</span><span>⚽</span><span style={{ fontSize: 10, color: "#8899bb" }}>{time}</span></div>; })}
                     </div>
                     <div style={{ width: 90, flexShrink: 0 }} />
                     <div style={{ flex: 1, fontSize: 11, color: "#8899bb", lineHeight: 2, textAlign: "left" }}>
-                      {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => <div key={i}>⚽ {s.trim()}</div>)}
+                      {(f.awayScorers || "").split(",").filter(s => s.trim()).map((s,i) => { const parts = s.trim().match(/^(.+?)\s+(\d+[^a-z]*)$/); const name = parts ? parts[1] : s.trim(); const time = parts ? parts[2] : ""; return <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ fontSize: 10, color: "#8899bb" }}>{time}</span><span>⚽</span><span style={{ fontSize: 11, color: "#aabbcc" }}>{name}</span></div>; })}
                     </div>
                   </div>
                 )}
