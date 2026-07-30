@@ -1209,10 +1209,17 @@ function AdminSeasonPass({ spData, onSave }) {
   const grantTrophy = async (uid, trophyId) => {
     const key = `${uid}_${trophyId}`;
     pendingGrants.current[key] = true;
+    // Update local state immediately
     setUsers(prev => prev.map(u => u.uid === uid
       ? { ...u, trophies: { ...(u.trophies || {}), [trophyId]: true }, _adminModified: true }
       : u));
-    await adminAction("grantTrophy", { uid, trophyId });
+    // Write directly to Firebase — rules allow auth != null
+    try {
+      await update(ref(db, `users/${uid}/trophies`), { [trophyId]: true });
+    } catch(e) {
+      // Fallback to server route
+      await adminAction("grantTrophy", { uid, trophyId });
+    }
     delete pendingGrants.current[key];
   };
 
@@ -1225,7 +1232,11 @@ function AdminSeasonPass({ spData, onSave }) {
       delete trophies[trophyId];
       return { ...u, trophies, _adminModified: true };
     }));
-    await adminAction("revokeTrophy", { uid, trophyId });
+    try {
+      await set(ref(db, `users/${uid}/trophies/${trophyId}`), null);
+    } catch(e) {
+      await adminAction("revokeTrophy", { uid, trophyId });
+    }
     delete pendingGrants.current[key];
   };
 
@@ -2618,13 +2629,13 @@ export default function App() {
                             <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1 }}>{latestResult.result}</div>
                             {latestResult.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT: {latestResult.halftime}</div>}
                             {latestResult.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {latestResult.extraTime}</div>}
-                            {(latestResult.homePens || latestResult.awayPens) && (
-                              <div style={{ marginTop: 6 }}>
-                                <PenaltyDots seq={latestResult.homePens} align="center" />
-                                <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 1, textAlign: "center", margin: "2px 0" }}>PENS</div>
-                                <PenaltyDots seq={latestResult.awayPens} align="center" />
-                              </div>
-                            )}
+                            {(latestResult.homePens || latestResult.awayPens) && (() => {
+                              const hGoals = (latestResult.homePens || "").split("").filter(c => c === "G").length;
+                              const aGoals = (latestResult.awayPens || "").split("").filter(c => c === "G").length;
+                              return (
+                                <div style={{ marginTop: 4, fontSize: 11, color: "#10b981", fontWeight: 700 }}>({hGoals}–{aGoals} pens)</div>
+                              );
+                            })()}
                             <div style={{ fontSize: 10, color: "#8899bb", marginTop: 2 }}>{formatFixtureDateShort(latestResult.date)}</div>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
@@ -3048,11 +3059,12 @@ export default function App() {
                 {/* Main row — teams + score */}
                 <div style={{ display: "flex", alignItems: "center", padding: "16px", gap: 8 }}>
                   {/* Home */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                     {homeBadge
                       ? <img src={homeBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
                       : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.home)}</div>
+                    {isResult && f.homePens && <PenaltyDots seq={f.homePens} align="center" />}
                   </div>
 
                   {/* Centre — score or time */}
@@ -3062,13 +3074,17 @@ export default function App() {
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 30, fontWeight: 900, color: "#fff", letterSpacing: 3, lineHeight: 1 }}>{f.result}</div>
                           {f.halftime && <div style={{ fontSize: 10, color: "#8899bb", marginTop: 4, letterSpacing: 1 }}>HT {f.halftime}</div>}
                           {f.extraTime && <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 2, fontWeight: 700 }}>AET: {f.extraTime}</div>}
-                          {(f.homePens || f.awayPens) && (
-                            <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3, alignItems: "center" }}>
-                              <PenaltyDots seq={f.homePens} align="center" />
-                              <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 1 }}>PENS</div>
-                              <PenaltyDots seq={f.awayPens} align="center" />
-                            </div>
-                          )}
+                          {(f.homePens || f.awayPens) && <div style={{ fontSize: 10, color: "#10b981", fontWeight: 700, marginTop: 3, letterSpacing: 1 }}>PENS</div>}
+                          {(f.homePens || f.awayPens) && (() => {
+                            const hGoals = (f.homePens || "").split("").filter(c => c === "G").length;
+                            const aGoals = (f.awayPens || "").split("").filter(c => c === "G").length;
+                            return (
+                              <div style={{ marginTop: 6, background: "#ffffff08", borderRadius: 6, padding: "6px 8px" }}>
+                                <div style={{ fontSize: 9, color: "#8899bb", letterSpacing: 1, textAlign: "center", marginBottom: 4 }}>PENALTIES</div>
+                                <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 18, fontWeight: 900, color: "#fff", textAlign: "center", marginBottom: 4 }}>{hGoals} – {aGoals}</div>
+                              </div>
+                            );
+                          })()}
                         </>
                       : <>
                           <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 24, fontWeight: 900, color: "#347ebf", lineHeight: 1 }}>{f.time}</div>
@@ -3077,11 +3093,12 @@ export default function App() {
                   </div>
 
                   {/* Away */}
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                     {awayBadge
                       ? <img src={awayBadge} alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
                       : <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🛡</div>}
                     <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 13, fontWeight: 900, textAlign: "center", color: "#fff", lineHeight: 1.2 }}>{shortTeamName(f.away)}</div>
+                    {isResult && f.awayPens && <PenaltyDots seq={f.awayPens} align="center" />}
                   </div>
                 </div>
 
