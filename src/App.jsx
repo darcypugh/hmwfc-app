@@ -1413,14 +1413,16 @@ function AdminSeasonPass({ spData, onSave }) {
                 <div style={{ padding: "0 16px 16px", display: "flex", gap: 8 }}>
                   <button onClick={() => {
                     const { uid, trophyId, allPhotos, photoUrl } = lightboxPhoto;
-                    const updated = allPhotos.map(p => p.url === photoUrl ? { ...p, reviewed: true } : p);
+                    // Remove the photo entirely rather than just marking reviewed
+                    const updated = allPhotos.filter(p => p.url !== photoUrl);
+                    // Write directly to Firebase
+                    update(ref(db, `users/${uid}/submissions/${trophyId}`), { photos: updated });
                     setUsers(prev => prev.map(u => {
                       if (u.uid !== uid) return u;
                       const subs = { ...(u.submissions || {}) };
                       subs[trophyId] = { ...(subs[trophyId] || {}), photos: updated };
                       return { ...u, submissions: subs };
                     }));
-                    adminAction("reviewPhoto", { uid, trophyId, photos: updated });
                     setLightboxPhoto(null);
                   }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", flex: 1 }}>✕ Delete photo</button>
                   <button onClick={() => setLightboxPhoto(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", flex: 1 }}>Close</button>
