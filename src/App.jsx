@@ -586,7 +586,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
       if (field.startsWith("season")) {
         const statKey = field.replace("season", "").charAt(0).toLowerCase() + field.replace("season", "").slice(1);
         const baseKey = "base" + field.replace("season", "");
-        next[statKey] = (next[baseKey] || 0) + val;
+        next[statKey] = (Number(next[baseKey]) || 0) + (Number(val) || 0);
       }
       return next;
     });
@@ -1458,7 +1458,18 @@ function AdminSeasonPass({ spData, onSave }) {
                 {/* Expanded content */}
                 {isExpanded && (
                   <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
-                    <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{u.email}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, color: "#8899bb" }}>{u.email}</div>
+                      <button onClick={() => {
+                        // Save this user's submission counts to Firebase
+                        const subs = u.submissions || {};
+                        Object.entries(subs).forEach(([trophyId, data]) => {
+                          if (data.count !== undefined) {
+                            update(ref(db, `users/${u.uid}/submissions/${trophyId}`), { count: data.count });
+                          }
+                        });
+                      }} style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 11, padding: "4px 12px" }}>💾 Save Progress</button>
+                    </div>
                     {/* Season Ticket toggle */}
                     <div style={{ background: "#191740", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                       <div style={{ flex: 1 }}>
@@ -1498,12 +1509,13 @@ function AdminSeasonPass({ spData, onSave }) {
                               <div style={{ flex: 1, minWidth: 100 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: has ? cat.color : "#fff" }}>{t.name}</div>
                                 <div style={{ fontSize: 10, color: "#8899bb" }}>{cat.label} · {cat.points}pts · {isEvidence ? `Evidence (${progress}/${threshold})` : "Code"}</div>
+                                {t.description && <div style={{ fontSize: 10, color: "#8899bb88", marginTop: 2, lineHeight: 1.4 }}>{t.description}</div>}
                               </div>
                               {isEvidence && !has && (
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <button onClick={async () => { const newCount = Math.max(0, progress - 1); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
+                                  <button onClick={async () => { const newCount = Math.max(0, progress - 1); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
                                   <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
-                                  <button onClick={async () => { const newCount = progress + 1; setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
+                                  <button onClick={async () => { const newCount = progress + 1; setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
                                 </div>
                               )}
                               <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
