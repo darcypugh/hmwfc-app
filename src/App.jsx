@@ -2704,8 +2704,8 @@ export default function App() {
                         <div style={{ width: 20 }} />
                         <div style={{ flex: 1 }} />
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 24, textAlign: "center" }}>P</div>
-                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>GD</div>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>Pts</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>GD</div>
                       </div>
                       {nearbyRows.map(r => {
                         const zone = getZone(r.pos);
@@ -2719,8 +2719,8 @@ export default function App() {
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
                             <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
                             <div style={{ fontSize: 12, color: "#8899bb", width: 24, textAlign: "center" }}>{Number(r.p)||0}</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: gdColor, width: 28, textAlign: "center" }}>{r.gd||0}</div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb", width: 28, textAlign: "center" }}>{Number(r.pts)||0}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: gdColor, width: 28, textAlign: "center" }}>{r.gd||0}</div>
                           </div>
                         );
                       })}
@@ -3022,8 +3022,8 @@ export default function App() {
                           <td className="tbl-hide" style={{ color: "#10b981" }}>{r.w}</td>
                           <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.d}</td>
                           <td className="tbl-hide" style={{ color: "#ef4444" }}>{r.l}</td>
-                          <td style={{ color: String(r.gd||0).startsWith("-") ? "#ef4444" : (String(r.gd||0) === "0" ? "#8899bb" : "#10b981"), fontWeight: 700 }}>{r.gd}</td>
                           <td style={{ fontWeight: 700 }}>{r.pts}</td>
+                          <td style={{ color: String(r.gd||0).startsWith("-") ? "#ef4444" : (String(r.gd||0) === "0" ? "#8899bb" : "#10b981"), fontWeight: 700 }}>{r.gd}</td>
                         </tr>
                       );
                     })}
