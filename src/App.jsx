@@ -2997,7 +2997,7 @@ export default function App() {
               </div>
               <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                 <table>
-                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>GD</th><th>Pts</th></tr></thead>
+                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>Pts</th><th>GD</th></tr></thead>
                   <tbody>
                     {sorted.map((r, idx) => {
                       const zone = getZone(r.pos);
