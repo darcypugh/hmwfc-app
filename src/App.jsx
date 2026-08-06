@@ -586,7 +586,7 @@ function AdminSquad({ items, onSave, scrollRef }) {
       if (field.startsWith("season")) {
         const statKey = field.replace("season", "").charAt(0).toLowerCase() + field.replace("season", "").slice(1);
         const baseKey = "base" + field.replace("season", "");
-        next[statKey] = (next[baseKey] || 0) + val;
+        next[statKey] = (Number(next[baseKey]) || 0) + (Number(val) || 0);
       }
       return next;
     });
@@ -1413,14 +1413,16 @@ function AdminSeasonPass({ spData, onSave }) {
                 <div style={{ padding: "0 16px 16px", display: "flex", gap: 8 }}>
                   <button onClick={() => {
                     const { uid, trophyId, allPhotos, photoUrl } = lightboxPhoto;
-                    const updated = allPhotos.map(p => p.url === photoUrl ? { ...p, reviewed: true } : p);
+                    // Remove the photo entirely rather than just marking reviewed
+                    const updated = allPhotos.filter(p => p.url !== photoUrl);
+                    // Write directly to Firebase
+                    update(ref(db, `users/${uid}/submissions/${trophyId}`), { photos: updated });
                     setUsers(prev => prev.map(u => {
                       if (u.uid !== uid) return u;
                       const subs = { ...(u.submissions || {}) };
                       subs[trophyId] = { ...(subs[trophyId] || {}), photos: updated };
                       return { ...u, submissions: subs };
                     }));
-                    adminAction("reviewPhoto", { uid, trophyId, photos: updated });
                     setLightboxPhoto(null);
                   }} style={{ ...S.btn, background: "#ef444422", color: "#ef4444", flex: 1 }}>✕ Delete photo</button>
                   <button onClick={() => setLightboxPhoto(null)} style={{ ...S.btn, background: "#ffffff0f", color: "#8899bb", flex: 1 }}>Close</button>
@@ -1458,7 +1460,18 @@ function AdminSeasonPass({ spData, onSave }) {
                 {/* Expanded content */}
                 {isExpanded && (
                   <div style={{ borderTop: "1px solid #ffffff0f", padding: 14 }}>
-                    <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 10 }}>{u.email}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, color: "#8899bb" }}>{u.email}</div>
+                      <button onClick={() => {
+                        // Save this user's submission counts to Firebase
+                        const subs = u.submissions || {};
+                        Object.entries(subs).forEach(([trophyId, data]) => {
+                          if (data.count !== undefined) {
+                            update(ref(db, `users/${u.uid}/submissions/${trophyId}`), { count: data.count });
+                          }
+                        });
+                      }} style={{ ...S.btn, background: "#10b98122", color: "#10b981", fontSize: 11, padding: "4px 12px" }}>💾 Save Progress</button>
+                    </div>
                     {/* Season Ticket toggle */}
                     <div style={{ background: "#191740", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                       <div style={{ flex: 1 }}>
@@ -1498,12 +1511,13 @@ function AdminSeasonPass({ spData, onSave }) {
                               <div style={{ flex: 1, minWidth: 100 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: has ? cat.color : "#fff" }}>{t.name}</div>
                                 <div style={{ fontSize: 10, color: "#8899bb" }}>{cat.label} · {cat.points}pts · {isEvidence ? `Evidence (${progress}/${threshold})` : "Code"}</div>
+                                {t.description && <div style={{ fontSize: 10, color: "#8899bb88", marginTop: 2, lineHeight: 1.4 }}>{t.description}</div>}
                               </div>
                               {isEvidence && !has && (
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  <button onClick={async () => { const newCount = Math.max(0, progress - 1); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
+                                  <button onClick={async () => { const newCount = Math.max(0, progress - 1); setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); }} style={{ ...S.btn, background: "#ffffff0f", color: "#aabbcc", padding: "3px 8px", fontSize: 12 }}>−</button>
                                   <span style={{ fontFamily: "Barlow Condensed, sans-serif", fontWeight: 900, fontSize: 16, color: progress >= threshold ? "#10b981" : "#fff", minWidth: 32, textAlign: "center" }}>{progress}/{threshold}</span>
-                                  <button onClick={async () => { const newCount = progress + 1; setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); await adminAction("setSubmissionCount", { uid: u.uid, trophyId: t.id, count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
+                                  <button onClick={async () => { const newCount = progress + 1; setUsers(prev => prev.map(usr => { if (usr.uid !== u.uid) return usr; const subs = { ...(usr.submissions || {}) }; subs[t.id] = { ...(subs[t.id] || {}), count: newCount }; return { ...usr, submissions: subs }; })); update(ref(db, `users/${u.uid}/submissions/${t.id}`), { count: newCount }); if (newCount >= threshold) { grantTrophy(u.uid, t.id); } }} style={{ ...S.btn, background: progress + 1 >= threshold ? "#10b98122" : "#ffffff0f", color: progress + 1 >= threshold ? "#10b981" : "#aabbcc", padding: "3px 8px", fontSize: 12 }}>+</button>
                                 </div>
                               )}
                               <button onClick={() => has ? revokeTrophy(u.uid, t.id) : grantTrophy(u.uid, t.id)}
@@ -2690,8 +2704,8 @@ export default function App() {
                         <div style={{ width: 20 }} />
                         <div style={{ flex: 1 }} />
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 24, textAlign: "center" }}>P</div>
-                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>GD</div>
                         <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>Pts</div>
+                        <div style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: 10, color: "#8899bb55", fontWeight: 700, letterSpacing: 1, width: 28, textAlign: "center" }}>GD</div>
                       </div>
                       {nearbyRows.map(r => {
                         const zone = getZone(r.pos);
@@ -2705,8 +2719,8 @@ export default function App() {
                             {r.badge ? <img src={`data:image/png;base64,${r.badge}`} alt="" style={{ width: 20, height: 20, objectFit: "contain", flexShrink: 0 }} /> : <div style={{ width: 20, height: 20, background: "#ffffff08", borderRadius: 3 }} />}
                             <div style={{ flex: 1, fontSize: 13, fontWeight: isOurs ? 700 : 400, color: isOurs ? "#fff" : "#aabbcc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isOurs ? "The Wells" : r.team.split(" ").slice(0,3).join(" ")}</div>
                             <div style={{ fontSize: 12, color: "#8899bb", width: 24, textAlign: "center" }}>{Number(r.p)||0}</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: gdColor, width: 28, textAlign: "center" }}>{r.gd||0}</div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: isOurs ? "#fff" : "#8899bb", width: 28, textAlign: "center" }}>{Number(r.pts)||0}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: gdColor, width: 28, textAlign: "center" }}>{r.gd||0}</div>
                           </div>
                         );
                       })}
@@ -2983,7 +2997,7 @@ export default function App() {
               </div>
               <div style={{ background: "#191740", borderRadius: 12, overflow: "hidden", border: "1px solid #ffffff0f" }}>
                 <table>
-                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>GD</th><th>Pts</th></tr></thead>
+                  <thead><tr><th style={{ width: 4 }}></th><th>#</th><th>Club</th><th>P</th><th className="tbl-hide">W</th><th className="tbl-hide">D</th><th className="tbl-hide">L</th><th>Pts</th><th>GD</th></tr></thead>
                   <tbody>
                     {sorted.map((r, idx) => {
                       const zone = getZone(r.pos);
@@ -3008,8 +3022,8 @@ export default function App() {
                           <td className="tbl-hide" style={{ color: "#10b981" }}>{r.w}</td>
                           <td className="tbl-hide" style={{ color: "#aabbcc" }}>{r.d}</td>
                           <td className="tbl-hide" style={{ color: "#ef4444" }}>{r.l}</td>
-                          <td style={{ color: String(r.gd||0).startsWith("-") ? "#ef4444" : (String(r.gd||0) === "0" ? "#8899bb" : "#10b981"), fontWeight: 700 }}>{r.gd}</td>
                           <td style={{ fontWeight: 700 }}>{r.pts}</td>
+                          <td style={{ color: String(r.gd||0).startsWith("-") ? "#ef4444" : (String(r.gd||0) === "0" ? "#8899bb" : "#10b981"), fontWeight: 700 }}>{r.gd}</td>
                         </tr>
                       );
                     })}
