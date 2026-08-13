@@ -249,7 +249,17 @@ function AdminTable({ items, onSave }) {
   const update = (idx, field, val) => setList(list.map((x, i) => i === idx ? { ...x, [field]: val } : x));
   const del = (idx) => { const l = list.filter((_, i) => i !== idx); setList(l); onSave(l); };
   const addRow = () => setList([...list, { pos: list.length + 1, team: "", stadium: "", p: 0, w: 0, d: 0, l: 0, gd: "0", pts: 0, highlight: false, badge: "" }]);
-  const save = () => onSave(list);
+  const save = () => {
+    const sorted = [...list].sort((a, b) => {
+      const ptsDiff = (Number(b.pts) || 0) - (Number(a.pts) || 0);
+      if (ptsDiff !== 0) return ptsDiff;
+      const gdA = parseInt(String(a.gd || 0)) || 0;
+      const gdB = parseInt(String(b.gd || 0)) || 0;
+      return gdB - gdA;
+    }).map((r, i) => ({ ...r, pos: i + 1 }));
+    setList(sorted);
+    onSave(sorted);
+  };
   const uploadBadge = (idx, file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -271,7 +281,7 @@ function AdminTable({ items, onSave }) {
       <div style={{ fontSize: 11, color: "#8899bb", marginBottom: 14 }}>Upload each club's badge here -- it will appear on the homepage result card and anywhere else badges are shown.</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-          <thead><tr>{["Badge","Pos","Team","Stadium","P","W","D","L","GD","Pts","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+          <thead><tr>{["Badge","Pos","Team","Stadium","P","W","D","L","Pts","GD","Us",""].map(h => <th key={h} style={{ color: "#8899bb", padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #ffffff0f", whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
           <tbody>
             {list.map((r, idx) => (
               <tr key={idx} style={{ background: r.highlight ? "#347ebf11" : "transparent" }}>
@@ -287,8 +297,8 @@ function AdminTable({ items, onSave }) {
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update(idx, "stadium", e.target.value)} /></td>
                 {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
-                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r.pts} onChange={e => update(idx, "pts", +e.target.value)} /></td>
+                <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 54 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update(idx, "highlight", e.target.checked)} /></td>
                 <td style={{ padding: "4px 6px" }}><button style={{ ...S.btn, background: "#ef444422", color: "#ef4444", padding: "4px 10px" }} onClick={() => del(idx)}>✕</button></td>
               </tr>
