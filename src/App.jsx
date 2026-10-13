@@ -286,7 +286,7 @@ function AdminTable({ items, onSave }) {
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r.pos} onChange={e => update(idx, "pos", +e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 160 }} value={r.team} onChange={e => update(idx, "team", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 140 }} value={r.stadium || ""} placeholder="Stadium name" onChange={e => update(idx, "stadium", e.target.value)} /></td>
-                {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 44 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
+                {["p","w","d","l"].map(f => <td key={f} style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 58 }} type="number" value={r[f]} onChange={e => update(idx, f, +e.target.value)} /></td>)}
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 64 }} type="number" value={r.pts} onChange={e => update(idx, "pts", +e.target.value)} /></td>
                 <td style={{ padding: "4px 6px" }}><input style={{ ...S.input, width: 64 }} value={r.gd} onChange={e => update(idx, "gd", e.target.value)} /></td>
                 <td style={{ padding: "4px 6px", textAlign: "center" }}><input type="checkbox" checked={!!r.highlight} onChange={e => update(idx, "highlight", e.target.checked)} /></td>
