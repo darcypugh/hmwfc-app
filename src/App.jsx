@@ -213,11 +213,11 @@ function AdminNews({ items, onSave }) {
           {editing === idx && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={S.row}>
-                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Date</label><input style={S.input} value={n.date} onChange={e => update("date", e.target.value)} /></div>
-                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Tag</label><input style={S.input} value={n.tag} onChange={e => update("tag", e.target.value)} /></div>
-                <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update("emoji", e.target.value)} /></div>
+                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Date</label><input style={S.input} value={n.date} onChange={e => update(idx, "date", e.target.value)} /></div>
+                <div style={{ flex: 1, minWidth: 120 }}><label style={S.label}>Tag</label><input style={S.input} value={n.tag} onChange={e => update(idx, "tag", e.target.value)} /></div>
+                <div style={{ flex: 0.3, minWidth: 60 }}><label style={S.label}>Icon</label><input style={S.input} value={n.emoji} onChange={e => update(idx, "emoji", e.target.value)} /></div>
               </div>
-              <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update("title", e.target.value)} /></div>
+              <div><label style={S.label}>Headline</label><input style={S.input} value={n.title} onChange={e => update(idx, "title", e.target.value)} /></div>
               <div><label style={S.label}>Body</label><RichEditor value={n.body} onChange={val => update(idx, "body", val)} /></div>
               <div>
                 <label style={S.label}>Article Image</label>
